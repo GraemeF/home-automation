@@ -2,6 +2,11 @@
   "version": 2,
   "projects": {
     "deep-heating": "packages/deep-heating",
-    "deep-heating-rx": "packages/deep-heating-rx"
+    "deep-heating-hive": "packages/deep-heating-hive",
+    "deep-heating-hue": "packages/deep-heating-hue",
+    "deep-heating-rx": "packages/deep-heating-rx",
+    "deep-heating-types": "packages/deep-heating-types",
+    "dictionary": "packages/dictionary",
+    "rxx": "packages/rxx"
   }
 }

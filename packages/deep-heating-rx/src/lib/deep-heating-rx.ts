@@ -1,3 +1,1 @@
-export function deepHeatingRx(): string {
-  return 'deep-heating-rx';
-}
+export * from './streams/DeepHeating';

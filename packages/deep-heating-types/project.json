@@ -1,0 +1,23 @@
+{
+  "root": "packages/deep-heating-types",
+  "sourceRoot": "packages/deep-heating-types/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["packages/deep-heating-types/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/packages/deep-heating-types"],
+      "options": {
+        "jestConfig": "packages/deep-heating-types/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": []
+}

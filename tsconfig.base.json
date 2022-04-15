@@ -15,9 +15,20 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@home-automation/deep-heating-hive": [
+        "packages/deep-heating-hive/src/index.ts"
+      ],
+      "@home-automation/deep-heating-hue": [
+        "packages/deep-heating-hue/src/index.ts"
+      ],
       "@home-automation/deep-heating-rx": [
         "packages/deep-heating-rx/src/index.ts"
-      ]
+      ],
+      "@home-automation/deep-heating-types": [
+        "packages/deep-heating-types/src/index.ts"
+      ],
+      "@home-automation/dictionary": ["packages/dictionary/src/index.ts"],
+      "@home-automation/rxx": ["packages/rxx/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

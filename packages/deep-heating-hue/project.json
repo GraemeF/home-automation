@@ -1,0 +1,23 @@
+{
+  "root": "packages/deep-heating-hue",
+  "sourceRoot": "packages/deep-heating-hue/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["packages/deep-heating-hue/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/packages/deep-heating-hue"],
+      "options": {
+        "jestConfig": "packages/deep-heating-hue/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": []
+}
