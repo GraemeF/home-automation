@@ -1,6 +1,7 @@
 {
   "version": 2,
   "projects": {
-    "deep-heating": "packages/deep-heating"
+    "deep-heating": "packages/deep-heating",
+    "deep-heating-rx": "packages/deep-heating-rx"
   }
 }

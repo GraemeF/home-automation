@@ -1,0 +1,23 @@
+{
+  "root": "packages/deep-heating-rx",
+  "sourceRoot": "packages/deep-heating-rx/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["packages/deep-heating-rx/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/packages/deep-heating-rx"],
+      "options": {
+        "jestConfig": "packages/deep-heating-rx/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": []
+}
