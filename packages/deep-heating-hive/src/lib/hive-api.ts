@@ -3,10 +3,11 @@ import { HiveHeatingSchedule } from './hive';
 import debug from 'debug';
 import { login_srp } from './hive-login';
 
-import superagent from 'superagent';
+import * as request from 'superagent';
 
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 import { TrvModeValue } from '@home-automation/deep-heating-types';
+import { JwtPayload } from 'jsonwebtoken';
 
 const log = debug('hive-api');
 
@@ -21,7 +22,9 @@ export interface HiveApiAccess {
 }
 
 function decodeToken(token: string) {
-  const expiryTime = DateTime.fromSeconds(jwt.decode(token).exp);
+  const expiryTime = DateTime.fromSeconds(
+    (jwt.decode(token) as JwtPayload).exp
+  );
   return {
     token: token,
     expiryTime: expiryTime,
@@ -134,9 +137,7 @@ async function getResponse(apiAccess: HiveApiAccess, path: string) {
   const url = apiAccess.endpoint + path;
   try {
     return (
-      await superagent
-        .get(url)
-        .auth(apiAccess.idToken.token, { type: 'bearer' })
+      await request.get(url).auth(apiAccess.idToken.token, { type: 'bearer' })
     ).body;
   } catch (e) {
     log(`Failed to GET ${path}:`, e.message, e.response.text);
@@ -169,7 +170,7 @@ export async function setTrv(
 
   let result;
   try {
-    result = await superagent
+    result = await request
       .post(url)
       .auth(apiAccess.idToken.token, { type: 'bearer' })
       .set('Content-Type', 'application/json')
@@ -200,7 +201,7 @@ export async function setHeating(
   let result: HiveResult;
   const data = { mode: mode, target: targetTemperature };
   try {
-    result = await superagent
+    result = await request
       .post(`${apiAccess.endpoint}/nodes/heating/${heatingId}`)
       .auth(apiAccess.idToken.token, { type: 'bearer' })
       .set('Content-Type', 'application/json')
