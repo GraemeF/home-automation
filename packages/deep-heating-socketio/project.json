@@ -1,0 +1,52 @@
+{
+  "root": "packages/deep-heating-socketio",
+  "sourceRoot": "packages/deep-heating-socketio/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/node:webpack",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/deep-heating-socketio",
+        "main": "packages/deep-heating-socketio/src/main.ts",
+        "tsConfig": "packages/deep-heating-socketio/tsconfig.app.json",
+        "assets": ["packages/deep-heating-socketio/src/assets"]
+      },
+      "configurations": {
+        "production": {
+          "optimization": true,
+          "extractLicenses": true,
+          "inspect": false,
+          "fileReplacements": [
+            {
+              "replace": "packages/deep-heating-socketio/src/environments/environment.ts",
+              "with": "packages/deep-heating-socketio/src/environments/environment.prod.ts"
+            }
+          ]
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nrwl/node:node",
+      "options": {
+        "buildTarget": "deep-heating-socketio:build"
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["packages/deep-heating-socketio/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/packages/deep-heating-socketio"],
+      "options": {
+        "jestConfig": "packages/deep-heating-socketio/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": []
+}

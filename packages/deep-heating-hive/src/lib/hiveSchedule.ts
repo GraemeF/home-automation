@@ -1,8 +1,5 @@
 import { DateTime, Duration } from 'luxon';
-import {
-  HiveHeatingSchedule,
-  HiveHeatingScheduleSlot,
-} from '@home-automation/deep-heating-hive';
+import { HiveHeatingSchedule, HiveHeatingScheduleSlot } from './hive';
 import { HeatingSchedule } from '@home-automation/deep-heating-types';
 
 function getDaySchedules(

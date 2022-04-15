@@ -1,9 +1,9 @@
 import { map } from 'rxjs/operators';
-import { toHeatingSchedule } from './hiveSchedule';
 import { merge, Observable } from 'rxjs';
 import { RoomTemperature } from '@home-automation/deep-heating-types';
 import { TrvUpdate } from '@home-automation/deep-heating-hive';
 import { InfluxDB, Point } from '@influxdata/influxdb-client';
+import { toHeatingSchedule } from '@home-automation/deep-heating-hive';
 
 export class InfluxDBWriter {
   readonly influxPoints$: Observable<Point>;

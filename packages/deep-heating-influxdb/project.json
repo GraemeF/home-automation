@@ -1,0 +1,23 @@
+{
+  "root": "packages/deep-heating-influxdb",
+  "sourceRoot": "packages/deep-heating-influxdb/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["packages/deep-heating-influxdb/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/packages/deep-heating-influxdb"],
+      "options": {
+        "jestConfig": "packages/deep-heating-influxdb/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": []
+}

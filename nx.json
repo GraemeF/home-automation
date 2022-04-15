@@ -5,7 +5,7 @@
     "defaultBase": "main"
   },
   "cli": {
-    "defaultCollection": "@nrwl/workspace"
+    "defaultCollection": "@nrwl/node"
   },
   "tasksRunnerOptions": {
     "default": {
@@ -15,5 +15,6 @@
         "accessToken": "YjUwYjZlYTctZjEzYS00ODljLThhZTYtYzY4OTczNDFiZmMwfHJlYWQtd3JpdGU="
       }
     }
-  }
+  },
+  "defaultProject": "deep-heating-socketio"
 }

@@ -42,6 +42,8 @@
     "amazon-user-pool-srp-client": "^1.0.4",
     "jsonwebtoken": "^8.5.1",
     "luxon": "^2.3.1",
+    "rxjs-multi-scan": "^1.0.2",
+    "socket.io": "^4.4.1",
     "superagent": "^7.1.2",
     "tslib": "^2.0.0"
   }
