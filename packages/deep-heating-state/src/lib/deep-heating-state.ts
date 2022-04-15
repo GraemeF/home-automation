@@ -47,6 +47,17 @@ function maintainTrvState(
       isHeating: update.isHeating,
     }),
 
+    deepHeating.trvDesiredTargetTemperatures$.pipe(
+      filter((x) => x.trvId === trvId)
+    ),
+    (state, desired) => ({
+      ...state,
+      desiredTargetTemperature: {
+        temperature: desired.targetTemperature,
+        time: DateTime.local(),
+      },
+    }),
+
     initialState
   ).pipe(startWith<RadiatorState>(initialState));
 }

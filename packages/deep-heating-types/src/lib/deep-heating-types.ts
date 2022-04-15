@@ -135,6 +135,7 @@ export interface RadiatorState {
   name?: string;
   temperature?: TemperatureReading;
   targetTemperature?: TemperatureReading;
+  desiredTargetTemperature?: TemperatureReading;
 }
 
 export interface RoomState {

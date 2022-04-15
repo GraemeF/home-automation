@@ -454,7 +454,7 @@ export class DeepHeating {
     this.heatingActions$ = getHeatingActions(
       home.heatingId,
       this.heatingStatuses$,
-      this.trvsAnyHeating$
+      this.roomsAnyHeating$
     );
     this.heatingActions$.subscribe((x) =>
       log(
