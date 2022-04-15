@@ -14,6 +14,7 @@ import { Server } from 'http';
 import { isDeepStrictEqual } from 'util';
 import {
   DeepHeatingState,
+  Home,
   RoomAdjustment,
 } from '@home-automation/deep-heating-types';
 import { DeepHeating } from '@home-automation/deep-heating-rx';
@@ -36,7 +37,7 @@ export class SocketServer {
   private readonly subscription: Subscription;
   private readonly state$: Observable<DeepHeatingState>;
 
-  constructor(server: Server) {
+  constructor(server: Server, home: Home) {
     this.io$ = of(new SocketIO.Server(server));
 
     this.connection$ = this.io$.pipe(
@@ -59,12 +60,7 @@ export class SocketServer {
       share()
     );
 
-    const deepHeating = new DeepHeating(
-      [],
-      'switch id',
-      'heating id',
-      roomAdjustments$
-    );
+    const deepHeating = new DeepHeating(home, roomAdjustments$);
 
     const influxUrl = process.env['INFLUXDB_URL'];
     if (influxUrl) {

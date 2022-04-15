@@ -69,6 +69,7 @@ import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import {
   ButtonEvent,
   HeatingStatus,
+  Home,
   HouseModeValue,
   RoomAdjustment,
   RoomDecisionPoint,
@@ -168,12 +169,7 @@ export class DeepHeating {
   private readonly hiveHeatingActionSubject: Subject<HeatingAction> =
     new Subject<HeatingAction>();
 
-  constructor(
-    rooms: RoomDefinition[],
-    sleepSwitchId: string,
-    heatingId: string,
-    roomAdjustmentCommands$: Observable<RoomAdjustment>
-  ) {
+  constructor(home: Home, roomAdjustmentCommands$: Observable<RoomAdjustment>) {
     this.hueSensorUpdate$ = getHueSensorUpdates();
     this.temperatureSensorUpdate$ = this.hueSensorUpdate$.pipe(
       filter(isTemperatureSensorUpdate)
@@ -192,9 +188,9 @@ export class DeepHeating {
         x.eventType
       )
     );
-    this.houseModes$ = getHouseModes(this.buttonEvents$, sleepSwitchId);
+    this.houseModes$ = getHouseModes(this.buttonEvents$, home.sleepSwitchId);
     this.houseModes$.subscribe((x) => log('House is', x));
-    this.rooms$ = from(rooms).pipe(
+    this.rooms$ = from(home.rooms).pipe(
       groupBy((roomDefinition) => roomDefinition.name)
     );
     this.roomSensors$ = getRoomSensors(this.rooms$);
@@ -213,7 +209,9 @@ export class DeepHeating {
       share()
     );
     const trvDisplayName = (trvId: string): string =>
-      `${rooms.find((x) => x.trvControlIds.includes(trvId))?.name} (${trvId})`;
+      `${
+        home.rooms.find((x) => x.trvControlIds.includes(trvId))?.name
+      } (${trvId})`;
     this.trvControlStates$.subscribe((x) =>
       log(
         'TRV',
@@ -454,7 +452,7 @@ export class DeepHeating {
     );
 
     this.heatingActions$ = getHeatingActions(
-      heatingId,
+      home.heatingId,
       this.heatingStatuses$,
       this.trvsAnyHeating$
     );

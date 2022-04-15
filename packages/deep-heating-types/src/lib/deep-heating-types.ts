@@ -183,3 +183,9 @@ export interface DeepHeatingState {
   rooms: RoomState[];
   isHeating?: boolean;
 }
+
+export interface Home {
+  rooms: RoomDefinition[];
+  sleepSwitchId: string;
+  heatingId: string;
+}
