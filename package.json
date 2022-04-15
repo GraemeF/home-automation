@@ -13,6 +13,7 @@
     "@nrwl/node": "^13.10.2",
     "@nrwl/nx-cloud": "latest",
     "@nrwl/workspace": "13.10.2",
+    "@nx-tools/nx-docker": "^2.3.0",
     "@nxext/svelte": "^13.3.0",
     "@sveltejs/vite-plugin-svelte": "^1.0.0-next.37",
     "@testing-library/svelte": "^3.0.3",
