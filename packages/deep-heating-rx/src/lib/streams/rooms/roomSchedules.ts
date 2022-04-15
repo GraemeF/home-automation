@@ -1,12 +1,14 @@
 import { combineLatest, Observable, timer } from 'rxjs';
 import { DateTime } from 'luxon';
 import { filter, map, mergeMap, shareReplay } from 'rxjs/operators';
-import { toHeatingSchedule } from '../hiveSchedule';
 import {
   RoomDefinition,
   RoomSchedule,
 } from '@home-automation/deep-heating-types';
-import { RoomHiveHeatingSchedule } from '@home-automation/deep-heating-hive';
+import {
+  RoomHiveHeatingSchedule,
+  toHeatingSchedule,
+} from '@home-automation/deep-heating-hive';
 
 const refreshIntervalSeconds = 60;
 
