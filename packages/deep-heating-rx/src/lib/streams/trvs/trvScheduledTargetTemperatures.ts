@@ -1,8 +1,8 @@
-import { map, shareReplay } from "rxjs/operators";
-import { toHeatingSchedule } from "../hiveSchedule";
-import { combineLatest, Observable, timer } from "rxjs";
-import { DateTime } from "luxon";
-import { TrvHiveHeatingSchedule } from "./trvSchedules";
+import { map, shareReplay } from 'rxjs/operators';
+import { toHeatingSchedule } from '../hiveSchedule';
+import { combineLatest, Observable, timer } from 'rxjs';
+import { DateTime } from 'luxon';
+import { TrvHiveHeatingSchedule } from './trvSchedules';
 
 const refreshIntervalSeconds = 60;
 

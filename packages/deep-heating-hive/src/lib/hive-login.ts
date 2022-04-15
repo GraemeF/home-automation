@@ -1,20 +1,20 @@
-import axios, { AxiosRequestConfig } from "axios";
+import axios, { AxiosRequestConfig } from 'axios';
 import {
   calculateSignature,
   getNowString,
   SRPClient,
-} from "amazon-user-pool-srp-client";
-import debug from "debug";
+} from 'amazon-user-pool-srp-client';
+import debug from 'debug';
 
-const log = debug("hive-login");
+const log = debug('hive-login');
 
 function call(action: string, body: Record<string, unknown>) {
   const request: AxiosRequestConfig = {
     url: process.env.HIVE_SSOUri,
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/x-amz-json-1.1",
-      "X-Amz-Target": action,
+      'Content-Type': 'application/x-amz-json-1.1',
+      'X-Amz-Target': action,
     },
     data: JSON.stringify(body),
     transformResponse: (data) => data,
@@ -27,7 +27,7 @@ function call(action: string, body: Record<string, unknown>) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
         log(
-          "The request was made and the server responded with a status code that falls out of the range of 2xx"
+          'The request was made and the server responded with a status code that falls out of the range of 2xx'
         );
         log(error.response.data);
         log(error.response.status);
@@ -36,15 +36,15 @@ function call(action: string, body: Record<string, unknown>) {
         // The request was made but no response was received
         // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
         // http.ClientRequest in node.js
-        log("The request was made but no response was received", error.request);
+        log('The request was made but no response was received', error.request);
       } else {
         // Something happened in setting up the request that triggered an Error
         log(
-          "Something happened in setting up the request that triggered an Error",
+          'Something happened in setting up the request that triggered an Error',
           error.message
         );
       }
-      log("Request:", error.config);
+      log('Request:', error.config);
       const _err = JSON.parse(error.response.data);
       const err = new Error();
       err.name = _err.__type;
@@ -66,14 +66,14 @@ export async function login_srp(
   };
   username: string;
 }> {
-  const userPoolId = process.env.HIVE_CognitoUserPoolUsers?.split("_")[1];
+  const userPoolId = process.env.HIVE_CognitoUserPoolUsers?.split('_')[1];
   const srp = new SRPClient(userPoolId);
   const SRP_A = srp.calculateA();
   const { ChallengeName, ChallengeParameters, Session } = await call(
-    "AWSCognitoIdentityProviderService.InitiateAuth",
+    'AWSCognitoIdentityProviderService.InitiateAuth',
     {
       ClientId: process.env.HIVE_CognitoUserPoolClientWeb,
-      AuthFlow: "USER_SRP_AUTH",
+      AuthFlow: 'USER_SRP_AUTH',
       AuthParameters: {
         USERNAME: email,
         SRP_A,
@@ -95,7 +95,7 @@ export async function login_srp(
     dateNow
   );
   const { AuthenticationResult } = await call(
-    "AWSCognitoIdentityProviderService.RespondToAuthChallenge",
+    'AWSCognitoIdentityProviderService.RespondToAuthChallenge',
     {
       ClientId: process.env.HIVE_CognitoUserPoolClientWeb,
       ChallengeName,
@@ -117,9 +117,9 @@ export async function login_srp(
 /* Additional calls as part of standalone user pool client */
 
 export function refreshCredentials(refreshToken: string) {
-  return call("AWSCognitoIdentityProviderService.InitiateAuth", {
+  return call('AWSCognitoIdentityProviderService.InitiateAuth', {
     ClientId: process.env.HIVE_CognitoUserPoolClientWeb,
-    AuthFlow: "REFRESH_TOKEN_AUTH",
+    AuthFlow: 'REFRESH_TOKEN_AUTH',
     AuthParameters: {
       REFRESH_TOKEN: refreshToken,
     },
@@ -130,7 +130,7 @@ export function refreshCredentials(refreshToken: string) {
 }
 
 export function resendConfirmationCode(Username: string) {
-  return call("AWSCognitoIdentityProviderService.ResendConfirmationCode", {
+  return call('AWSCognitoIdentityProviderService.ResendConfirmationCode', {
     ClientId: process.env.HIVE_CognitoUserPoolClientWeb,
     Username,
   });

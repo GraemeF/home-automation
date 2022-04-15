@@ -1,14 +1,14 @@
-import { determineAction } from "./trvActions";
-import { DateTime } from "luxon";
+import { determineAction } from './trvActions';
+import { DateTime } from 'luxon';
 
-describe("TRV action", () => {
-  const daytime: DateTime = DateTime.fromISO("2020-01-01T12:00Z");
-  const trvId = "the trv";
+describe('TRV action', () => {
+  const daytime: DateTime = DateTime.fromISO('2020-01-01T12:00Z');
+  const trvId = 'the trv';
 
-  it("OFF", () => {
+  it('OFF', () => {
     const action = determineAction(
       { trvId, targetTemperature: 20 },
-      { trvId, mode: "OFF", source: "Hive", targetTemperature: 7 },
+      { trvId, mode: 'OFF', source: 'Hive', targetTemperature: 7 },
       {
         trvId,
         temperatureReading: { time: daytime, temperature: 10 },
@@ -19,7 +19,7 @@ describe("TRV action", () => {
     expect(action).toBeNull();
   });
 
-  it("should do something", () => {
+  it('should do something', () => {
     const action = determineAction(
       {
         targetTemperature: 23,
@@ -27,9 +27,9 @@ describe("TRV action", () => {
       },
       {
         trvId: trvId,
-        mode: "MANUAL",
+        mode: 'MANUAL',
         targetTemperature: 18.5,
-        source: "Hive",
+        source: 'Hive',
       },
       {
         trvId: trvId,
@@ -45,13 +45,13 @@ describe("TRV action", () => {
     );
 
     expect(action).toStrictEqual({
-      mode: "MANUAL",
+      mode: 'MANUAL',
       targetTemperature: 23,
       trvId: trvId,
     });
   });
 
-  it("should change from MANUAL to SCHEDULE", () => {
+  it('should change from MANUAL to SCHEDULE', () => {
     const action = determineAction(
       {
         targetTemperature: 23,
@@ -59,9 +59,9 @@ describe("TRV action", () => {
       },
       {
         trvId: trvId,
-        mode: "MANUAL",
+        mode: 'MANUAL',
         targetTemperature: 18.5,
-        source: "Hive",
+        source: 'Hive',
       },
       {
         trvId: trvId,
@@ -77,12 +77,12 @@ describe("TRV action", () => {
     );
 
     expect(action).toStrictEqual({
-      mode: "SCHEDULE",
+      mode: 'SCHEDULE',
       trvId: trvId,
     });
   });
 
-  it("should change from SCHEDULE to MANUAL", () => {
+  it('should change from SCHEDULE to MANUAL', () => {
     const action = determineAction(
       {
         targetTemperature: 18.5,
@@ -90,9 +90,9 @@ describe("TRV action", () => {
       },
       {
         trvId: trvId,
-        mode: "SCHEDULE",
+        mode: 'SCHEDULE',
         targetTemperature: 23,
-        source: "Hive",
+        source: 'Hive',
       },
       {
         trvId: trvId,
@@ -108,13 +108,13 @@ describe("TRV action", () => {
     );
 
     expect(action).toStrictEqual({
-      mode: "MANUAL",
+      mode: 'MANUAL',
       targetTemperature: 18.5,
       trvId: trvId,
     });
   });
 
-  it("should change MANUAL target temperature", () => {
+  it('should change MANUAL target temperature', () => {
     const action = determineAction(
       {
         targetTemperature: 18.5,
@@ -122,9 +122,9 @@ describe("TRV action", () => {
       },
       {
         trvId: trvId,
-        mode: "MANUAL",
+        mode: 'MANUAL',
         targetTemperature: 23,
-        source: "Hive",
+        source: 'Hive',
       },
       {
         trvId: trvId,
@@ -140,7 +140,7 @@ describe("TRV action", () => {
     );
 
     expect(action).toStrictEqual({
-      mode: "MANUAL",
+      mode: 'MANUAL',
       targetTemperature: 18.5,
       trvId: trvId,
     });
