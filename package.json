@@ -4,12 +4,12 @@
   "license": "MIT",
   "scripts": {},
   "private": true,
-  "dependencies": {},
   "devDependencies": {
     "@nrwl/cli": "13.10.2",
     "@nrwl/js": "13.10.2",
     "@nrwl/nx-cloud": "latest",
     "@nrwl/workspace": "13.10.2",
+    "@nxext/svelte": "^13.3.0",
     "@types/node": "16.11.7",
     "nx": "13.10.2",
     "prettier": "^2.5.1",
