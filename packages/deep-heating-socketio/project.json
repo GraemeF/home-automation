@@ -46,6 +46,14 @@
         "jestConfig": "packages/deep-heating-socketio/jest.config.js",
         "passWithNoTests": true
       }
+    },
+    "docker": {
+      "executor": "@nx-tools/nx-docker:build",
+      "options": {
+        "push": true,
+        "platforms": ["linux/amd64", "linux/arm64"],
+        "tags": ["graemef/deep-heating-socketio:latest"]
+      }
     }
   },
   "tags": []
