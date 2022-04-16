@@ -5,6 +5,7 @@ import baseConfig from '../../vitest.config';
 export default mergeConfig(baseConfig, {
   test: {
     globals: true,
+    passWithNoTests: true,
   },
   plugins: [svelte({ hot: !process.env.VITEST })],
 });

@@ -5,51 +5,27 @@
   "tags": [],
   "targets": {
     "build": {
-      "executor": "@nxext/vite:build",
-      "outputs": ["{options.outputPath}"],
+      "executor": "@nrwl/workspace:run-script",
       "options": {
-        "frameworkConfigFile": "@nxext/svelte/plugins/vite",
-        "outputPath": "dist/packages/deep-heating",
-        "assets": [
-          {
-            "glob": "/*",
-            "input": "./public/**",
-            "output": "./"
-          }
-        ],
-        "tsConfig": "packages/deep-heating/tsconfig.app.json"
-      },
-      "configurations": {
-        "production": {}
+        "script": "build"
       }
     },
     "serve": {
-      "executor": "@nxext/vite:dev",
+      "executor": "@nrwl/workspace:run-script",
       "options": {
-        "frameworkConfigFile": "@nxext/svelte/plugins/vite",
-        "outputPath": "dist/packages/deep-heating",
-        "assets": [
-          {
-            "glob": "/*",
-            "input": "./public/**",
-            "output": "./"
-          }
-        ],
-        "tsConfig": "packages/deep-heating/tsconfig.app.json"
+        "script": "dev"
       }
     },
     "lint": {
-      "executor": "@nrwl/linter:eslint",
-      "outputs": ["{options.outputFile}"],
+      "executor": "@nrwl/workspace:run-script",
       "options": {
-        "lintFilePatterns": ["packages/deep-heating/**/*.{ts,svelte,spec.ts}"]
+        "script": "lint"
       }
     },
     "check": {
-      "executor": "@nrwl/workspace:run-commands",
+      "executor": "@nrwl/workspace:run-script",
       "options": {
-        "command": "svelte-check",
-        "cwd": "packages/deep-heating"
+        "script": "check"
       }
     },
     "test": {
