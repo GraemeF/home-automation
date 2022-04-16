@@ -38,7 +38,14 @@ export class SocketServer {
   private readonly state$: Observable<DeepHeatingState>;
 
   constructor(server: Server, home: Home) {
-    this.io$ = of(new SocketIO.Server(server));
+    this.io$ = of(
+      new SocketIO.Server(server, {
+        cors: {
+          origin: 'http://localhost:3000',
+          methods: ['GET', 'POST'],
+        },
+      })
+    );
 
     this.connection$ = this.io$.pipe(
       switchMap((io) =>

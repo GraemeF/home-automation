@@ -24,14 +24,7 @@
   // noinspection JSUnusedAssignment
   $appSettingsStore = APPSETTINGS;
 
-  const {
-    ENVIRONMENT,
-    DISPLAY_ENVIRONMENT
-  } = $appSettingsStore;
 </script>
 
-{#if DISPLAY_ENVIRONMENT}
-  <p>Running in {ENVIRONMENT}</p>
-{/if}
+<slot></slot>
 
-<p>Other stuff...</p>

@@ -1,2 +1,5 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the documentation</p>
+<script>
+  import { homeStore } from '$lib/stores/home';
+</script>
+
+<pre>{JSON.stringify($homeStore,null,2)}</pre>

@@ -30,7 +30,8 @@
     "eslint-plugin-svelte3": "^3.4.0",
     "jest": "27.5.1",
     "nx": "13.10.2",
-    "prettier": "^2.5.1",
+    "prettier": "^2.6.2",
+    "prettier-plugin-svelte": "^2.7.0",
     "svelte": "^3.46.4",
     "svelte-check": "^2.3.0",
     "svelte-jester": "^2.3.1",
@@ -50,6 +51,7 @@
     "luxon": "^2.3.1",
     "rxjs-multi-scan": "^1.0.2",
     "socket.io": "^4.4.1",
+    "socket.io-client": "^4.4.1",
     "superagent": "^7.1.1",
     "tslib": "^2.0.0"
   }
