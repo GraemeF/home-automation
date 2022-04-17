@@ -7,14 +7,16 @@
 
 {#if $homeStore.connected}
   <h1>Deep Heating</h1>
-  <Heating isHeating={$homeStore.state.isHeating} />
+  {#if $homeStore.state}
+    <Heating isHeating={$homeStore.state.isHeating} />
 
-  <div class="stats shadow stats-vertical lg:stats-horizontal">
-    {#each $homeStore.state.rooms.sort((a, b) => (a.temperature?.temperature ?? 999) - (b.temperature?.temperature ?? 999)) as room}
-      <Room {room} />
-    {/each}
-  </div>
-  <pre>{JSON.stringify($homeStore, null, 2)}</pre>
+    <div class="stats shadow stats-vertical lg:stats-horizontal">
+      {#each $homeStore.state.rooms.sort((a, b) => (a.temperature?.temperature ?? 999) - (b.temperature?.temperature ?? 999)) as room}
+        <Room {room} />
+      {/each}
+    </div>
+    <pre>{JSON.stringify($homeStore, null, 2)}</pre>
+  {/if}
 {:else}
   <div class="w-full h-full fixed block top-0 left-0 bg-white opacity-75 z-50">
     <span
