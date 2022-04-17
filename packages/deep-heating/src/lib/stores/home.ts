@@ -1,9 +1,9 @@
 import { derived } from 'svelte/store';
 import type { Readable } from 'svelte/store';
 import { apiClientStore } from './apiClient';
-import type { DeepHeatingState } from '../deep-heating-types';
 import type { Socket } from 'socket.io-client';
 import type { DefaultEventsMap } from 'socket.io/dist/typed-events';
+import type { DeepHeatingState } from '@home-automation/deep-heating-types';
 
 export const homeStore = derived<
   Readable<Socket<DefaultEventsMap, DefaultEventsMap>>,

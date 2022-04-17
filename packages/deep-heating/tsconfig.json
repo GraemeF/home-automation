@@ -24,7 +24,14 @@
     "forceConsistentCasingInFileNames": true,
     /** Needed for the vite-tsconfig-paths vite plugin. */
     "allowJs": true,
-    "checkJs": true
+    "checkJs": true,
+    "paths": {
+      "$lib": ["src/lib"],
+      "$lib/*": ["src/lib/*"],
+      "@home-automation/deep-heating-types": [
+        "../deep-heating-types/src/index.ts"
+      ]
+    }
   },
   "files": ["./vitest.config.ts"],
   "include": [],
