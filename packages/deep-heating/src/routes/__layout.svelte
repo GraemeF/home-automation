@@ -5,13 +5,13 @@
     if (res.ok) {
       return {
         props: {
-          APPSETTINGS: await res.json()
-        }
+          APPSETTINGS: await res.json(),
+        },
       };
     }
     return {
       status: res.status,
-      error: new Error('Could not load configuration')
+      error: new Error('Could not load configuration'),
     };
   }
 </script>
@@ -23,8 +23,6 @@
 
   // noinspection JSUnusedAssignment
   $appSettingsStore = APPSETTINGS;
-
 </script>
 
-<slot></slot>
-
+<slot />
