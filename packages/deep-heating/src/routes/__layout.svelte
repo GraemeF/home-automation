@@ -1,4 +1,6 @@
 <script lang="ts" context="module">
+  import '../app.css';
+
   export async function load({ fetch }) {
     const url = '/appsettings.json';
     const res = await fetch(url);
