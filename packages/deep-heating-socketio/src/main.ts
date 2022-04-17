@@ -10,7 +10,7 @@ import debug from 'debug';
 const log = debug('app');
 
 const data = readFileSync(
-  process.env['DEEP_HEATING_HOME_CONFIG_FILE'] || './home.json'
+  process.env['HOME_CONFIG_PATH'] || './home.json'
 ).toString();
 
 const httpServer = createServer();
