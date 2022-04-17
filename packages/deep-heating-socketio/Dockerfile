@@ -1,5 +1,5 @@
 ### Build Step
-FROM node:lts as builder
+FROM --platform=$BUILDPLATFORM node:lts as builder
 
 WORKDIR /usr/src/app
 
@@ -12,7 +12,7 @@ COPY . .
 RUN npx nx run deep-heating-socketio:build
 
 ### Serve Step
-FROM node:lts-slim
+FROM --platform=$BUILDPLATFORM node:lts-slim
 
 WORKDIR /app
 
