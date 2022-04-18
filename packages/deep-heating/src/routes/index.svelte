@@ -3,6 +3,7 @@
   import Spinner from '$lib/components/Spinner.svelte';
   import Heating from '$lib/components/Heating.svelte';
   import Room from '$lib/components/Room.svelte';
+  import { compareByRoomTemperature } from '$lib/temperature';
 </script>
 
 {#if $homeStore.connected}
@@ -10,8 +11,8 @@
   {#if $homeStore.state}
     <Heating isHeating={$homeStore.state.isHeating} />
 
-    <div class="stats shadow stats-vertical lg:stats-horizontal">
-      {#each $homeStore.state.rooms.sort((a, b) => (a.temperature?.temperature ?? 999) - (b.temperature?.temperature ?? 999)) as room}
+    <div class="flex flex-row flex-wrap gap-2">
+      {#each $homeStore.state.rooms.sort(compareByRoomTemperature) as room}
         <Room {room} />
       {/each}
     </div>
