@@ -9,7 +9,7 @@ const config = {
   preprocess: preprocess(),
 
   kit: {
-    adapter: adapter(),
+    adapter: adapter({ out: '../../dist/packages/deep-heating' }),
     vite: {
       resolve: {
         alias: {

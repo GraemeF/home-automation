@@ -33,6 +33,14 @@
       "options": {
         "command": "run"
       }
+    },
+    "docker": {
+      "executor": "@nx-tools/nx-docker:build",
+      "options": {
+        "push": true,
+        "platforms": ["linux/amd64"],
+        "tags": ["graemef/deep-heating:latest"]
+      }
     }
   }
 }
