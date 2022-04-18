@@ -38,7 +38,7 @@
       "executor": "@nx-tools/nx-docker:build",
       "options": {
         "push": true,
-        "platforms": ["linux/amd64"],
+        "platforms": ["linux/amd64", "linux/arm64", "linux/arm/v7"],
         "tags": ["graemef/deep-heating:latest"]
       }
     }
