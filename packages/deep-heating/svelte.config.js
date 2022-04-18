@@ -16,6 +16,7 @@ const config = {
           '@home-automation/deep-heating-types': path.resolve(
             '../deep-heating-types/src/index.ts'
           ),
+          $packages: path.resolve('../../node_modules'),
         },
       },
     },

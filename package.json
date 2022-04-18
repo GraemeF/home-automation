@@ -57,6 +57,7 @@
     "socket.io": "^4.4.1",
     "socket.io-client": "^4.4.1",
     "superagent": "^7.1.1",
+    "svelte-material-icons": "^2.0.2",
     "tslib": "^2.0.0"
   }
 }

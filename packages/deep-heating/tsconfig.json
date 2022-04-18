@@ -28,6 +28,8 @@
     "paths": {
       "$lib": ["src/lib"],
       "$lib/*": ["src/lib/*"],
+      "$packages": ["../../node_modules"],
+      "$packages/*": ["../../node_modules/*"],
       "@home-automation/deep-heating-types": [
         "../deep-heating-types/src/index.ts"
       ]
