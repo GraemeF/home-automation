@@ -7,7 +7,7 @@
 </script>
 
 <div
-  class="card card-compact text-primary-content w-44"
+  class="card card-compact text-primary-content w-40"
   class:bg-heating={room.isHeating}
   class:bg-cooling={!room.isHeating}
 >
