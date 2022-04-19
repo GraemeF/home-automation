@@ -45,7 +45,7 @@
     "vitest": "^0.9.3"
   },
   "dependencies": {
-    "@influxdata/influxdb-client": "^1.24.0",
+    "@influxdata/influxdb-client": "^1.25.0",
     "@sveltejs/adapter-node": "^1.0.0-next.73",
     "@sveltejs/kit": "^1.0.0-next.314",
     "amazon-user-pool-srp-client": "^1.0.4",
