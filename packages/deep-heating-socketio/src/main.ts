@@ -15,7 +15,12 @@ const data = readFileSync(
 
 const httpServer = createServer();
 
-const socketServer = new SocketServer(httpServer, JSON.parse(data.toString()));
+const socketServer = new SocketServer(httpServer, JSON.parse(data.toString()), {
+  cors: {
+    origin: (process.env['CORS_ORIGINS'] || '').split(','),
+    methods: ['GET', 'POST', 'OPTIONS'],
+  },
+});
 
 process.on('SIGINT', function () {
   log('Shutting down');

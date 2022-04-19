@@ -20,6 +20,7 @@ import {
 import { DeepHeating } from '@home-automation/deep-heating-rx';
 import { InfluxDBWriter } from '@home-automation/deep-heating-influxdb';
 import { maintainState } from '@home-automation/deep-heating-state';
+import { ServerOptions } from 'socket.io';
 
 export interface SocketEvent<T> {
   io: SocketIO.Server;
@@ -37,15 +38,9 @@ export class SocketServer {
   private readonly subscription: Subscription;
   private readonly state$: Observable<DeepHeatingState>;
 
-  constructor(server: Server, home: Home) {
-    this.io$ = of(
-      new SocketIO.Server(server, {
-        cors: {
-          origin: 'http://localhost:3000',
-          methods: ['GET', 'POST'],
-        },
-      })
-    );
+  constructor(server: Server, home: Home, opts?: Partial<ServerOptions>) {
+    console.log(opts);
+    this.io$ = of(new SocketIO.Server(server, opts));
 
     this.connection$ = this.io$.pipe(
       switchMap((io) =>
