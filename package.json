@@ -47,7 +47,7 @@
   "dependencies": {
     "@influxdata/influxdb-client": "^1.25.0",
     "@sveltejs/adapter-node": "^1.0.0-next.73",
-    "@sveltejs/kit": "^1.0.0-next.314",
+    "@sveltejs/kit": "^1.0.0-next.315",
     "amazon-user-pool-srp-client": "^1.0.4",
     "axios": "^0.26.1",
     "dotenv": "^16.0.0",
