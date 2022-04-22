@@ -2,6 +2,7 @@
   import type { RoomState } from '@home-automation/deep-heating-types';
   import Fire from '$packages/svelte-material-icons/Fire.svelte';
   import { formatTemperature } from '$lib/temperature';
+  import RoomControls from './RoomControls.svelte';
 
   export let room: RoomState;
 </script>
@@ -23,8 +24,10 @@
     <div class="stat-value">
       {formatTemperature(room.temperature.temperature)}
     </div>
-    <div class="card-actions justify-center">
-      <div class="stat-desc">{room.adjustment}</div>
-    </div>
+    {#if room.targetTemperature}
+      <div class="card-actions justify-center items-center">
+        <RoomControls {room} />
+      </div>
+    {/if}
   </div>
 </div>
