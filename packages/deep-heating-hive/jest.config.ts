@@ -1,6 +1,6 @@
 module.exports = {
-  displayName: 'deep-heating-influxdb',
-  preset: '../../jest.preset.js',
+  displayName: 'deep-heating-hive',
+
   globals: {
     'ts-jest': {
       tsconfig: '<rootDir>/tsconfig.spec.json',
@@ -11,5 +11,6 @@ module.exports = {
     '^.+\\.[tj]sx?$': 'ts-jest',
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  coverageDirectory: '../../coverage/packages/deep-heating-influxdb',
+  coverageDirectory: '../../coverage/packages/deep-heating-hive',
+  preset: '..\\..\\jest.preset.ts',
 };

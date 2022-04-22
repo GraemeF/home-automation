@@ -1,6 +1,6 @@
 module.exports = {
-  displayName: 'deep-heating-rx',
-  preset: '../../jest.preset.js',
+  displayName: 'deep-heating-types',
+
   globals: {
     'ts-jest': {
       tsconfig: '<rootDir>/tsconfig.spec.json',
@@ -11,5 +11,6 @@ module.exports = {
     '^.+\\.[tj]sx?$': 'ts-jest',
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  coverageDirectory: '../../coverage/packages/deep-heating-rx',
+  coverageDirectory: '../../coverage/packages/deep-heating-types',
+  preset: '..\\..\\jest.preset.ts',
 };

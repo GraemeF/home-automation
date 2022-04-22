@@ -14,7 +14,7 @@
       "executor": "@nrwl/jest:jest",
       "outputs": ["coverage/packages/deep-heating-hive"],
       "options": {
-        "jestConfig": "packages/deep-heating-hive/jest.config.js",
+        "jestConfig": "packages/deep-heating-hive/jest.config.ts",
         "passWithNoTests": true
       }
     }

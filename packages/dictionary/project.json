@@ -14,7 +14,7 @@
       "executor": "@nrwl/jest:jest",
       "outputs": ["coverage/packages/dictionary"],
       "options": {
-        "jestConfig": "packages/dictionary/jest.config.js",
+        "jestConfig": "packages/dictionary/jest.config.ts",
         "passWithNoTests": true
       }
     }

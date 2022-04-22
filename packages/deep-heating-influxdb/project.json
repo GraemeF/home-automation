@@ -14,7 +14,7 @@
       "executor": "@nrwl/jest:jest",
       "outputs": ["coverage/packages/deep-heating-influxdb"],
       "options": {
-        "jestConfig": "packages/deep-heating-influxdb/jest.config.js",
+        "jestConfig": "packages/deep-heating-influxdb/jest.config.ts",
         "passWithNoTests": true
       }
     }

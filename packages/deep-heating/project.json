@@ -5,25 +5,25 @@
   "tags": [],
   "targets": {
     "build": {
-      "executor": "@nrwl/workspace:run-script",
+      "executor": "nx:run-script",
       "options": {
         "script": "build"
       }
     },
     "serve": {
-      "executor": "@nrwl/workspace:run-script",
+      "executor": "nx:run-script",
       "options": {
         "script": "dev"
       }
     },
     "lint": {
-      "executor": "@nrwl/workspace:run-script",
+      "executor": "nx:run-script",
       "options": {
         "script": "lint"
       }
     },
     "check": {
-      "executor": "@nrwl/workspace:run-script",
+      "executor": "nx:run-script",
       "options": {
         "script": "check"
       }

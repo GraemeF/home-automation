@@ -43,7 +43,7 @@
       "executor": "@nrwl/jest:jest",
       "outputs": ["coverage/packages/deep-heating-socketio"],
       "options": {
-        "jestConfig": "packages/deep-heating-socketio/jest.config.js",
+        "jestConfig": "packages/deep-heating-socketio/jest.config.ts",
         "passWithNoTests": true
       }
     },
