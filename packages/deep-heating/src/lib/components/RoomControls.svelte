@@ -15,7 +15,7 @@
 {#if room.mode === 'Auto'}
   <button
     class="btn btn-circle btn-ghost btn-sm"
-    on:click={() => adjust(-step)}
+    on:click={() => adjust(adjustment - step)}
   >
     {#if adjustment < 0}
       <ColderActiveIcon />
@@ -24,18 +24,21 @@
     {/if}
   </button>
 {/if}
-<div class="grid">
+<div class="grid justify-items-center">
   <p>
     {room.targetTemperature && formatTemperature(room.targetTemperature)}
   </p>
   {#if adjustment}
-    <p>
+    <p class="stat-desc">
       {`(${formatTemperature(adjustment)})`}
     </p>
   {/if}
 </div>
 {#if room.mode === 'Auto'}
-  <button class="btn btn-circle btn-ghost btn-sm" on:click={() => adjust(step)}>
+  <button
+    class="btn btn-circle btn-ghost btn-sm"
+    on:click={() => adjust(adjustment + step)}
+  >
     {#if adjustment > 0}
       <WarmerActiveIcon />
     {:else}
