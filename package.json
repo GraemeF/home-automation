@@ -6,7 +6,7 @@
   "private": true,
   "devDependencies": {
     "@nrwl/cli": "13.10.3",
-    "@nrwl/eslint-plugin-nx": "13.10.3",
+    "@nrwl/eslint-plugin-nx": "14.0.1",
     "@nrwl/jest": "13.10.3",
     "@nrwl/js": "13.10.3",
     "@nrwl/linter": "13.10.3",
@@ -47,7 +47,7 @@
   "dependencies": {
     "@influxdata/influxdb-client": "^1.25.0",
     "@sveltejs/adapter-node": "^1.0.0-next.73",
-    "@sveltejs/kit": "^1.0.0-next.317",
+    "@sveltejs/kit": "^1.0.0-next.318",
     "amazon-user-pool-srp-client": "^1.0.4",
     "axios": "^0.26.1",
     "dotenv": "^16.0.0",
