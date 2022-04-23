@@ -12,5 +12,5 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/packages/deep-heating-socketio',
-  preset: '..\\..\\jest.preset.ts',
+  preset: '../../jest.preset.ts',
 };

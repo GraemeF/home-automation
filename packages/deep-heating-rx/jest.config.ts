@@ -12,5 +12,5 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   coverageDirectory: '../../coverage/packages/deep-heating-rx',
-  preset: '..\\..\\jest.preset.ts',
+  preset: '../../jest.preset.ts',
 };
