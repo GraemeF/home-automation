@@ -10,7 +10,7 @@
     "@nrwl/jest": "14.0.1",
     "@nrwl/js": "14.0.1",
     "@nrwl/linter": "14.0.1",
-    "@nrwl/node": "14.0.1",
+    "@nrwl/node": "14.0.2",
     "@nrwl/nx-cloud": "13.3.1",
     "@nrwl/workspace": "14.0.1",
     "@nx-tools/nx-docker": "^2.3.0",
@@ -58,6 +58,6 @@
     "socket.io-client": "^4.4.1",
     "superagent": "^7.1.1",
     "svelte-material-icons": "^2.0.2",
-    "tslib": "^2.0.0"
+    "tslib": "^2.4.0"
   }
 }
