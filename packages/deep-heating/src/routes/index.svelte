@@ -13,16 +13,18 @@
 </script>
 
 {#if $homeStore.connected}
-  <h1>Deep Heating</h1>
-  {#if $homeStore.state}
-    <Heating isHeating={$homeStore.state.isHeating} />
+  <div class="container mx-auto">
+    <h1>Deep Heating</h1>
+    {#if $homeStore.state}
+      <Heating isHeating={$homeStore.state.isHeating} />
 
-    <div class="flex flex-row flex-wrap gap-2">
-      {#each $homeStore.state.rooms.sort(compareByRoomTemperature) as room}
-        <Room {room} {adjust} />
-      {/each}
-    </div>
-  {/if}
+      <div class="flex flex-row flex-wrap gap-2">
+        {#each $homeStore.state.rooms.sort(compareByRoomTemperature) as room}
+          <Room {room} {adjust} />
+        {/each}
+      </div>
+    {/if}
+  </div>
 {:else}
   <div class="w-full h-full fixed block top-0 left-0 bg-white opacity-75 z-50">
     <span
