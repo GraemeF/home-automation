@@ -1,5 +1,5 @@
 {
-  "name": "deep-heating",
+  "name": "@home-automation/deep-heating-web",
   "version": "0.0.1",
   "type": "module",
   "scripts": {
