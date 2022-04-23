@@ -23,7 +23,7 @@
         {/if}
       </div>
     </div>
-    <div class="stat-value">
+    <div class="stat-value text-right">
       {formatTemperature(room.temperature.temperature)}
     </div>
     {#if room.targetTemperature}
