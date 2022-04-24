@@ -11,7 +11,7 @@ updates:
       interval: 'daily'
 
   - package-ecosystem: 'docker'
-    directory: '/packages/deep-heating'
+    directory: '/packages/deep-heating-web'
     schedule:
       interval: 'daily'
 
