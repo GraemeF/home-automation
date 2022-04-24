@@ -4,9 +4,16 @@
   import { formatTemperature } from '$lib/temperature';
   import RoomControls from './RoomControls.svelte';
   import type { RoomAdjustment } from '@home-automation/deep-heating-types';
+  import { apiClientStore } from '$lib/stores/apiClient';
 
   export let room: RoomState;
-  export let adjust: (adjustment: RoomAdjustment) => RoomAdjustment;
+
+  const adjust: (adjustment: RoomAdjustment) => RoomAdjustment = (
+    adjustment: RoomAdjustment
+  ) => {
+    $apiClientStore.emit('adjust_room', adjustment);
+    return adjustment;
+  };
 </script>
 
 <div
@@ -15,17 +22,19 @@
   class:bg-cooling={!room.isHeating}
 >
   <div class="card-body">
-    <div class="card-title">
-      {room.name}
-      <div class="card-actions">
-        {#if room.isHeating}
-          <Fire />
-        {/if}
+    <a href="/rooms/{room.name}">
+      <div class="card-title">
+        {room.name}
+        <div class="card-actions">
+          {#if room.isHeating}
+            <Fire />
+          {/if}
+        </div>
       </div>
-    </div>
-    <div class="stat-value text-right">
-      {formatTemperature(room.temperature.temperature)}
-    </div>
+      <div class="stat-value text-right">
+        {formatTemperature(room.temperature.temperature)}
+      </div>
+    </a>
     {#if room.targetTemperature}
       <div class="card-actions justify-center items-center">
         <RoomControls

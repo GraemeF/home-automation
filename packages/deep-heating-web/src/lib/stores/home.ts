@@ -21,19 +21,20 @@ export const homeStore = derived<
       state: null,
     });
 
-    $apiClient
-      .on('connect', () => {
-        home.update((home) => ({ ...home, connected: true }));
-        set(get(home));
-      })
-      .on('disconnect', () => {
-        home.update((home) => ({ ...home, connected: false }));
-        set(get(home));
-      })
-      .on('State', (state) => {
-        home.update((home) => ({ ...home, state }));
-        set(get(home));
-      });
+    if ($apiClient)
+      $apiClient
+        .on('connect', () => {
+          home.update((home) => ({ ...home, connected: true }));
+          set(get(home));
+        })
+        .on('disconnect', () => {
+          home.update((home) => ({ ...home, connected: false }));
+          set(get(home));
+        })
+        .on('State', (state) => {
+          home.update((home) => ({ ...home, state }));
+          set(get(home));
+        });
   },
   { connected: false, state: null }
 );
