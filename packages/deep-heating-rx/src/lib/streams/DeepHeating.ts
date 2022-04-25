@@ -437,9 +437,6 @@ export class DeepHeating {
     );
 
     this.roomsHeating$ = getRoomsHeating(this.roomDecisionPoints$);
-    this.roomsHeating$.subscribe((x) =>
-      log('Rooms', Array.from(x), 'are heating')
-    );
 
     this.trvsAnyHeating$ = getAnyHeating(this.trvsHeating$);
     this.trvsAnyHeating$.subscribe((x) =>
