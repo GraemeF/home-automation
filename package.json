@@ -5,7 +5,7 @@
   "scripts": {},
   "private": true,
   "devDependencies": {
-    "@nrwl/cli": "14.0.2",
+    "@nrwl/cli": "14.0.5",
     "@nrwl/eslint-plugin-nx": "14.0.2",
     "@nrwl/jest": "14.0.2",
     "@nrwl/js": "14.0.2",
