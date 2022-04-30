@@ -20,7 +20,7 @@
     "@tsconfig/svelte": "^3.0.0",
     "@types/jest": "27.4.1",
     "@types/jsonwebtoken": "^8.5.8",
-    "@types/node": "16.11.28",
+    "@types/node": "16.11.32",
     "@types/superagent": "^4.1.15",
     "@typescript-eslint/eslint-plugin": "~5.20.0",
     "@typescript-eslint/parser": "~5.18.0",
