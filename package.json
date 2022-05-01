@@ -5,14 +5,14 @@
   "scripts": {},
   "private": true,
   "devDependencies": {
-    "@nrwl/cli": "14.0.2",
-    "@nrwl/eslint-plugin-nx": "14.0.2",
-    "@nrwl/jest": "14.0.2",
-    "@nrwl/js": "14.0.2",
-    "@nrwl/linter": "14.0.2",
-    "@nrwl/node": "14.0.2",
-    "@nrwl/nx-cloud": "13.3.1",
-    "@nrwl/workspace": "14.0.2",
+    "@nrwl/cli": "14.0.5",
+    "@nrwl/eslint-plugin-nx": "14.0.5",
+    "@nrwl/jest": "14.0.5",
+    "@nrwl/js": "14.0.5",
+    "@nrwl/linter": "14.0.5",
+    "@nrwl/node": "14.0.5",
+    "@nrwl/nx-cloud": "14.0.3",
+    "@nrwl/workspace": "14.0.5",
     "@nx-tools/nx-docker": "^2.3.0",
     "@nxext/svelte": "^13.3.1",
     "@sveltejs/vite-plugin-svelte": "^1.0.0-next.37",
@@ -31,7 +31,7 @@
     "eslint-config-prettier": "8.5.0",
     "eslint-plugin-svelte3": "^3.4.0",
     "jest": "27.5.1",
-    "nx": "14.0.2",
+    "nx": "14.0.5",
     "postcss": "^8.4.13",
     "prettier": "^2.6.2",
     "prettier-plugin-svelte": "^2.7.0",
@@ -61,3 +61,4 @@
     "tslib": "^2.4.0"
   }
 }
+
