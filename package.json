@@ -15,7 +15,7 @@
     "@nrwl/workspace": "14.0.5",
     "@nx-tools/nx-docker": "^2.3.0",
     "@nxext/svelte": "^13.3.1",
-    "@sveltejs/vite-plugin-svelte": "^1.0.0-next.37",
+    "@sveltejs/vite-plugin-svelte": "^1.0.0-next.42",
     "@testing-library/svelte": "^3.0.3",
     "@tsconfig/svelte": "^3.0.0",
     "@types/jest": "27.4.1",
