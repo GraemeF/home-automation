@@ -42,7 +42,7 @@
     "tailwindcss": "^3.0.24",
     "ts-jest": "27.1.4",
     "typescript": "~4.6.4",
-    "vitest": "^0.10.0"
+    "vitest": "^0.10.2"
   },
   "dependencies": {
     "@influxdata/influxdb-client": "^1.25.0",
