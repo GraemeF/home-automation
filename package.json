@@ -50,7 +50,6 @@
     "@sveltejs/kit": "^1.0.0-next.324",
     "amazon-user-pool-srp-client": "^1.0.4",
     "axios": "^0.27.2",
-    "dotenv": "^16.0.0",
     "jsonwebtoken": "^8.5.1",
     "luxon": "^2.3.2",
     "rxjs-multi-scan": "^1.0.2",
