@@ -1,5 +1,4 @@
 {
-  "root": "packages/deep-heating-types",
   "sourceRoot": "packages/deep-heating-types/src",
   "projectType": "library",
   "targets": {

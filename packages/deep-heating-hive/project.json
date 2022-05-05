@@ -1,5 +1,4 @@
 {
-  "root": "packages/deep-heating-hive",
   "sourceRoot": "packages/deep-heating-hive/src",
   "projectType": "library",
   "targets": {
