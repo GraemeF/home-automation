@@ -1,5 +1,4 @@
 {
-  "root": "packages/deep-heating-web",
   "sourceRoot": "packages/deep-heating-web/src",
   "projectType": "application",
   "tags": [],

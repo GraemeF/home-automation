@@ -1,5 +1,4 @@
 {
-  "root": "packages/deep-heating-socketio",
   "sourceRoot": "packages/deep-heating-socketio/src",
   "projectType": "application",
   "targets": {

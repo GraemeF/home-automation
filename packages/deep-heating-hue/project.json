@@ -1,5 +1,4 @@
 {
-  "root": "packages/deep-heating-hue",
   "sourceRoot": "packages/deep-heating-hue/src",
   "projectType": "library",
   "targets": {

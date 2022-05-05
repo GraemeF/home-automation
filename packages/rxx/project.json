@@ -1,5 +1,4 @@
 {
-  "root": "packages/rxx",
   "sourceRoot": "packages/rxx/src",
   "projectType": "library",
   "targets": {
