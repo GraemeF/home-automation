@@ -1,4 +1,5 @@
 {
+  "root": "packages/dictionary",
   "sourceRoot": "packages/dictionary/src",
   "projectType": "library",
   "targets": {

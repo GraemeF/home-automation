@@ -1,4 +1,5 @@
 {
+  "root": "packages/deep-heating-state",
   "sourceRoot": "packages/deep-heating-state/src",
   "projectType": "library",
   "targets": {
