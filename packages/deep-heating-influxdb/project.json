@@ -1,4 +1,5 @@
 {
+  "root": "packages/deep-heating-influxdb",
   "sourceRoot": "packages/deep-heating-influxdb/src",
   "projectType": "library",
   "targets": {
