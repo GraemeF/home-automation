@@ -35,8 +35,7 @@ jobs:
       - run: npx nx affected --target=lint --parallel=3
       - run: npx nx affected --target=test --parallel=3 --ci --code-coverage
       - run: npx nx affected --target=docker
-        env:
-          INPUT_OUTPUT: type=${{ ((github.ref == 'refs/heads/main') && 'registry') || 'docker' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Archive npm failure logs
         uses: actions/upload-artifact@v3
