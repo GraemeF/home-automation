@@ -50,7 +50,6 @@
     "docker": {
       "executor": "@nx-tools/nx-docker:build",
       "options": {
-        "push": true,
         "platforms": ["linux/amd64", "linux/arm64", "linux/arm/v7"],
         "metadata": {
           "images": ["graemef/deep-heating-socketio"],
