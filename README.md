@@ -19,6 +19,11 @@ to control and tweak the desired temperature of each room in your home.
 
 A single JSON file configures your home:
 
+## Security
+
+There isn't any! This is currently assumed to be hosted on your home network, if
+you want to access remotely then use a VPN. Use at your own risk!
+
 ## Development
 
 This monorepo was generated using [Nx](https://nx.dev). See
