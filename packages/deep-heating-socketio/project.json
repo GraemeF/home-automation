@@ -54,7 +54,6 @@
         "metadata": {
           "images": ["graemef/deep-heating-socketio"],
           "tags": [
-            "type=schedule",
             "type=ref,event=branch",
             "type=ref,event=tag",
             "type=ref,event=pr",
