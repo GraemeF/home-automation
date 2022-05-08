@@ -1,8 +1,15 @@
 import { DateTime } from 'luxon';
 
+export type DegreesCelsius = number;
+
 export interface TrvTargetTemperature {
   trvId: string;
   targetTemperature: number;
+}
+
+export interface TemperatureReading {
+  temperature: DegreesCelsius;
+  time: DateTime;
 }
 
 export interface TrvTemperature {
@@ -121,13 +128,6 @@ export interface SwitchSensorUpdate extends SensorUpdate {
   state: SwitchSensorState;
   name: string;
   capabilities: { inputs: ButtonDefinition[] };
-}
-
-export type DegreesCelsius = number;
-
-export interface TemperatureReading {
-  temperature: DegreesCelsius;
-  time: DateTime;
 }
 
 export interface RadiatorState {
