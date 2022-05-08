@@ -53,7 +53,10 @@
         "push": true,
         "platforms": ["linux/amd64", "linux/arm64", "linux/arm/v7"],
         "metadata": {
-          "images": ["graemef/deep-heating-socketio"],
+          "images": [
+            "graemef/deep-heating-socketio",
+            "ghcr.io/graemef/home-automation/deep-heating-socketio"
+          ],
           "tags": [
             "type=ref,event=branch",
             "type=ref,event=tag",
