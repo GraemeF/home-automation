@@ -1,41 +1,114 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: CI
+
 on:
   push:
     branches:
       - main
   pull_request:
+    branches:
+      - main
+
+env:
+  NX_CLOUD_DISTRIBUTED_EXECUTION: true
+  NX_BRANCH: ${{ github.event.number || github.ref }}
+  NX_RUN_GROUP: ${{ github.run_id }}
+  NX_CLOUD_AUTH_TOKEN: ${{ secrets.NX_CLOUD_AUTH_TOKEN }}
+  PRISMA_HIDE_UPDATE_MESSAGE: "true"
 
 jobs:
-  main:
+  agents:
+    name: Agent ${{ matrix.agent }}
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        agent: [1, 2]
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          cache: "npm"
+          node-version-file: ".nvmrc"
+      - run: npm ci
+      - name: Start Nx Agent ${{ matrix.agent }}
+        run: npx nx-cloud start-agent
+
+  main:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' }}
+    steps:
+      - name: Checkout [main]
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - uses: nrwl/nx-set-shas@v2
-      - uses: docker/setup-buildx-action@v2
-      - name: Set up QEMU
-        id: qemu
-        uses: docker/setup-qemu-action@v2
+      - name: Derive appropriate SHAs for base and head for `nx affected` commands
+        uses: nrwl/nx-set-shas@v2
+      - uses: actions/setup-node@v3
         with:
-          image: tonistiigi/binfmt:latest
-
-      - name: Login to DockerHub
-        if: ${{ github.ref == 'refs/heads/main' }}
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
+          cache: "npm"
+          node-version-file: ".nvmrc"
       - run: npm ci
+      - run: npx nx-cloud start-ci-run
+      - run: npx nx affected --target=build --parallel --max-parallel=3
+      - run: npx nx affected --target=lint  --parallel --max-parallel=3
+      - run: npx nx affected --target=test  --parallel --max-parallel=2 --code-coverage
+      - run: npx nx-cloud stop-all-agents
 
+  pr:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - name: Checkout [pr]
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Derive appropriate SHAs for base and head for `nx affected` commands
+        uses: nrwl/nx-set-shas@v2
+      - uses: actions/setup-node@v3
+        with:
+          cache: "npm"
+          node-version-file: ".nvmrc"
+      - run: npm ci
+      - run: npx nx-cloud start-ci-run
       - run: npx nx workspace-lint
       - run: npx nx affected --target=build --parallel=3
       - run: npx nx format:check
       - run: npx nx affected --target=lint --parallel=3
       - run: npx nx affected --target=test --parallel=3 --ci --code-coverage
+      - run: npx nx-cloud stop-all-agents
+
+  docker-build:
+    if: ${{ github.event_name != 'pull_request' }}
+    needs: main
+    runs-on: ubuntu-latest
+    env:
+      NX_CLOUD_DISTRIBUTED_EXECUTION: false
+      INPUT_PUSH: true
+      INPUT_CACHE_FROM: type=registry,ref=graemef/home-automation:buildcache
+      INPUT_CACHE_TO: type=registry,ref=graemef/home-automation:buildcache,mode=max
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Derive appropriate SHAs for base and head for `nx affected` commands
+        uses: nrwl/nx-set-shas@v2
+      - uses: actions/setup-node@v3
+        with:
+          cache: "npm"
+          node-version-file: ".nvmrc"
+      - run: npm install
       - run: npx nx affected --target=docker
-        if: ${{ github.ref == 'refs/heads/main' }}
         env:
           INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
