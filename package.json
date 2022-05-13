@@ -6,7 +6,7 @@
   "private": true,
   "devDependencies": {
     "@nrwl/cli": "14.1.4",
-    "@nrwl/eslint-plugin-nx": "14.1.4",
+    "@nrwl/eslint-plugin-nx": "14.1.5",
     "@nrwl/jest": "14.1.4",
     "@nrwl/js": "14.1.4",
     "@nrwl/linter": "14.1.4",
