@@ -31,6 +31,8 @@ interest :)
 
 ## Configuration
 
+_TODO: document environment variables_
+
 A single JSON file configures your home:
 
 ```json
