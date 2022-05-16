@@ -6,6 +6,7 @@
   "private": true,
   "devDependencies": {
     "@nrwl/cli": "14.1.5",
+    "@nrwl/devkit": "^14.1.5",
     "@nrwl/eslint-plugin-nx": "14.1.5",
     "@nrwl/jest": "14.1.5",
     "@nrwl/js": "14.1.5",
@@ -62,4 +63,3 @@
     "tslib": "^2.4.0"
   }
 }
-
