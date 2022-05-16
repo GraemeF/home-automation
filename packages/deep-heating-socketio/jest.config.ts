@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   displayName: 'deep-heating-socketio',
 
   globals: {
@@ -12,5 +12,5 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/packages/deep-heating-socketio',
-  preset: '../../jest.preset.ts',
+  preset: '../../jest.preset.js',
 };
