@@ -13,7 +13,7 @@
     "@nrwl/linter": "14.1.5",
     "@nrwl/node": "14.1.5",
     "@nrwl/nx-cloud": "14.0.3",
-    "@nrwl/workspace": "14.1.5",
+    "@nrwl/workspace": "14.1.7",
     "@nx-tools/docker-metadata": "^2.2.1",
     "@nx-tools/nx-docker": "^2.3.0",
     "@nxext/svelte": "^14.0.0",
