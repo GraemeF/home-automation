@@ -10,7 +10,7 @@
     "@nrwl/eslint-plugin-nx": "14.1.5",
     "@nrwl/jest": "14.1.5",
     "@nrwl/js": "14.1.5",
-    "@nrwl/linter": "14.1.5",
+    "@nrwl/linter": "14.1.9",
     "@nrwl/node": "14.1.5",
     "@nrwl/nx-cloud": "14.0.3",
     "@nrwl/workspace": "14.1.5",
