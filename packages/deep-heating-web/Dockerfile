@@ -1,3 +1,5 @@
+LABEL org.opencontainers.image.source = "https://github.com/GraemeF/home-automation"
+
 ### Build Step
 FROM node:lts as builder
 
