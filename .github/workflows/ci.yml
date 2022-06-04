@@ -34,7 +34,7 @@ jobs:
       - name: Start Nx Agent ${{ matrix.agent }}
         run: npx nx-cloud start-agent
 
-  checkout:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout [main]
@@ -50,11 +50,6 @@ jobs:
           fetch-depth: 0
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v2
-
-  build:
-    runs-on: ubuntu-latest
-    needs: checkout
-    steps:
       - uses: actions/setup-node@v3
         with:
           cache: 'npm'
