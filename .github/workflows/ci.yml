@@ -71,8 +71,16 @@ jobs:
       INPUT_CACHE_FROM: type=registry,ref=ghcr.io/graemef/home-automation/build:buildcache
       INPUT_CACHE_TO: type=registry,ref=ghcr.io/graemef/home-automation/build:buildcache,mode=max
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout [main]
+        if: github.event_name != 'pull_request'
+        uses: actions/checkout@v3
         with:
+          fetch-depth: 0
+      - name: Checkout [pr]
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
