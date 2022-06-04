@@ -1,5 +1,3 @@
-LABEL org.opencontainers.image.source = "https://github.com/GraemeF/home-automation"
-
 ### Build Step
 FROM node:lts as builder
 
@@ -15,6 +13,8 @@ RUN npx nx run deep-heating-web:build
 
 ### Serve Step
 FROM node:lts-slim
+
+LABEL org.opencontainers.image.source = "https://github.com/GraemeF/home-automation"
 
 WORKDIR /app
 
