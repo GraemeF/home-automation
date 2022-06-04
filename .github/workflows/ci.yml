@@ -91,11 +91,18 @@ jobs:
           fetch-depth: 0
       - run: npm ci
       - run: npx nx affected --target=docker
+        if: ${{ github.actor != 'dependabot[bot]' }}
         env:
           NX_CLOUD_DISTRIBUTED_EXECUTION: false
           INPUT_PUSH: ${{ (github.event_name != 'pull_request' && 'true') || 'false' }}
           INPUT_CACHE_FROM: type=registry,ref=ghcr.io/graemef/home-automation/build:buildcache
-          INPUT_CACHE_TO: ${{ github.actor != 'dependabot[bot]' && 'type=registry,ref=ghcr.io/graemef/home-automation/build:buildcache,mode=max' }}
+          INPUT_CACHE_TO: type=registry,ref=ghcr.io/graemef/home-automation/build:buildcache,mode=max
+          INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: npx nx affected --target=docker
+        if: ${{ github.actor == 'dependabot[bot]' }}
+        env:
+          NX_CLOUD_DISTRIBUTED_EXECUTION: false
+          INPUT_PUSH: false
           INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive npm failure logs
         uses: actions/upload-artifact@v3
