@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { filter, map } from 'rxjs/operators';
 import {
   ButtonEvent,
   SwitchSensorUpdate,
@@ -9,7 +9,10 @@ import { parseHueTime } from '@home-automation/deep-heating-hue';
 export function getButtonEvents(
   switchSensorStates$: Observable<SwitchSensorUpdate>
 ): Observable<ButtonEvent> {
-  return switchSensorStates$.pipe(map(toButtonEvent));
+  return switchSensorStates$.pipe(
+    filter((x: SwitchSensorUpdate) => x.state.buttonevent !== null),
+    map(toButtonEvent)
+  );
 }
 
 function toButtonEvent(t: SwitchSensorUpdate): ButtonEvent {

@@ -108,7 +108,7 @@ export interface TemperatureSensorState extends SensorState {
 }
 
 export interface SwitchSensorState extends SensorState {
-  buttonevent: number;
+  buttonevent: number | null;
 }
 
 export interface TemperatureSensorUpdate extends SensorUpdate {
