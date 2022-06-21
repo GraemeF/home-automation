@@ -7,7 +7,7 @@
 
 <div class="text-sm breadcrumbs">
   <ul>
-    <li><a href="/">Deep Heating</a></li>
+    <li><a href="/deep-heating">Deep Heating</a></li>
   </ul>
 </div>
 

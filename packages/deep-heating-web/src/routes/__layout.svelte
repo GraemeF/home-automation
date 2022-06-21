@@ -2,7 +2,7 @@
   import '../app.css';
 
   export async function load({ fetch }) {
-    const url = '/appsettings.json';
+    const url = '/deep-heating/appsettings.json';
     const res = await fetch(url);
     if (res.ok) {
       return {

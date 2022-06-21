@@ -22,7 +22,7 @@
   class:bg-cooling={!room.isHeating}
 >
   <div class="card-body">
-    <a href="/rooms/{room.name}">
+    <a href="/deep-heating/rooms/{room.name}">
       <div class="card-title">
         {room.name}
         <div class="card-actions">
