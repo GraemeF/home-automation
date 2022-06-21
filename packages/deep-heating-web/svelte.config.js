@@ -9,7 +9,6 @@ const config = {
   preprocess: preprocess(),
 
   kit: {
-    paths: { base: '/deep-heating' },
     adapter: adapter({ out: '../../dist/packages/deep-heating-web' }),
     vite: {
       resolve: {

@@ -16,7 +16,6 @@ const data = readFileSync(
 const httpServer = createServer();
 
 const socketServer = new SocketServer(httpServer, JSON.parse(data.toString()), {
-  path: process.env['SOCKETIO_PATH'] || '/deep-heating/socket.io',
   cors: {
     origin: (process.env['CORS_ORIGINS'] || '').split(','),
     methods: ['GET', 'POST', 'OPTIONS'],
