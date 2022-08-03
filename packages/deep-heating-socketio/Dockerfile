@@ -1,5 +1,5 @@
 ### Build Step
-FROM node:18.4.0 as builder
+FROM node:18.7.0 as builder
 
 WORKDIR /usr/src/app
 
@@ -12,7 +12,7 @@ COPY . .
 RUN npx nx run deep-heating-socketio:build
 
 ### Serve Step
-FROM node:18.4.0-slim
+FROM node:18.7.0-slim
 
 LABEL org.opencontainers.image.source = "https://github.com/GraemeF/home-automation"
 
