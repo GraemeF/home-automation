@@ -24,7 +24,7 @@ export function getHouseMode(
       if (lastButtonTime.hour > 20) return 'Sleeping';
     }
   }
-  return time.hour < 5 ? 'Sleeping' : 'Auto';
+  return time.hour < 3 ? 'Sleeping' : 'Auto';
 }
 
 export function getHouseModes(
