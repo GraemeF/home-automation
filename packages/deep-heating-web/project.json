@@ -29,12 +29,6 @@
         "script": "check"
       }
     },
-    "test": {
-      "executor": "@nxext/vitest:vitest",
-      "options": {
-        "command": "run"
-      }
-    },
     "docker": {
       "executor": "@nx-tools/nx-docker:build",
       "options": {
