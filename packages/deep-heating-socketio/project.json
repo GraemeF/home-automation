@@ -1,16 +1,19 @@
 {
-  "root": "packages/deep-heating-socketio",
+  "name": "deep-heating-socketio",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/deep-heating-socketio/src",
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nrwl/node:webpack",
+      "executor": "@nrwl/webpack:webpack",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/packages/deep-heating-socketio",
         "main": "packages/deep-heating-socketio/src/main.ts",
         "tsConfig": "packages/deep-heating-socketio/tsconfig.app.json",
-        "assets": ["packages/deep-heating-socketio/src/assets"]
+        "assets": ["packages/deep-heating-socketio/src/assets"],
+        "target": "node",
+        "compiler": "tsc"
       },
       "configurations": {
         "production": {
@@ -41,7 +44,7 @@
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/packages/deep-heating-socketio"],
+      "outputs": ["{workspaceRoot}/coverage/packages/deep-heating-socketio"],
       "options": {
         "jestConfig": "packages/deep-heating-socketio/jest.config.ts",
         "passWithNoTests": true

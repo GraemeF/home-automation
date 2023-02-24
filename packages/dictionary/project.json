@@ -1,5 +1,6 @@
 {
-  "root": "packages/dictionary",
+  "name": "dictionary",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/dictionary/src",
   "projectType": "library",
   "targets": {
@@ -12,7 +13,7 @@
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/packages/dictionary"],
+      "outputs": ["{workspaceRoot}/coverage/packages/dictionary"],
       "options": {
         "jestConfig": "packages/dictionary/jest.config.ts",
         "passWithNoTests": true

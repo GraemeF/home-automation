@@ -1,5 +1,6 @@
 {
-  "root": "packages/deep-heating-rx",
+  "name": "deep-heating-rx",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/deep-heating-rx/src",
   "projectType": "library",
   "targets": {
@@ -12,7 +13,7 @@
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/packages/deep-heating-rx"],
+      "outputs": ["{workspaceRoot}/coverage/packages/deep-heating-rx"],
       "options": {
         "jestConfig": "packages/deep-heating-rx/jest.config.ts",
         "passWithNoTests": true

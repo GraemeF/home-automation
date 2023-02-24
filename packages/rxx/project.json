@@ -1,5 +1,6 @@
 {
-  "root": "packages/rxx",
+  "name": "rxx",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/rxx/src",
   "projectType": "library",
   "targets": {
@@ -12,7 +13,7 @@
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/packages/rxx"],
+      "outputs": ["{workspaceRoot}/coverage/packages/rxx"],
       "options": {
         "jestConfig": "packages/rxx/jest.config.ts",
         "passWithNoTests": true
