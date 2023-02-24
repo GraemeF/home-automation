@@ -9,6 +9,8 @@ COPY package-lock.json ./
 RUN npm ci
 COPY . .
 
+ENV NX_DAEMON=false
+ENV CI=true
 RUN npx nx run deep-heating-web:build
 
 ### Serve Step
