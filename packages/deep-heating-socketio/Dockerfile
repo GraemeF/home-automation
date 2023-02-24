@@ -21,7 +21,7 @@ WORKDIR /app
 COPY --from=builder /usr/src/app/package.json .
 COPY --from=builder /usr/src/app/package-lock.json .
 
-RUN npm ci --production
+RUN npm ci --omit=dev
 
 COPY --from=builder /usr/src/app/dist/packages/deep-heating-socketio .
 
