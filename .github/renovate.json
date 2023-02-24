@@ -1,5 +1,10 @@
 {
-  "extends": ["config:base", ":semanticCommits", "group:monorepos", "group:recommended"],
+  "extends": [
+    "config:base",
+    ":semanticCommits",
+    "group:monorepos",
+    "group:recommended"
+  ],
   "branchConcurrentLimit": 20,
   "packageRules": [
     {
@@ -16,7 +21,10 @@
       "labels": ["dependencies", "breaking"]
     },
     {
-      "matchSourceUrlPrefixes": ["https://github.com/nrwl/", "https://github.com/nxext/"],
+      "matchSourceUrlPrefixes": [
+        "https://github.com/nrwl/",
+        "https://github.com/nxext/"
+      ],
       "groupName": "NX",
       "automerge": false,
       "labels": ["dependencies"]
