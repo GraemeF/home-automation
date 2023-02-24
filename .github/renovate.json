@@ -1,6 +1,6 @@
 {
-  "extends": ["config:base", "group:monorepos", "group:recommended"],
-  "assigneesFromCodeOwners": true,
+  "extends": ["config:base", ":semanticCommits", "group:monorepos", "group:recommended"],
+  "branchConcurrentLimit": 20,
   "packageRules": [
     {
       "matchPackagePatterns": ["*"],
@@ -14,6 +14,24 @@
       "matchPackagePatterns": ["*"],
       "matchUpdateTypes": ["major"],
       "labels": ["dependencies", "breaking"]
+    },
+    {
+      "matchSourceUrlPrefixes": ["https://github.com/nrwl/", "https://github.com/nxext/"],
+      "groupName": "NX",
+      "automerge": false,
+      "labels": ["dependencies"]
+    },
+    {
+      "matchPackagePrefixes": ["@opentelemetry/"],
+      "groupName": "opentelemetry",
+      "automerge": false,
+      "labels": ["dependencies"]
+    },
+    {
+      "matchPackagePrefixes": ["jest", "jest-", "@types/jest"],
+      "groupName": "jest",
+      "automerge": true,
+      "labels": ["dependencies"]
     }
   ]
 }
