@@ -19,12 +19,14 @@
     },
     "lint": {
       "executor": "nx:run-script",
+      "dependsOn": ["build"],
       "options": {
         "script": "lint"
       }
     },
     "check": {
       "executor": "nx:run-script",
+      "dependsOn": ["lint"],
       "options": {
         "script": "check"
       }
