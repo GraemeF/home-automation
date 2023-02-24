@@ -72,5 +72,5 @@ if you want to access remotely then use a VPN. Use at your own risk!
 ## Development
 
 This monorepo was generated using [Nx](https://nx.dev). See
-[their docs](https://nx.dev/using-nx/nx-cli) for details about how to add
+[the NX docs](https://nx.dev/using-nx/nx-cli) for details about how to add
 libraries, run tests, and so on.
