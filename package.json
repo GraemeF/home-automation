@@ -11,7 +11,7 @@
     "@nrwl/js": "14.2.4",
     "@nrwl/linter": "14.2.4",
     "@nrwl/node": "14.2.4",
-    "@nrwl/nx-cloud": "14.0.8",
+    "@nrwl/nx-cloud": "15.1.1",
     "@nrwl/workspace": "14.2.4",
     "@nx-tools/docker-metadata": "3.0.0-alpha.2",
     "@nx-tools/nx-docker": "3.0.0-alpha.2",
