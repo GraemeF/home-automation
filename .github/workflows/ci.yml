@@ -62,7 +62,6 @@ jobs:
           node-version-file: '.tool-versions'
       - run: npm ci
       - run: npx nx-cloud start-ci-run
-      - run: npx nx workspace-lint
       - run: npx nx format:check
       - run: npx nx affected --target=build --parallel --max-parallel=3
       - run: npx nx affected --target=lint  --parallel --max-parallel=3
