@@ -59,7 +59,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: 'npm'
-          node-version-file: '.nvmrc'
+          node-version-file: '.tool-versions'
       - run: npm ci
       - run: npx nx-cloud start-ci-run
       - run: npx nx workspace-lint
