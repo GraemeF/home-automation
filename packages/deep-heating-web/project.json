@@ -9,8 +9,7 @@
       "executor": "nx:run-script",
       "options": {
         "script": "build"
-      },
-      "outputs": [".svelte-kit"]
+      }
     },
     "serve": {
       "executor": "nx:run-script",
