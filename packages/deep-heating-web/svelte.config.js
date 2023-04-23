@@ -10,15 +10,11 @@ const config = {
 
   kit: {
     adapter: adapter({ out: '../../dist/packages/deep-heating-web' }),
-    vite: {
-      resolve: {
-        alias: {
-          '@home-automation/deep-heating-types': path.resolve(
-            '../deep-heating-types/src/index.ts'
-          ),
-          $packages: path.resolve('../../node_modules'),
-        },
-      },
+    alias: {
+      '@home-automation/deep-heating-types': path.resolve(
+        '../deep-heating-types/src/index.ts'
+      ),
+      $packages: path.resolve('../../node_modules'),
     },
   },
 };
