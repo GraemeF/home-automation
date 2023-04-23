@@ -1,5 +1,11 @@
 ### Build Step
-FROM node:18.4.0 as builder
+FROM node:20.0.0 as builder
+
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src/app
 
@@ -14,7 +20,13 @@ ENV CI=true
 RUN npx nx run deep-heating-socketio:build
 
 ### Serve Step
-FROM node:18.4.0-slim
+FROM node:20.0.0-slim
+
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 LABEL org.opencontainers.image.source = "https://github.com/GraemeF/home-automation"
 
