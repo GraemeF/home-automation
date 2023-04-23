@@ -1,32 +1,13 @@
-<script lang="ts" context="module">
-  import '../app.css';
-
-  export async function load({ fetch }) {
-    const url = '/appsettings.json';
-    const res = await fetch(url);
-    if (res.ok) {
-      return {
-        props: {
-          APPSETTINGS: await res.json(),
-        },
-      };
-    }
-    return {
-      status: res.status,
-      error: new Error('Could not load configuration'),
-    };
-  }
-</script>
-
 <script lang="ts">
+  import '../app.css';
   import { appSettingsStore } from '$lib/stores/appsettings';
   import Spinner from '$lib/components/Spinner.svelte';
   import { homeStore } from '$lib/stores/home';
+  import type { LayoutData } from './$types';
 
-  export let APPSETTINGS;
+  export let data: LayoutData;
 
-  // noinspection JSUnusedAssignment
-  $appSettingsStore = APPSETTINGS;
+  $appSettingsStore = data;
 </script>
 
 <div class="container mx-auto">
