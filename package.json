@@ -59,7 +59,7 @@
     "rxjs-multi-scan": "1.0.2",
     "socket.io": "4.6.1",
     "socket.io-client": "4.6.1",
-    "superagent": "7.1.6",
+    "superagent": "8.0.9",
     "svelte-material-icons": "3.0.4",
     "tslib": "2.5.0"
   }
