@@ -90,7 +90,7 @@ jobs:
           fetch-depth: 0
       - run: npm ci
       - run: npx nx affected --target=docker
-        if: ${{ github.actor != 'dependabot[bot]' }}
+        if: ${{ github.actor != 'renovate[bot]' }}
         env:
           NX_CLOUD_DISTRIBUTED_EXECUTION: false
           INPUT_PUSH: ${{ (github.event_name != 'pull_request' && 'true') || 'false' }}
@@ -98,7 +98,7 @@ jobs:
           INPUT_CACHE_TO: type=registry,ref=ghcr.io/graemef/home-automation/build:buildcache,mode=max
           INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: npx nx affected --target=docker
-        if: ${{ github.actor == 'dependabot[bot]' }}
+        if: ${{ github.actor == 'renovate[bot]' }}
         env:
           NX_CLOUD_DISTRIBUTED_EXECUTION: false
           INPUT_PUSH: false
