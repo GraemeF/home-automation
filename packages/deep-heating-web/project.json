@@ -5,15 +5,7 @@
   "projectType": "application",
   "tags": [],
   "targets": {
-    "sync": {
-      "executor": "nx:run-script",
-      "options": {
-        "script": "sync"
-      },
-      "outputs": [".svelte-kit"]
-    },
     "build": {
-      "dependsOn": ["sync"],
       "executor": "nx:run-script",
       "options": {
         "script": "build"
