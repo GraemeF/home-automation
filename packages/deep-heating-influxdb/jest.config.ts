@@ -13,6 +13,5 @@ export default {
     ],
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  coverageDirectory: '../../coverage/packages/deep-heating-influxdb',
   preset: '../../jest.preset.js',
 };
