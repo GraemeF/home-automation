@@ -13,7 +13,7 @@
     "@nrwl/node": "15.9.2",
     "@nrwl/nx-cloud": "16.0.2",
     "@nrwl/workspace": "15.9.2",
-    "@sveltejs/vite-plugin-svelte": "2.1.0",
+    "@sveltejs/vite-plugin-svelte": "2.1.1",
     "@testing-library/svelte": "3.2.2",
     "@tsconfig/svelte": "4.0.1",
     "@types/jest": "29.5.1",
