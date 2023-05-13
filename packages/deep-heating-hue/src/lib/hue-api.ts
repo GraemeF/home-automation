@@ -6,7 +6,7 @@ import { SensorUpdate } from '@home-automation/deep-heating-types';
 export const getSensors = async (): Promise<Dictionary<string, SensorUpdate>> =>
   (
     await request.get(
-      `http://${process.env['HUE_IP']}/api/${process.env['HUE_USERNAME']}/sensors`
+      `http://${process.env['HUE_BRIDGE']}/api/${process.env['HUE_USERNAME']}/sensors`
     )
   ).body;
 
