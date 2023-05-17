@@ -50,7 +50,7 @@
     "@nx-tools/container-metadata": "^4.0.3",
     "@nx-tools/nx-container": "^4.0.3",
     "@sveltejs/adapter-node": "1.2.4",
-    "@sveltejs/kit": "1.17.0",
+    "@sveltejs/kit": "1.18.0",
     "amazon-user-pool-srp-client": "1.0.4",
     "axios": "1.4.0",
     "dotenv": "16.0.3",
@@ -61,6 +61,6 @@
     "socket.io-client": "4.6.1",
     "superagent": "8.0.9",
     "svelte-material-icons": "3.0.4",
-    "tslib": "2.5.0"
+    "tslib": "2.5.1"
   }
 }
