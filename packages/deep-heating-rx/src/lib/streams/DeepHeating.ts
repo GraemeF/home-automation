@@ -169,7 +169,11 @@ export class DeepHeating {
   private readonly hiveHeatingActionSubject: Subject<HeatingAction> =
     new Subject<HeatingAction>();
 
-  constructor(home: Home, roomAdjustmentCommands$: Observable<RoomAdjustment>) {
+  constructor(
+    home: Home,
+    initialRoomAdjustments: RoomAdjustment[],
+    roomAdjustmentCommands$: Observable<RoomAdjustment>
+  ) {
     this.hueSensorUpdate$ = getHueSensorUpdates();
     this.temperatureSensorUpdate$ = this.hueSensorUpdate$.pipe(
       filter(isTemperatureSensorUpdate)
@@ -345,6 +349,7 @@ export class DeepHeating {
       this.roomHiveHeatingSchedules$
     );
     this.roomAdjustments$ = getRoomAdjustments(
+      initialRoomAdjustments,
       this.rooms$,
       roomAdjustmentCommands$
     );

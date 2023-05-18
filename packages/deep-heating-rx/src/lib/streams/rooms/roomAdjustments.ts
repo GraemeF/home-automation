@@ -13,6 +13,7 @@ import {
 } from '@home-automation/deep-heating-types';
 
 export function getRoomAdjustments(
+  initialRoomAdjustments: RoomAdjustment[],
   rooms$: Observable<GroupedObservable<string, RoomDefinition>>,
   roomAdjustmentCommands$: Observable<RoomAdjustment>
 ): Observable<RoomAdjustment> {
@@ -20,7 +21,12 @@ export function getRoomAdjustments(
     mergeMap((room$) =>
       roomAdjustmentCommands$.pipe(
         filter((roomAdjustment) => roomAdjustment.roomName === room$.key),
-        startWith({ roomName: room$.key, adjustment: 0 }),
+        startWith({
+          roomName: room$.key,
+          adjustment:
+            initialRoomAdjustments.find((x) => x.roomName === room$.key)
+              .adjustment ?? 0,
+        }),
         distinctUntilChanged<RoomAdjustment>(isDeepStrictEqual),
         shareReplay(1)
       )

@@ -36,9 +36,16 @@ export class SocketServer {
   }>;
   private readonly disconnect$: Observable<SocketIO.Socket>;
   private readonly subscription: Subscription;
+  private readonly saveRoomAdjustmentsSubscription: Subscription;
   private readonly state$: Observable<DeepHeatingState>;
 
-  constructor(server: Server, home: Home, opts?: Partial<ServerOptions>) {
+  constructor(
+    server: Server,
+    home: Home,
+    initialRoomAdjustments: RoomAdjustment[],
+    saveRoomAdjustments: (roomAdjustments: RoomAdjustment[]) => void,
+    opts?: Partial<ServerOptions>
+  ) {
     console.log(opts);
     this.io$ = of(new SocketIO.Server(server, opts));
 
@@ -62,7 +69,11 @@ export class SocketServer {
       share()
     );
 
-    const deepHeating = new DeepHeating(home, roomAdjustments$);
+    const deepHeating = new DeepHeating(
+      home,
+      initialRoomAdjustments,
+      roomAdjustments$
+    );
 
     const influxUrl = process.env['INFLUXDB_URL'];
     if (influxUrl) {
@@ -95,6 +106,17 @@ export class SocketServer {
     this.subscription = combineLatest([this.state$, this.io$]).subscribe(
       ([state, io]) => io.emit('State', state)
     );
+
+    this.saveRoomAdjustmentsSubscription = this.state$
+      .pipe(
+        map((state) =>
+          state.rooms.map((room) => ({
+            roomName: room.name,
+            adjustment: room.adjustment,
+          }))
+        )
+      )
+      .subscribe(saveRoomAdjustments);
   }
 
   public logConnections(): void {
@@ -103,6 +125,7 @@ export class SocketServer {
   }
 
   public dispose(): void {
+    this.saveRoomAdjustmentsSubscription.unsubscribe();
     this.subscription.unsubscribe();
   }
 
