@@ -25,7 +25,7 @@ export function getRoomAdjustments(
           roomName: room$.key,
           adjustment:
             initialRoomAdjustments.find((x) => x.roomName === room$.key)
-              .adjustment ?? 0,
+              ?.adjustment ?? 0,
         }),
         distinctUntilChanged<RoomAdjustment>(isDeepStrictEqual),
         shareReplay(1)
