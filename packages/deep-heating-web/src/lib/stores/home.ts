@@ -11,7 +11,7 @@ interface Home {
 }
 
 export const homeStore = derived<
-  Readable<Socket<DefaultEventsMap, DefaultEventsMap>>,
+  Readable<Socket<DefaultEventsMap, DefaultEventsMap> | null>,
   Home
 >(
   apiClientStore,

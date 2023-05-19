@@ -11,7 +11,7 @@
   const adjust: (adjustment: RoomAdjustment) => RoomAdjustment = (
     adjustment: RoomAdjustment
   ) => {
-    $apiClientStore.emit('adjust_room', adjustment);
+    if ($apiClientStore) $apiClientStore.emit('adjust_room', adjustment);
     return adjustment;
   };
 </script>
@@ -32,7 +32,7 @@
         </div>
       </div>
       <div class="stat-value text-right">
-        {formatTemperature(room.temperature.temperature)}
+        {formatTemperature(room.temperature?.temperature)}
       </div>
     </a>
     {#if room.targetTemperature}

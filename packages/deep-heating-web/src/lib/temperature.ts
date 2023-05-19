@@ -9,5 +9,7 @@ export const formatTemperature = (
 ): string =>
   temperature ? formatter.format(temperature) + (showUnits ? 'ºC' : '') : '–';
 
-export const compareByRoomTemperature = (a, b) =>
-  (a.temperature?.temperature ?? 999) - (b.temperature?.temperature ?? 999);
+export const compareByRoomTemperature = (
+  a: { temperature?: { temperature: number } },
+  b: { temperature?: { temperature: number } }
+) => (a.temperature?.temperature ?? 999) - (b.temperature?.temperature ?? 999);
