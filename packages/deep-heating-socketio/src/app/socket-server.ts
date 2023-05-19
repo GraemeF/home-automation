@@ -46,7 +46,6 @@ export class SocketServer {
     saveRoomAdjustments: (roomAdjustments: RoomAdjustment[]) => void,
     opts?: Partial<ServerOptions>
   ) {
-    console.log(opts);
     this.io$ = of(new SocketIO.Server(server, opts));
 
     this.connection$ = this.io$.pipe(

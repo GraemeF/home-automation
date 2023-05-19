@@ -21,9 +21,7 @@ const roomAdjustmentsPath =
 
 const loadAdjustments = () => {
   try {
-    const roomAdjustments = readFileSync(roomAdjustmentsPath).toString();
-    console.log(roomAdjustments);
-    return roomAdjustments;
+    return readFileSync(roomAdjustmentsPath).toString();
   } catch (e) {
     console.error(e);
     return '[]';
