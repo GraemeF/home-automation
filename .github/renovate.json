@@ -40,6 +40,14 @@
       "groupName": "jest",
       "automerge": true,
       "labels": ["dependencies"]
+    },
+    {
+      "matchPackagePatterns": [
+        "@nx-tools/*"
+      ],
+      "groupName": "nx-tools",
+      "automerge": true,
+      "labels": ["dependencies"]
     }
   ]
 }
