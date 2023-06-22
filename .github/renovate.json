@@ -46,6 +46,12 @@
       "groupName": "nx-tools",
       "automerge": true,
       "labels": ["dependencies"]
+    },
+    {
+      "matchPackageNames": ["node.js", "node"],
+      "groupName": "node.js",
+      "automerge": false,
+      "labels": ["dependencies"]
     }
   ]
 }
