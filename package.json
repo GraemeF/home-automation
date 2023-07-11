@@ -19,8 +19,8 @@
     "@types/jsonwebtoken": "9.0.2",
     "@types/node": "18.16.19",
     "@types/superagent": "4.1.18",
-    "@typescript-eslint/eslint-plugin": "5.61.0",
-    "@typescript-eslint/parser": "5.61.0",
+    "@typescript-eslint/eslint-plugin": "5.62.0",
+    "@typescript-eslint/parser": "5.62.0",
     "autoprefixer": "10.4.14",
     "c8": "8.0.0",
     "daisyui": "3.2.1",
@@ -60,7 +60,7 @@
     "socket.io": "4.7.1",
     "socket.io-client": "4.7.1",
     "superagent": "8.0.9",
-    "svelte-material-icons": "3.0.4",
+    "svelte-material-icons": "3.0.5",
     "tslib": "2.6.0"
   }
 }
