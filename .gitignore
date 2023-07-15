@@ -42,3 +42,4 @@ Thumbs.db
 /.env
 .nx-container
 /migrations.json
+/packages/*/.env
