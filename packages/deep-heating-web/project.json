@@ -10,7 +10,7 @@
       "options": {
         "script": "sync"
       },
-      "outputs": [".svelte-kit"]
+      "outputs": ["{projectRoot}/.svelte-kit"]
     },
     "build": {
       "dependsOn": ["sync"],
