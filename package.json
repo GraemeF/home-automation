@@ -17,7 +17,7 @@
     "@tsconfig/svelte": "5.0.0",
     "@types/jest": "29.5.3",
     "@types/jsonwebtoken": "9.0.2",
-    "@types/node": "18.17.5",
+    "@types/node": "18.17.6",
     "@types/superagent": "4.1.18",
     "@typescript-eslint/eslint-plugin": "5.62.0",
     "@typescript-eslint/parser": "5.62.0",
@@ -61,6 +61,6 @@
     "socket.io-client": "4.7.2",
     "superagent": "8.1.2",
     "svelte-material-icons": "3.0.5",
-    "tslib": "2.6.1"
+    "tslib": "2.6.2"
   }
 }
