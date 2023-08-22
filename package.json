@@ -15,7 +15,7 @@
     "@sveltejs/vite-plugin-svelte": "2.4.5",
     "@testing-library/svelte": "4.0.3",
     "@tsconfig/svelte": "5.0.1",
-    "@types/jest": "29.5.3",
+    "@types/jest": "29.5.4",
     "@types/jsonwebtoken": "9.0.2",
     "@types/node": "18.17.7",
     "@types/superagent": "4.1.18",
