@@ -1,10 +1,5 @@
 {
-  "extends": [
-    "config:base",
-    ":semanticCommits",
-    "group:monorepos",
-    "group:recommended"
-  ],
+  "extends": ["config:js-app", ":semanticCommits"],
   "branchConcurrentLimit": 20,
   "packageRules": [
     {
