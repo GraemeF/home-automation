@@ -23,7 +23,7 @@
     "@typescript-eslint/parser": "5.62.0",
     "autoprefixer": "10.4.15",
     "c8": "8.0.1",
-    "daisyui": "3.6.5",
+    "daisyui": "3.7.0",
     "eslint": "8.48.0",
     "eslint-config-prettier": "8.10.0",
     "eslint-plugin-svelte3": "4.0.0",
