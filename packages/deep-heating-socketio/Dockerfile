@@ -1,5 +1,5 @@
 ### Build Step
-FROM --platform=$BUILDPLATFORM node:20.5.1 as builder
+FROM --platform=$BUILDPLATFORM node:20.6.1 as builder
 
 WORKDIR /usr/src/app
 
@@ -19,7 +19,7 @@ RUN npx nx run deep-heating-socketio:build
 RUN npm prune --omit=dev
 
 ### Serve Step
-FROM node:20.5.1-slim
+FROM node:20.6.1-slim
 
 LABEL org.opencontainers.image.source = "https://github.com/GraemeF/home-automation"
 
