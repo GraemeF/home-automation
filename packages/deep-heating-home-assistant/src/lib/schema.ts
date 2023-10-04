@@ -25,22 +25,24 @@ export const HomeAssistantEntity = Schema.struct({
     parent_id: Schema.optional(Schema.nullable(Schema.string)),
     user_id: Schema.optional(Schema.nullable(Schema.string)),
   }),
+  attributes: Schema.readonlyMap(Schema.string, Schema.unknown),
 });
 export type HomeAssistantEntity = Schema.Schema.To<typeof HomeAssistantEntity>;
 
 export const ClimateEntity = pipe(
   HomeAssistantEntity,
+  Schema.omit('attributes'),
   Schema.extend(
     Schema.struct({
       attributes: Schema.struct({
         hvac_modes: Schema.array(Schema.string),
         min_temp: Temperature,
         max_temp: Temperature,
-        preset_modes: Schema.array(Schema.string),
+        preset_modes: Schema.optional(Schema.array(Schema.string)),
         current_temperature: Temperature,
         temperature: Temperature,
-        hvac_action: Schema.string,
-        preset_mode: Schema.string,
+        hvac_action: Schema.optional(Schema.string),
+        preset_mode: Schema.optional(Schema.string),
         friendly_name: Schema.string,
         supported_features: Schema.number,
       }),
