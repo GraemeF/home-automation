@@ -1,8 +1,11 @@
-import { ClimateEntity, HomeAssistantEntity } from './schema';
+import { HttpClientError } from '@effect/platform/Http/ClientError';
+import { ClimateEntity } from './schema';
 import * as HttpClient from '@effect/platform/HttpClient';
 import * as Schema from '@effect/schema/Schema';
 import { Config, Context, Effect, Layer } from 'effect';
 import { pipe } from 'effect/Function';
+import { Tag } from 'effect/Context';
+import { ParseError } from '@effect/schema/ParseResult';
 
 export interface HomeAssistantConfig {
   readonly url: string;
@@ -43,6 +46,7 @@ const getRequest = (path: string) =>
             Effect.withSpan('fetch_states')
           )
         ),
+        Effect.flatMap(HttpClient.response.schemaBodyJson(Schema.unknown)),
         Effect.tapBoth({
           onSuccess: () => Effect.log('OK'),
           onFailure: (error) =>
@@ -52,14 +56,47 @@ const getRequest = (path: string) =>
     )
   );
 
+export interface HomeAssistantApi {
+  getStates: () => Effect.Effect<
+    HomeAssistantConfig,
+    HttpClientError | ParseError,
+    unknown
+  >;
+}
+
+export const HomeAssistantApi = Tag<HomeAssistantApi>();
+
 export const getClimateEntities = pipe(
-  '/api/states',
-  getRequest,
-  Effect.flatMap(HttpClient.response.schemaBodyJson(Schema.array(Schema.any))),
-  Effect.map((states) =>
-    states.filter((state) => state['entity_id'].startsWith('climate.'))
-  ),
-  Effect.tap((states) => Effect.log(`Found ${states.length} climate entities`)),
-  Effect.flatMap(Schema.decode(Schema.array(ClimateEntity))),
-  Effect.withLogSpan(`fetch_climate_entities`)
+  HomeAssistantApi,
+  Effect.flatMap((api) =>
+    pipe(
+      api.getStates(),
+      Effect.flatMap(Schema.decode(Schema.array(Schema.any))),
+      Effect.map((states) =>
+        states.filter((state) => state['entity_id'].startsWith('climate.'))
+      ),
+      Effect.tap((states) =>
+        Effect.log(`Found ${states.length} climate entities`)
+      ),
+      Effect.flatMap(Schema.decode(Schema.array(ClimateEntity))),
+      Effect.withLogSpan(`fetch_climate_entities`)
+    )
+  )
 );
+
+export const HomeAssistantApiLive = Layer.effect(
+  HomeAssistantApi,
+  Effect.succeed({
+    getStates: () => pipe('/api/states', getRequest),
+  })
+);
+
+export const HomeAssistantApiTest = (
+  states: Effect.Effect<never, HttpClientError | ParseError, unknown>
+) =>
+  Layer.effect(
+    HomeAssistantApi,
+    Effect.succeed({
+      getStates: () => states,
+    })
+  );
