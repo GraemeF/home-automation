@@ -1,8 +1,8 @@
 import { DateTime } from 'luxon';
-import { HiveHeatingSchedule } from './hive';
 import { toHeatingSchedule } from './hiveSchedule';
+import { WeekHeatingSchedule } from '@home-automation/deep-heating-types';
 
-const exampleSchedule: HiveHeatingSchedule = {
+const exampleSchedule: WeekHeatingSchedule = {
   monday: [
     {
       start: 450,

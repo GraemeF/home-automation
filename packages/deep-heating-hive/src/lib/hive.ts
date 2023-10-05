@@ -18,6 +18,7 @@ import {
 import {
   TemperatureReading,
   TrvModeValue,
+  WeekHeatingSchedule,
 } from '@home-automation/deep-heating-types';
 
 const refreshIntervalSeconds = 60 * 1000;
@@ -62,33 +63,13 @@ export function getHiveProductUpdates(
   );
 }
 
-export interface HiveHeatingScheduleSlot {
-  value: {
-    heat?: number;
-    target?: number;
-  };
-  start: number;
-}
-
-export type HiveDayHeatingSchedule = HiveHeatingScheduleSlot[];
-
-export interface HiveHeatingSchedule {
-  monday: HiveDayHeatingSchedule;
-  tuesday: HiveDayHeatingSchedule;
-  wednesday: HiveDayHeatingSchedule;
-  thursday: HiveDayHeatingSchedule;
-  friday: HiveDayHeatingSchedule;
-  saturday: HiveDayHeatingSchedule;
-  sunday: HiveDayHeatingSchedule;
-}
-
 export interface TrvUpdate {
   state: {
     temperature: TemperatureReading;
     target: number;
     mode: TrvModeValue;
     isHeating: boolean;
-    schedule: HiveHeatingSchedule;
+    schedule: WeekHeatingSchedule;
   };
   trvId: string;
   deviceType: string;
@@ -101,7 +82,7 @@ export interface HeatingUpdate {
     target: number;
     mode: string;
     isHeating: boolean;
-    schedule: HiveHeatingSchedule;
+    schedule: WeekHeatingSchedule;
   };
   heatingId: string;
   name: string;
@@ -109,5 +90,5 @@ export interface HeatingUpdate {
 
 export interface RoomHiveHeatingSchedule {
   roomName: string;
-  schedule: HiveHeatingSchedule;
+  schedule: WeekHeatingSchedule;
 }

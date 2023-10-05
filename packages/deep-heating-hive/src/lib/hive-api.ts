@@ -1,12 +1,14 @@
 import { DateTime } from 'luxon';
-import { HiveHeatingSchedule } from './hive';
 import debug from 'debug';
 import { login_srp } from './hive-login';
 
 import * as request from 'superagent';
 
 import * as jwt from 'jsonwebtoken';
-import { TrvModeValue } from '@home-automation/deep-heating-types';
+import {
+  TrvModeValue,
+  WeekHeatingSchedule,
+} from '@home-automation/deep-heating-types';
 import { JwtPayload } from 'jsonwebtoken';
 
 const log = debug('hive-api');
@@ -65,7 +67,7 @@ interface HeatableState {
   name: string;
   mode: TrvModeValue;
   target: number;
-  schedule: HiveHeatingSchedule;
+  schedule: WeekHeatingSchedule;
 }
 
 type HeatingState = HeatableState;

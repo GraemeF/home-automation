@@ -1,10 +1,14 @@
 import { DateTime, Duration } from 'luxon';
-import { HiveHeatingSchedule, HiveHeatingScheduleSlot } from './hive';
-import { HeatingSchedule } from '@home-automation/deep-heating-types';
+import {
+  HeatingSchedule,
+  HeatingScheduleEntry,
+  HeatingScheduleSlot,
+  WeekHeatingSchedule,
+} from '@home-automation/deep-heating-types';
 
 function getDaySchedules(
-  heatingSchedule: HiveHeatingSchedule
-): [string, HiveHeatingScheduleSlot[]][] {
+  heatingSchedule: WeekHeatingSchedule
+): [string, HeatingScheduleSlot[]][] {
   return Object.entries(heatingSchedule).map(([day, value]) => [day, value]);
 }
 
@@ -20,17 +24,12 @@ function toStartOfDay(
     : startOfDay.startOf('day');
 }
 
-interface HeatingScheduleSlot {
-  start: DateTime;
-  targetTemperature: number;
-}
-
-function byStart(a: HeatingScheduleSlot, b: HeatingScheduleSlot) {
+function byStart(a: HeatingScheduleEntry, b: HeatingScheduleEntry) {
   return a.start < b.start ? -1 : a.start > b.start ? 1 : 0;
 }
 
 export function toHeatingSchedule(
-  schedule: HiveHeatingSchedule,
+  schedule: WeekHeatingSchedule,
   now: DateTime
 ): HeatingSchedule {
   const today = now.startOf('day');
