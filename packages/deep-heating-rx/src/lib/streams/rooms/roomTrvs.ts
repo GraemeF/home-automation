@@ -1,12 +1,7 @@
 import { map, mergeMap } from 'rxjs/operators';
 import { GroupedObservable, Observable } from 'rxjs';
-import { RoomDefinition } from '@home-automation/deep-heating-types';
-import { isNotNull } from 'effect/Predicate';
-
-export interface RoomTrvs {
-  roomName: string;
-  trvIds: string[];
-}
+import { RoomDefinition, RoomTrvs } from '@home-automation/deep-heating-types';
+import { isNotNull } from '../filters';
 
 export function getRoomTrvs(
   rooms$: Observable<GroupedObservable<string, RoomDefinition>>

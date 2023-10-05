@@ -28,6 +28,11 @@ export interface RoomDefinition {
   trvControlIds: (string | null)[];
 }
 
+export interface RoomTrvs {
+  roomName: string;
+  trvIds: string[];
+}
+
 export interface TrvStatus {
   trvId: string;
   isHeating: boolean;

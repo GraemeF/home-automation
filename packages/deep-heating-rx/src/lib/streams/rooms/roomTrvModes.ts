@@ -1,7 +1,10 @@
 import { filter, map, mergeMap } from 'rxjs/operators';
 import { combineLatest, Observable } from 'rxjs';
-import { RoomTrvModes, TrvMode } from '@home-automation/deep-heating-types';
-import { RoomTrvs } from '@home-automation/deep-heating-hive';
+import {
+  RoomTrvModes,
+  RoomTrvs,
+  TrvMode,
+} from '@home-automation/deep-heating-types';
 
 export function getRoomTrvModes(
   roomTrvs$: Observable<RoomTrvs>,

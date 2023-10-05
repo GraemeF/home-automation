@@ -67,6 +67,7 @@ import {
   RoomTargetTemperature,
   RoomTemperature,
   RoomTrvModes,
+  RoomTrvs,
   RoomTrvStatuses,
   RoomTrvTargetTemperatures,
   RoomTrvTemperatures,
@@ -88,13 +89,11 @@ import {
   getHiveProductUpdates,
   getRoomHiveHeatingSchedules,
   getRoomSchedules,
-  getRoomTrvs,
   getTrvHiveHeatingSchedules,
   HeatingUpdate,
   HiveApiAccess,
   ProductResponse,
   RoomHiveHeatingSchedule,
-  RoomTrvs,
   setHeating,
   setTrv,
   TrvControlState,
@@ -102,6 +101,7 @@ import {
   TrvUpdate,
 } from '@home-automation/deep-heating-hive';
 import { getHueSensorUpdates } from '@home-automation/deep-heating-hue';
+import { getRoomTrvs } from './rooms/roomTrvs';
 
 const log = debug('deep-heating');
 

@@ -1,8 +1,8 @@
 import { filter, groupBy, map, mergeMap } from 'rxjs/operators';
 import { combineLatest, Observable } from 'rxjs';
-import { RoomTrvs } from './roomTrvs';
 import { TrvHiveHeatingSchedule } from './trvSchedules';
 import { RoomHiveHeatingSchedule } from './hive';
+import { RoomTrvs } from '@home-automation/deep-heating-types';
 
 function trvScheduleRooms(roomTrvs$: Observable<RoomTrvs>) {
   return roomTrvs$.pipe(
