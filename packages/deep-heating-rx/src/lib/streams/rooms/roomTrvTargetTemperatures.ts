@@ -1,11 +1,11 @@
 import { filter, map, mergeMap } from 'rxjs/operators';
 import { combineLatest, Observable } from 'rxjs';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
-import { TrvTargetTemperature } from '@home-automation/deep-heating-types';
 import {
   RoomTrvTargetTemperatures,
-  RoomTrvs,
-} from '@home-automation/deep-heating-hive';
+  TrvTargetTemperature,
+} from '@home-automation/deep-heating-types';
+import { RoomTrvs } from '@home-automation/deep-heating-hive';
 
 export function getRoomTrvTargetTemperatures(
   roomTrvs$: Observable<RoomTrvs>,

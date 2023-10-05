@@ -7,6 +7,11 @@ export interface TrvTargetTemperature {
   targetTemperature: number;
 }
 
+export interface RoomTrvTargetTemperatures {
+  roomName: string;
+  trvTargetTemperatures: TrvTargetTemperature[];
+}
+
 export interface TemperatureReading {
   temperature: DegreesCelsius;
   time: DateTime;

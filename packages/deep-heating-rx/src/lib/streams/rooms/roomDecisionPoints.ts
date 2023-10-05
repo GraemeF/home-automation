@@ -6,10 +6,10 @@ import {
   RoomTargetTemperature,
   RoomTemperature,
   RoomTrvModes,
+  RoomTrvTargetTemperatures,
   RoomTrvTemperatures,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinct } from '@home-automation/rxx';
-import { RoomTrvTargetTemperatures } from '@home-automation/deep-heating-hive';
 
 export function getRoomDecisionPoints(
   rooms: Observable<GroupedObservable<string, RoomDefinition>>,

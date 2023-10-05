@@ -1,19 +1,11 @@
 import { map, mergeMap } from 'rxjs/operators';
 import { GroupedObservable, Observable } from 'rxjs';
-import {
-  RoomDefinition,
-  TrvTargetTemperature,
-} from '@home-automation/deep-heating-types';
+import { RoomDefinition } from '@home-automation/deep-heating-types';
 import { isNotNull } from 'effect/Predicate';
 
 export interface RoomTrvs {
   roomName: string;
   trvIds: string[];
-}
-
-export interface RoomTrvTargetTemperatures {
-  roomName: string;
-  trvTargetTemperatures: TrvTargetTemperature[];
 }
 
 export function getRoomTrvs(
