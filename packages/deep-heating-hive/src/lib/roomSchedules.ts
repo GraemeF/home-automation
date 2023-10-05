@@ -4,9 +4,9 @@ import { filter, map, mergeMap, shareReplay } from 'rxjs/operators';
 import {
   RoomDefinition,
   RoomSchedule,
+  toHeatingSchedule,
 } from '@home-automation/deep-heating-types';
 import { RoomHiveHeatingSchedule } from './hive';
-import { toHeatingSchedule } from './hiveSchedule';
 
 const refreshIntervalSeconds = 60;
 

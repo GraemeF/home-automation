@@ -1,10 +1,6 @@
 import { DateTime, Duration } from 'luxon';
-import {
-  HeatingSchedule,
-  HeatingScheduleEntry,
-  HeatingScheduleSlot,
-  WeekHeatingSchedule,
-} from '@home-automation/deep-heating-types';
+import { HeatingScheduleSlot, WeekHeatingSchedule } from './schedule-types';
+import { HeatingSchedule, HeatingScheduleEntry } from './deep-heating-types';
 
 function getDaySchedules(
   heatingSchedule: WeekHeatingSchedule

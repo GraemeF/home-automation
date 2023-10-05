@@ -4,8 +4,8 @@ import { DateTime } from 'luxon';
 import {
   TrvScheduledTargetTemperature,
   TrvWeekHeatingSchedule,
+  toHeatingSchedule,
 } from '@home-automation/deep-heating-types';
-import { toHeatingSchedule } from '@home-automation/deep-heating-hive';
 const refreshIntervalSeconds = 60;
 
 export function getTrvScheduledTargetTemperatures(
