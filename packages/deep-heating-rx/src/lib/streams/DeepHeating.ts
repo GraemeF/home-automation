@@ -116,7 +116,6 @@ export class DeepHeating {
   readonly trvStatuses$: Observable<TrvStatus>;
   readonly heatingStatuses$: Observable<HeatingStatus>;
   readonly hiveApiAccess$: Observable<HiveApiAccess>;
-  readonly hiveProductUpdates$: Observable<ProductResponse>;
   readonly trvApiUpdates$: Observable<TrvUpdate>;
   readonly heatingApiUpdates$: Observable<HeatingUpdate>;
   readonly trvReportedStatuses$: Observable<TrvStatus>;
@@ -242,9 +241,9 @@ export class DeepHeating {
       log('Heating', x.heatingId, x.isHeating ? 'is heating' : 'is cooling')
     );
     this.hiveApiAccess$ = getHiveApiAccess();
-    this.hiveProductUpdates$ = getHiveProductUpdates(this.hiveApiAccess$);
-    this.trvApiUpdates$ = getTrvApiUpdates(this.hiveProductUpdates$);
-    this.heatingApiUpdates$ = getHeatingApiUpdates(this.hiveProductUpdates$);
+    const hiveProductUpdates$ = getHiveProductUpdates(this.hiveApiAccess$);
+    this.trvApiUpdates$ = getTrvApiUpdates(hiveProductUpdates$);
+    this.heatingApiUpdates$ = getHeatingApiUpdates(hiveProductUpdates$);
 
     this.hiveTrvActionSubject
       .pipe(
