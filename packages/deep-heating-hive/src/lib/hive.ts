@@ -107,15 +107,6 @@ export interface HeatingUpdate {
   name: string;
 }
 
-export interface TrvControlState {
-  trvId: string;
-  targetTemperature: number;
-  mode: TrvModeValue;
-  source: HiveUpdateSource;
-}
-
-export type HiveUpdateSource = 'Hive' | 'Synthesised';
-
 export interface RoomHiveHeatingSchedule {
   roomName: string;
   schedule: HiveHeatingSchedule;

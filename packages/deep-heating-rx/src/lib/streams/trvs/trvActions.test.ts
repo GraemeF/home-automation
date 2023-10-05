@@ -8,7 +8,7 @@ describe('TRV action', () => {
   it('OFF', () => {
     const action = determineAction(
       { trvId, targetTemperature: 20 },
-      { trvId, mode: 'OFF', source: 'Hive', targetTemperature: 7 },
+      { trvId, mode: 'OFF', source: 'Device', targetTemperature: 7 },
       {
         trvId,
         temperatureReading: { time: daytime, temperature: 10 },
@@ -29,7 +29,7 @@ describe('TRV action', () => {
         trvId: trvId,
         mode: 'MANUAL',
         targetTemperature: 18.5,
-        source: 'Hive',
+        source: 'Device',
       },
       {
         trvId: trvId,
@@ -61,7 +61,7 @@ describe('TRV action', () => {
         trvId: trvId,
         mode: 'MANUAL',
         targetTemperature: 18.5,
-        source: 'Hive',
+        source: 'Device',
       },
       {
         trvId: trvId,
@@ -92,7 +92,7 @@ describe('TRV action', () => {
         trvId: trvId,
         mode: 'SCHEDULE',
         targetTemperature: 23,
-        source: 'Hive',
+        source: 'Device',
       },
       {
         trvId: trvId,
@@ -124,7 +124,7 @@ describe('TRV action', () => {
         trvId: trvId,
         mode: 'MANUAL',
         targetTemperature: 23,
-        source: 'Hive',
+        source: 'Device',
       },
       {
         trvId: trvId,

@@ -12,11 +12,11 @@ import { isNotNull } from '../filters';
 import { isDeepStrictEqual } from 'util';
 import {
   TrvAction,
+  TrvControlState,
   TrvModeValue,
   TrvScheduledTargetTemperature,
   TrvTemperature,
 } from '@home-automation/deep-heating-types';
-import { TrvControlState } from '@home-automation/deep-heating-hive';
 
 function getTrvAction(
   new_target: number,

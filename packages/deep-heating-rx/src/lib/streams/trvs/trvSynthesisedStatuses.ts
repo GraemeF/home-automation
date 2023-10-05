@@ -1,7 +1,10 @@
 import { filter, map, mergeAll, mergeMap } from 'rxjs/operators';
 import { combineLatest, Observable } from 'rxjs';
-import { TrvControlState } from '@home-automation/deep-heating-hive';
-import { TrvStatus, TrvTemperature } from '@home-automation/deep-heating-types';
+import {
+  TrvControlState,
+  TrvStatus,
+  TrvTemperature,
+} from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinct } from '@home-automation/rxx';
 
 export function getTrvSynthesisedStatuses(

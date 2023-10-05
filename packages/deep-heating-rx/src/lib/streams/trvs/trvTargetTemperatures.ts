@@ -1,8 +1,10 @@
 import { map } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
-import { TrvControlState } from '@home-automation/deep-heating-hive';
-import { TrvTargetTemperature } from '@home-automation/deep-heating-types';
+import {
+  TrvControlState,
+  TrvTargetTemperature,
+} from '@home-automation/deep-heating-types';
 
 export function getTrvTargetTemperatures(
   trvControlStates$: Observable<TrvControlState>

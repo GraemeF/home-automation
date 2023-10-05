@@ -13,9 +13,9 @@ import {
   HeatingAction,
   HeatingStatus,
   TrvAction,
+  TrvControlState,
   TrvScheduledTargetTemperature,
 } from '@home-automation/deep-heating-types';
-import { TrvControlState } from './hive';
 
 export function getTrvActionsByTrvId(
   trvActions: Observable<TrvAction>

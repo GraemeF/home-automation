@@ -205,3 +205,12 @@ export interface TrvScheduledTargetTemperature {
   trvId: string;
   scheduledTargetTemperature: number;
 }
+
+export interface TrvControlState {
+  trvId: string;
+  targetTemperature: number;
+  mode: TrvModeValue;
+  source: UpdateSource;
+}
+
+export type UpdateSource = 'Device' | 'Synthesised';

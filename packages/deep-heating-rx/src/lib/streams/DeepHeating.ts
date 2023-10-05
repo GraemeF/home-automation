@@ -75,6 +75,7 @@ import {
   SwitchSensorUpdate,
   TemperatureSensorUpdate,
   TrvAction,
+  TrvControlState,
   TrvMode,
   TrvScheduledTargetTemperature,
   TrvStatus,
@@ -96,7 +97,6 @@ import {
   RoomHiveHeatingSchedule,
   setHeating,
   setTrv,
-  TrvControlState,
   TrvHiveHeatingSchedule,
   TrvUpdate,
 } from '@home-automation/deep-heating-hive';
@@ -216,7 +216,7 @@ export class DeepHeating {
       log(
         'TRV',
         trvDisplayName(x.trvId),
-        x.source === 'Hive' ? 'is set to' : 'will be changed to',
+        x.source === 'Device' ? 'is set to' : 'will be changed to',
         x.mode,
         x.targetTemperature
       )
@@ -304,7 +304,7 @@ export class DeepHeating {
         trvId: x.trvId,
         mode: x.state.mode,
         targetTemperature: x.state.target,
-        source: 'Hive',
+        source: 'Device',
       })
     );
 
@@ -321,7 +321,7 @@ export class DeepHeating {
       map((x) => ({
         heatingId: x.heatingId,
         isHeating: x.state.isHeating,
-        source: 'Hive',
+        source: 'Device',
       }))
     );
 
