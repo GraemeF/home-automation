@@ -1,8 +1,10 @@
 import { map, shareReplay } from 'rxjs/operators';
 import { combineLatest, Observable, timer } from 'rxjs';
 import { DateTime } from 'luxon';
-import { TrvHiveHeatingSchedule } from './trvSchedules';
-import { toHeatingSchedule } from '@home-automation/deep-heating-hive';
+import {
+  TrvHiveHeatingSchedule,
+  toHeatingSchedule,
+} from '@home-automation/deep-heating-hive';
 
 const refreshIntervalSeconds = 60;
 

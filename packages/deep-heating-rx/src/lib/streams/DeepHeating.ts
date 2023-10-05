@@ -21,16 +21,6 @@ import { getTrvSynthesisedStatuses } from './trvs/trvSynthesisedStatuses';
 import { isDeepStrictEqual } from 'util';
 import { getTrvApiUpdates } from './trvs/trvStates';
 import { getHeatingApiUpdates } from './heating/heatingStates';
-import {
-  getTrvHiveHeatingSchedules,
-  TrvHiveHeatingSchedule,
-} from './trvs/trvSchedules';
-import {
-  getRoomTrvs,
-  RoomTrvs,
-  RoomTrvTargetTemperatures,
-} from './rooms/roomTrvs';
-import { getRoomHiveHeatingSchedules } from './rooms/roomHiveHeatingSchedules';
 import { getTrvTargetTemperatures } from './trvs/trvTargetTemperatures';
 import { getTrvTemperatures } from './trvs/trvTemperatures';
 import { getTrvModes } from './trvs/trvModes';
@@ -94,14 +84,20 @@ import {
 import {
   getHiveApiAccess,
   getHiveProductUpdates,
+  getRoomHiveHeatingSchedules,
   getRoomSchedules,
+  getRoomTrvs,
+  getTrvHiveHeatingSchedules,
   HeatingUpdate,
   HiveApiAccess,
   ProductResponse,
   RoomHiveHeatingSchedule,
+  RoomTrvs,
+  RoomTrvTargetTemperatures,
   setHeating,
   setTrv,
   TrvControlState,
+  TrvHiveHeatingSchedule,
   TrvUpdate,
 } from '@home-automation/deep-heating-hive';
 import { getHueSensorUpdates } from '@home-automation/deep-heating-hue';

@@ -1,10 +1,7 @@
 import { map } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
-import {
-  HiveHeatingSchedule,
-  TrvUpdate,
-} from '@home-automation/deep-heating-hive';
+import { HiveHeatingSchedule, TrvUpdate } from './hive';
 
 export interface TrvHiveHeatingSchedule {
   trvId: string;

@@ -1,6 +1,5 @@
 import { combineLatest, GroupedObservable, Observable } from 'rxjs';
 import { filter, map, mergeMap, share } from 'rxjs/operators';
-import { RoomTrvTargetTemperatures } from './roomTrvs';
 import {
   RoomDecisionPoint,
   RoomDefinition,
@@ -10,6 +9,7 @@ import {
   RoomTrvTemperatures,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinct } from '@home-automation/rxx';
+import { RoomTrvTargetTemperatures } from '@home-automation/deep-heating-hive';
 
 export function getRoomDecisionPoints(
   rooms: Observable<GroupedObservable<string, RoomDefinition>>,

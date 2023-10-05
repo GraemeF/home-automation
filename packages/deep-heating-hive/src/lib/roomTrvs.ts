@@ -1,10 +1,10 @@
 import { map, mergeMap } from 'rxjs/operators';
 import { GroupedObservable, Observable } from 'rxjs';
-import { isNotNull } from '../filters';
 import {
   RoomDefinition,
   TrvTargetTemperature,
 } from '@home-automation/deep-heating-types';
+import { isNotNull } from 'effect/Predicate';
 
 export interface RoomTrvs {
   roomName: string;
