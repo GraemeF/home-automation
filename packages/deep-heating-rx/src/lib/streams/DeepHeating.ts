@@ -31,7 +31,6 @@ import {
   RoomTrvTargetTemperatures,
 } from './rooms/roomTrvs';
 import { getRoomHiveHeatingSchedules } from './rooms/roomHiveHeatingSchedules';
-import { getRoomSchedules } from './rooms/roomSchedules';
 import { getTrvTargetTemperatures } from './trvs/trvTargetTemperatures';
 import { getTrvTemperatures } from './trvs/trvTemperatures';
 import { getTrvModes } from './trvs/trvModes';
@@ -95,6 +94,7 @@ import {
 import {
   getHiveApiAccess,
   getHiveProductUpdates,
+  getRoomSchedules,
   HeatingUpdate,
   HiveApiAccess,
   ProductResponse,

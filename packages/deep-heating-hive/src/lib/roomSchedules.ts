@@ -5,10 +5,8 @@ import {
   RoomDefinition,
   RoomSchedule,
 } from '@home-automation/deep-heating-types';
-import {
-  RoomHiveHeatingSchedule,
-  toHeatingSchedule,
-} from '@home-automation/deep-heating-hive';
+import { RoomHiveHeatingSchedule } from './hive';
+import { toHeatingSchedule } from './hiveSchedule';
 
 const refreshIntervalSeconds = 60;
 

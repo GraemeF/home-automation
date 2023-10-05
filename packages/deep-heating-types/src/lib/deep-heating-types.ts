@@ -47,7 +47,7 @@ export type HeatingSchedule = HeatingScheduleEntry[];
 
 export interface RoomSchedule {
   roomName: string;
-  schedule: HeatingScheduleEntry[];
+  schedule: HeatingSchedule;
 }
 
 export interface RoomTargetTemperature {
