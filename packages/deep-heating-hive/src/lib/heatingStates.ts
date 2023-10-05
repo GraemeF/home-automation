@@ -2,11 +2,8 @@ import { Observable } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 import { DateTime } from 'luxon';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
-import {
-  HeatingUpdate,
-  isHeatingProduct,
-  ProductResponse,
-} from '@home-automation/deep-heating-hive';
+import { ProductResponse } from './hive-api';
+import { HeatingUpdate, isHeatingProduct } from './hive';
 
 export const getHeatingApiUpdates = (
   p$: Observable<ProductResponse>
