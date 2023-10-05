@@ -1,12 +1,9 @@
 import { Observable } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 import { DateTime } from 'luxon';
-import {
-  isTrvControlProduct,
-  ProductResponse,
-  TrvUpdate,
-} from '@home-automation/deep-heating-hive';
 import { shareReplayLatestByKey } from '@home-automation/rxx';
+import { ProductResponse } from './hive-api';
+import { TrvUpdate, isTrvControlProduct } from './hive';
 
 export const getTrvApiUpdates = (
   p$: Observable<ProductResponse>

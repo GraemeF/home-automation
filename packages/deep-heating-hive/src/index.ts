@@ -6,3 +6,4 @@ export * from './lib/roomHiveHeatingSchedules';
 export * from './lib/trvSchedules';
 export * from './lib/hiveActions';
 export * from './lib/heatingStates';
+export * from './lib/trvStates';

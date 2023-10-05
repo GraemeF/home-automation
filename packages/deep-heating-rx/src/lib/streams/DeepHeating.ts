@@ -19,7 +19,6 @@ import {
 import { getRoomTemperatures } from './rooms/roomTemperatures';
 import { getTrvSynthesisedStatuses } from './trvs/trvSynthesisedStatuses';
 import { isDeepStrictEqual } from 'util';
-import { getTrvApiUpdates } from './trvs/trvStates';
 import { getTrvTargetTemperatures } from './trvs/trvTargetTemperatures';
 import { getTrvTemperatures } from './trvs/trvTemperatures';
 import { getTrvModes } from './trvs/trvModes';
@@ -90,6 +89,7 @@ import {
   getHiveProductUpdates,
   getRoomHiveHeatingSchedules,
   getRoomSchedules,
+  getTrvApiUpdates,
   getTrvHiveHeatingSchedules,
   HeatingUpdate,
   HiveApiAccess,
