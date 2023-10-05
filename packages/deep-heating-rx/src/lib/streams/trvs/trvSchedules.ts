@@ -1,17 +1,14 @@
 import { map } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
-import { WeekHeatingSchedule } from '@home-automation/deep-heating-types';
-import { TrvUpdate } from './hive';
+import {
+  TrvUpdate,
+  TrvWeekHeatingSchedule,
+} from '@home-automation/deep-heating-types';
 
-export interface TrvHiveHeatingSchedule {
-  trvId: string;
-  schedule: WeekHeatingSchedule;
-}
-
-export function getTrvHiveHeatingSchedules(
+export function getTrvWeekHeatingSchedules(
   trvUpdates$: Observable<TrvUpdate>
-): Observable<TrvHiveHeatingSchedule> {
+): Observable<TrvWeekHeatingSchedule> {
   return trvUpdates$.pipe(
     map((x) => ({
       trvId: x.trvId,

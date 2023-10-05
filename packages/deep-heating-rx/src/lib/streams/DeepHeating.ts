@@ -80,6 +80,8 @@ import {
   TrvStatus,
   TrvTargetTemperature,
   TrvTemperature,
+  TrvUpdate,
+  TrvWeekHeatingSchedule,
 } from '@home-automation/deep-heating-types';
 import {
   applyHeatingActions,
@@ -90,18 +92,16 @@ import {
   getRoomHiveHeatingSchedules,
   getRoomSchedules,
   getTrvApiUpdates,
-  getTrvHiveHeatingSchedules,
   HeatingUpdate,
   HiveApiAccess,
   ProductResponse,
   RoomHiveHeatingSchedule,
   setHeating,
   setTrv,
-  TrvHiveHeatingSchedule,
-  TrvUpdate,
 } from '@home-automation/deep-heating-hive';
 import { getHueSensorUpdates } from '@home-automation/deep-heating-hue';
 import { getRoomTrvs } from './rooms/roomTrvs';
+import { getTrvWeekHeatingSchedules } from './trvs/trvSchedules';
 
 const log = debug('deep-heating');
 
@@ -121,7 +121,7 @@ export class DeepHeating {
   readonly heatingApiUpdates$: Observable<HeatingUpdate>;
   readonly trvReportedStatuses$: Observable<TrvStatus>;
   readonly heatingReportedStatuses$: Observable<HeatingStatus>;
-  readonly trvHiveHeatingSchedules$: Observable<TrvHiveHeatingSchedule>;
+  readonly trvHiveHeatingSchedules$: Observable<TrvWeekHeatingSchedule>;
   readonly roomTrvs$: Observable<RoomTrvs>;
   readonly roomHiveHeatingSchedules$: Observable<RoomHiveHeatingSchedule>;
   readonly roomSchedules$: Observable<RoomSchedule>;
@@ -329,7 +329,7 @@ export class DeepHeating {
       this.publishHeatingStatus(x)
     );
 
-    this.trvHiveHeatingSchedules$ = getTrvHiveHeatingSchedules(
+    this.trvHiveHeatingSchedules$ = getTrvWeekHeatingSchedules(
       this.trvApiUpdates$
     );
 

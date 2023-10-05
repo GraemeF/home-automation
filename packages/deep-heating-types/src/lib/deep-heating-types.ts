@@ -1,4 +1,5 @@
 import { DateTime } from 'luxon';
+import { WeekHeatingSchedule } from './schedule-types';
 
 export type DegreesCelsius = number;
 
@@ -214,3 +215,16 @@ export interface TrvControlState {
 }
 
 export type UpdateSource = 'Device' | 'Synthesised';
+
+export interface TrvUpdate {
+  state: {
+    temperature: TemperatureReading;
+    target: number;
+    mode: TrvModeValue;
+    isHeating: boolean;
+    schedule: WeekHeatingSchedule;
+  };
+  trvId: string;
+  deviceType: string;
+  name: string;
+}

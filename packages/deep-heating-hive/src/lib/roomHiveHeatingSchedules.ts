@@ -1,8 +1,10 @@
 import { filter, groupBy, map, mergeMap } from 'rxjs/operators';
 import { combineLatest, Observable } from 'rxjs';
-import { TrvHiveHeatingSchedule } from './trvSchedules';
 import { RoomHiveHeatingSchedule } from './hive';
-import { RoomTrvs } from '@home-automation/deep-heating-types';
+import {
+  RoomTrvs,
+  TrvWeekHeatingSchedule,
+} from '@home-automation/deep-heating-types';
 
 function trvScheduleRooms(roomTrvs$: Observable<RoomTrvs>) {
   return roomTrvs$.pipe(
@@ -17,7 +19,7 @@ function trvScheduleRooms(roomTrvs$: Observable<RoomTrvs>) {
 
 export function getRoomHiveHeatingSchedules(
   roomTrvs$: Observable<RoomTrvs>,
-  trvSchedules: Observable<TrvHiveHeatingSchedule>
+  trvSchedules: Observable<TrvWeekHeatingSchedule>
 ): Observable<RoomHiveHeatingSchedule> {
   return trvScheduleRooms(roomTrvs$).pipe(
     mergeMap((groupedTrvScheduleRooms) =>

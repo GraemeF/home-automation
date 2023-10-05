@@ -17,3 +17,8 @@ export interface WeekHeatingSchedule {
   saturday: DayHeatingSchedule;
   sunday: DayHeatingSchedule;
 }
+
+export interface TrvWeekHeatingSchedule {
+  trvId: string;
+  schedule: WeekHeatingSchedule;
+}

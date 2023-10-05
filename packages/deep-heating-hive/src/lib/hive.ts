@@ -17,7 +17,6 @@ import {
 } from 'rxjs/operators';
 import {
   TemperatureReading,
-  TrvModeValue,
   WeekHeatingSchedule,
 } from '@home-automation/deep-heating-types';
 
@@ -61,19 +60,6 @@ export function getHiveProductUpdates(
     mergeAll(),
     shareReplay(1)
   );
-}
-
-export interface TrvUpdate {
-  state: {
-    temperature: TemperatureReading;
-    target: number;
-    mode: TrvModeValue;
-    isHeating: boolean;
-    schedule: WeekHeatingSchedule;
-  };
-  trvId: string;
-  deviceType: string;
-  name: string;
 }
 
 export interface HeatingUpdate {
