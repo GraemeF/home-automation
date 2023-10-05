@@ -1,6 +1,6 @@
 import { combineLatest, Observable } from 'rxjs';
 import { filter, map, shareReplay } from 'rxjs/operators';
-import { HeatingStatus } from '@home-automation/deep-heating-types';
+import { HeatingStatus } from './deep-heating-types';
 
 export function getHeatingActions(
   heatingId: string,

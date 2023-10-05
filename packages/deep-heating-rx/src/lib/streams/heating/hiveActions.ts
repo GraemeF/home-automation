@@ -9,8 +9,11 @@ import {
   withLatestFrom,
 } from 'rxjs/operators';
 import { GroupedObservable, Observable } from 'rxjs';
-import { HeatingStatus, TrvAction } from '@home-automation/deep-heating-types';
-import { HeatingAction } from './heatingActions';
+import {
+  HeatingAction,
+  HeatingStatus,
+  TrvAction,
+} from '@home-automation/deep-heating-types';
 import { TrvControlState } from '@home-automation/deep-heating-hive';
 import { TrvScheduledTargetTemperature } from '../trvs/trvScheduledTargetTemperatures';
 

@@ -11,7 +11,7 @@ type EntityId = Schema.Schema.To<typeof EntityId>;
 const Temperature = pipe(
   Schema.number,
   Schema.between(-20, 60),
-  Schema.brand('Temperature')
+  Schema.brand('ºC')
 );
 type Temperature = Schema.Schema.To<typeof Temperature>;
 

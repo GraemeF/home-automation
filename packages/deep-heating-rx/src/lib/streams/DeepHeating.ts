@@ -40,7 +40,6 @@ import {
 } from './trvs/trvScheduledTargetTemperatures';
 import { isNotNull } from './filters';
 import { getTrvActions } from './trvs/trvActions';
-import { getHeatingActions, HeatingAction } from './heating/heatingActions';
 import { getRoomTargetTemperatures } from './rooms/roomTargetTemperatures';
 import { getRoomTrvTargetTemperatures } from './rooms/roomTrvTargetTemperatures';
 import { getRoomTrvTemperatures } from './rooms/roomTrvTemperatures';
@@ -57,6 +56,8 @@ import { getRoomsHeating } from './rooms/roomsHeating';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import {
   ButtonEvent,
+  getHeatingActions,
+  HeatingAction,
   HeatingStatus,
   Home,
   HouseModeValue,
