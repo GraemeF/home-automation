@@ -82,7 +82,7 @@ const exampleStates = [
     last_changed: '2023-09-30T15:49:08.636456+00:00',
     last_updated: '2023-09-30T16:09:23.756730+00:00',
     context: {
-      id: '01HBKDM2HC7R12TC6J5W58VAW8',
+      id: 'id-2',
       parent_id: null,
       user_id: null,
     },
@@ -127,6 +127,42 @@ const exampleStates = [
     last_updated: '2023-09-30T16:40:53.947834+00:00',
     context: {
       id: 'id-5',
+      parent_id: null,
+      user_id: null,
+    },
+  },
+  {
+    entity_id: 'sensor.office_sensor_temperature',
+    state: '21.2',
+    attributes: {
+      state_class: 'measurement',
+      temperature_valid: true,
+      unit_of_measurement: '°C',
+      device_class: 'temperature',
+      friendly_name: 'Office Sensor Temperature',
+    },
+    last_changed: '2023-09-30T18:27:38.204853+00:00',
+    last_updated: '2023-09-30T18:27:38.204853+00:00',
+    context: {
+      id: 'id-6',
+      parent_id: null,
+      user_id: null,
+    },
+  },
+  {
+    entity_id: 'sensor.garden_temperature',
+    state: '16.0',
+    attributes: {
+      state_class: 'measurement',
+      min_entity_id: 'sensor.pagoda_sensor_temperature',
+      unit_of_measurement: '°C',
+      icon: 'mdi:thermometer',
+      friendly_name: 'Garden temperature',
+    },
+    last_changed: '2023-09-30T18:39:27.328391+00:00',
+    last_updated: '2023-09-30T18:39:27.328391+00:00',
+    context: {
+      id: 'id-7',
       parent_id: null,
       user_id: null,
     },
