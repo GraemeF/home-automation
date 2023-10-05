@@ -18,6 +18,9 @@
       "@home-automation/deep-heating-hive": [
         "packages/deep-heating-hive/src/index.ts"
       ],
+      "@home-automation/deep-heating-home-assistant": [
+        "packages/deep-heating-home-assistant/src/index.ts"
+      ],
       "@home-automation/deep-heating-hue": [
         "packages/deep-heating-hue/src/index.ts"
       ],
