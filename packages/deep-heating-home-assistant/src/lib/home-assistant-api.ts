@@ -7,11 +7,11 @@ import { pipe } from 'effect/Function';
 import { Tag } from 'effect/Context';
 import { ParseError } from '@effect/schema/ParseResult';
 
-export interface HomeAssistantConfig {
+interface HomeAssistantConfig {
   readonly url: string;
   readonly token: string;
 }
-export const HomeAssistantConfig = Context.Tag<HomeAssistantConfig>();
+const HomeAssistantConfig = Context.Tag<HomeAssistantConfig>();
 
 export const HomeAssistantConfigLive = Layer.effect(
   HomeAssistantConfig,
