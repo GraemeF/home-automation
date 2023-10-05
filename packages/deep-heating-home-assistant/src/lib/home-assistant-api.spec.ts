@@ -1,5 +1,6 @@
 import { Effect, pipe } from 'effect';
 import { HomeAssistantApiTest, getClimateEntities } from './home-assistant-api';
+import { ClimateEntity } from './schema';
 
 const exampleStates = [
   {
@@ -170,12 +171,24 @@ const exampleStates = [
 ];
 
 describe('home-assistant-api', () => {
-  it('queries stuff', async () =>
-    expect(
-      await pipe(
+  describe('getClimateEntities', () => {
+    let result: readonly ClimateEntity[];
+
+    beforeAll(async () => {
+      result = await pipe(
         getClimateEntities,
         Effect.provide(HomeAssistantApiTest(Effect.succeed(exampleStates))),
         Effect.runPromise
-      )
-    ).toHaveLength(3));
+      );
+    });
+
+    it('returns only the climate entities', async () => {
+      expect(result).toHaveLength(3);
+      expect(result.map((e) => e.entity_id)).toEqual([
+        'climate.kitchen',
+        'climate.panel_heater',
+        'climate.main',
+      ]);
+    });
+  });
 });
