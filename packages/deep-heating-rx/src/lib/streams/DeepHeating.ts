@@ -34,10 +34,7 @@ import {
   getTrvDesiredTargetTemperatures,
   TrvDesiredTargetTemperature,
 } from './trvs/trvDesiredTargetTemperatures';
-import {
-  getTrvScheduledTargetTemperatures,
-  TrvScheduledTargetTemperature,
-} from './trvs/trvScheduledTargetTemperatures';
+import { getTrvScheduledTargetTemperatures } from './trvs/trvScheduledTargetTemperatures';
 import { isNotNull } from './filters';
 import { getTrvActions } from './trvs/trvActions';
 import { getRoomTargetTemperatures } from './rooms/roomTargetTemperatures';
@@ -78,11 +75,14 @@ import {
   TemperatureSensorUpdate,
   TrvAction,
   TrvMode,
+  TrvScheduledTargetTemperature,
   TrvStatus,
   TrvTargetTemperature,
   TrvTemperature,
 } from '@home-automation/deep-heating-types';
 import {
+  applyHeatingActions,
+  applyTrvActions,
   getHiveApiAccess,
   getHiveProductUpdates,
   getRoomHiveHeatingSchedules,
@@ -102,7 +102,6 @@ import {
   TrvUpdate,
 } from '@home-automation/deep-heating-hive';
 import { getHueSensorUpdates } from '@home-automation/deep-heating-hue';
-import { applyHeatingActions, applyTrvActions } from './heating/hiveActions';
 
 const log = debug('deep-heating');
 

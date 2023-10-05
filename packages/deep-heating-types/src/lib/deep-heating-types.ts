@@ -190,3 +190,8 @@ export interface Home {
   sleepSwitchId: string;
   heatingId: string;
 }
+
+export interface TrvScheduledTargetTemperature {
+  trvId: string;
+  scheduledTargetTemperature: number;
+}

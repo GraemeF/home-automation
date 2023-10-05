@@ -7,13 +7,13 @@ import {
   share,
   shareReplay,
 } from 'rxjs/operators';
-import { TrvScheduledTargetTemperature } from './trvScheduledTargetTemperatures';
 import { TrvDesiredTargetTemperature } from './trvDesiredTargetTemperatures';
 import { isNotNull } from '../filters';
 import { isDeepStrictEqual } from 'util';
 import {
   TrvAction,
   TrvModeValue,
+  TrvScheduledTargetTemperature,
   TrvTemperature,
 } from '@home-automation/deep-heating-types';
 import { TrvControlState } from '@home-automation/deep-heating-hive';
