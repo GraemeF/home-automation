@@ -85,12 +85,9 @@ import {
   HeatingUpdate,
 } from '@home-automation/deep-heating-types';
 import {
-  getHeatingApiUpdates,
-  getHiveApiAccess,
-  getHiveProductUpdates,
-  getTrvApiUpdates,
+  HeatingProvider,
   HiveApiAccess,
-  setHeating,
+  createHiveProvider,
   setTrv,
 } from '@home-automation/deep-heating-hive';
 import { getHueSensorUpdates } from '@home-automation/deep-heating-hue';
@@ -150,6 +147,7 @@ export class DeepHeating {
   readonly roomsAnyHeating$: Observable<boolean>;
   readonly trvsHeating$: Observable<Set<string>>;
   readonly roomsHeating$: Observable<Set<string>>;
+  readonly provider: HeatingProvider;
 
   private readonly trvControlStateSubject: Subject<TrvControlState> =
     new Subject<TrvControlState>();
@@ -157,10 +155,6 @@ export class DeepHeating {
     new Subject<TrvStatus>();
   private readonly heatingStatusSubject: Subject<HeatingStatus> =
     new Subject<HeatingStatus>();
-  private readonly hiveTrvActionSubject: Subject<TrvAction> =
-    new Subject<TrvAction>();
-  private readonly hiveHeatingActionSubject: Subject<HeatingAction> =
-    new Subject<HeatingAction>();
 
   constructor(
     home: Home,
@@ -238,12 +232,10 @@ export class DeepHeating {
     this.heatingStatuses$.subscribe((x) =>
       log('Heating', x.heatingId, x.isHeating ? 'is heating' : 'is cooling')
     );
-    this.hiveApiAccess$ = getHiveApiAccess();
-    const hiveProductUpdates$ = getHiveProductUpdates(this.hiveApiAccess$);
-    this.trvApiUpdates$ = getTrvApiUpdates(hiveProductUpdates$);
-    this.heatingApiUpdates$ = getHeatingApiUpdates(hiveProductUpdates$);
 
-    this.hiveTrvActionSubject
+    this.provider = createHiveProvider();
+
+    this.provider.trvActionSubject
       .pipe(
         groupBy((x) => x.trvId),
         mergeMap((x) => x.pipe(debounceTime(5000))),
@@ -263,32 +255,6 @@ export class DeepHeating {
         log(
           'TRV',
           trvDisplayName(x.trvId),
-          x.result.ok ? 'has' : 'has not',
-          'been changed to',
-          x.mode ?? '',
-          x.targetTemperature ?? ''
-        )
-      );
-
-    this.hiveHeatingActionSubject
-      .pipe(
-        debounceTime(5000),
-        withLatestFrom(this.hiveApiAccess$),
-        mergeMap(([action, apiAccess]) =>
-          from(
-            setHeating(
-              apiAccess,
-              action.heatingId,
-              action.mode,
-              action.targetTemperature
-            )
-          )
-        )
-      )
-      .subscribe((x) =>
-        log(
-          'Heating',
-          x.heatingId,
           x.result.ok ? 'has' : 'has not',
           'been changed to',
           x.mode ?? '',
@@ -493,10 +459,10 @@ export class DeepHeating {
   }
 
   publishHiveTrvAction(newAction: TrvAction): void {
-    this.hiveTrvActionSubject.next(newAction);
+    this.provider.trvActionSubject.next(newAction);
   }
 
   publishHiveHeatingAction(newAction: HeatingAction): void {
-    this.hiveHeatingActionSubject.next(newAction);
+    this.provider.heatingActionSubject.next(newAction);
   }
 }
