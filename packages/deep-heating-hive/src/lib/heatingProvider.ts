@@ -1,8 +1,7 @@
 import {
   HeatingAction,
-  HeatingUpdate,
+  HeatingProvider,
   TrvAction,
-  TrvUpdate,
 } from '@home-automation/deep-heating-types';
 import { from, Subject } from 'rxjs';
 import { getHiveApiAccess, getHiveProductUpdates } from './hive';
@@ -15,17 +14,9 @@ import {
   mergeMap,
   withLatestFrom,
 } from 'rxjs/operators';
-import { Observable } from 'rxjs';
 import { setHeating, setTrv } from './hive-api';
 
 const log = debug('hive');
-
-export type HeatingProvider = {
-  trvApiUpdates$: Observable<TrvUpdate>;
-  heatingApiUpdates$: Observable<HeatingUpdate>;
-  heatingActions: Subject<HeatingAction>;
-  trvActions: Subject<TrvAction>;
-};
 
 export const createHiveProvider: () => HeatingProvider = () => {
   const hiveApiAccess$ = getHiveApiAccess();

@@ -76,16 +76,12 @@ import {
   TrvScheduledTargetTemperature,
   TrvStatus,
   TrvTargetTemperature,
+  HeatingProvider,
   TrvTemperature,
-  TrvUpdate,
   TrvWeekHeatingSchedule,
   RoomWeekHeatingSchedule,
-  HeatingUpdate,
 } from '@home-automation/deep-heating-types';
-import {
-  HeatingProvider,
-  createHiveProvider,
-} from '@home-automation/deep-heating-hive';
+import { createHiveProvider } from '@home-automation/deep-heating-hive';
 import { getHueSensorUpdates } from '@home-automation/deep-heating-hue';
 import { getRoomTrvs } from './rooms/roomTrvs';
 import { getTrvWeekHeatingSchedules } from './trvs/trvSchedules';
