@@ -11,8 +11,12 @@ export function getHeatingActions(
     filter(([needsHeating, status]) => needsHeating !== status.isHeating),
     map(([needsHeating]) =>
       needsHeating
-        ? { heatingId, mode: 'MANUAL', targetTemperature: 32 }
-        : { heatingId, mode: 'MANUAL', targetTemperature: 7 }
+        ? ({
+            heatingId,
+            mode: 'MANUAL',
+            targetTemperature: 32,
+          } as HeatingAction)
+        : ({ heatingId, mode: 'MANUAL', targetTemperature: 7 } as HeatingAction)
     ),
     shareReplay(1)
   );
@@ -20,6 +24,6 @@ export function getHeatingActions(
 
 export interface HeatingAction {
   heatingId: string;
-  mode: string;
+  mode: 'MANUAL' | 'SCHEDULE' | 'OFF';
   targetTemperature: number;
 }

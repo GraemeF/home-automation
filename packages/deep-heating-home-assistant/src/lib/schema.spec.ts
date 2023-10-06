@@ -31,7 +31,7 @@ describe('climate', () => {
   describe('schema', () => {
     it('decodes a climate entity', () => {
       expect(
-        pipe(exampleClimateEntity, Schema.decode(ClimateEntity), Effect.runSync)
+        pipe(exampleClimateEntity, Schema.parse(ClimateEntity), Effect.runSync)
       ).toStrictEqual({
         ...exampleClimateEntity,
         last_changed: new Date('2023-09-30T16:18:33.488Z'),

@@ -1,5 +1,5 @@
 import { HttpClientError } from '@effect/platform/Http/ClientError';
-import { ClimateEntity } from './schema';
+import { ClimateEntity, EntityId } from './schema';
 import * as HttpClient from '@effect/platform/HttpClient';
 import * as Schema from '@effect/schema/Schema';
 import { Config, Context, Effect, Layer } from 'effect';
@@ -62,6 +62,14 @@ export interface HomeAssistantApi {
     HttpClientError | ParseError,
     unknown
   >;
+  setState: <T>(
+    entityId: EntityId,
+    state: T
+  ) => Effect.Effect<
+    HomeAssistantConfig,
+    HttpClientError | ParseError | Error,
+    { readonly ok: boolean }
+  >;
 }
 
 export const HomeAssistantApi = Tag<HomeAssistantApi>();
@@ -88,6 +96,7 @@ export const HomeAssistantApiLive = Layer.effect(
   HomeAssistantApi,
   Effect.succeed({
     getStates: () => pipe('/api/states', getRequest),
+    setState: () => Effect.fail(new Error('Not implemented')),
   })
 );
 
@@ -98,5 +107,6 @@ export const HomeAssistantApiTest = (
     HomeAssistantApi,
     Effect.succeed({
       getStates: () => states,
+      setState: () => Effect.fail(new Error('Not implemented')),
     })
   );
