@@ -33,7 +33,6 @@ import {
   TrvDesiredTargetTemperature,
 } from './trvs/trvDesiredTargetTemperatures';
 import { getTrvScheduledTargetTemperatures } from './trvs/trvScheduledTargetTemperatures';
-import { isNotNull } from './filters';
 import { getTrvActions } from './trvs/trvActions';
 import { getRoomTargetTemperatures } from './rooms/roomTargetTemperatures';
 import { getRoomTrvTargetTemperatures } from './rooms/roomTrvTargetTemperatures';
@@ -101,6 +100,7 @@ import {
 import { getHueSensorUpdates } from '@home-automation/deep-heating-hue';
 import { getRoomTrvs } from './rooms/roomTrvs';
 import { getTrvWeekHeatingSchedules } from './trvs/trvSchedules';
+import { Predicate } from 'effect';
 
 const log = debug('deep-heating');
 
@@ -405,7 +405,7 @@ export class DeepHeating {
       mergeMap((roomDefinitions$) =>
         roomDefinitions$.pipe(
           map((roomDefinition) =>
-            roomDefinition.trvControlIds.filter(isNotNull)
+            roomDefinition.trvControlIds.filter(Predicate.isNotNull)
           )
         )
       )

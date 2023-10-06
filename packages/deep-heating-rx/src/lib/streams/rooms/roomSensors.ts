@@ -1,6 +1,6 @@
 import { filter, map } from 'rxjs/operators';
 import { GroupedObservable, Observable } from 'rxjs';
-import { isNotNull } from '../filters';
+import { Predicate } from 'effect';
 import {
   RoomDefinition,
   RoomSensors,
@@ -28,7 +28,7 @@ export function getRoomSensors(
     map((room$) =>
       room$.pipe(
         map((roomDefinition) => roomDefinition.temperatureSensorId),
-        filter(isNotNull),
+        filter(Predicate.isNotNull),
         map((temperatureSensorId) => ({
           roomName: room$.key,
           temperatureSensorIds: [temperatureSensorId],
