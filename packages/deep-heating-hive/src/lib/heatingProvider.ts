@@ -23,20 +23,17 @@ const log = debug('hive');
 export type HeatingProvider = {
   trvApiUpdates$: Observable<TrvUpdate>;
   heatingApiUpdates$: Observable<HeatingUpdate>;
-  heatingActionSubject: Subject<HeatingAction>;
-  trvActionSubject: Subject<TrvAction>;
+  heatingActions: Subject<HeatingAction>;
+  trvActions: Subject<TrvAction>;
 };
 
-export const createHiveProvider = () => {
+export const createHiveProvider: () => HeatingProvider = () => {
   const hiveApiAccess$ = getHiveApiAccess();
-  const hiveProductUpdates$ = getHiveProductUpdates(hiveApiAccess$);
-  const trvApiUpdates$ = getTrvApiUpdates(hiveProductUpdates$);
-  const heatingApiUpdates$ = getHeatingApiUpdates(hiveProductUpdates$);
 
-  const heatingActionSubject = new Subject<HeatingAction>();
-  const trvActionSubject = new Subject<TrvAction>();
+  const heatingActions = new Subject<HeatingAction>();
+  const trvActions = new Subject<TrvAction>();
 
-  heatingActionSubject
+  heatingActions
     .pipe(
       debounceTime(5000),
       withLatestFrom(hiveApiAccess$),
@@ -62,7 +59,7 @@ export const createHiveProvider = () => {
       )
     );
 
-  trvActionSubject
+  trvActions
     .pipe(
       groupBy((x) => x.trvId),
       mergeMap((x) => x.pipe(debounceTime(5000))),
@@ -83,10 +80,13 @@ export const createHiveProvider = () => {
         x.targetTemperature ?? ''
       )
     );
+
+  const hiveProductUpdates$ = getHiveProductUpdates(hiveApiAccess$);
+
   return {
-    trvActionSubject,
-    heatingActionSubject,
-    trvApiUpdates$,
-    heatingApiUpdates$,
+    trvActions,
+    heatingActions,
+    trvApiUpdates$: getTrvApiUpdates(hiveProductUpdates$),
+    heatingApiUpdates$: getHeatingApiUpdates(hiveProductUpdates$),
   };
 };

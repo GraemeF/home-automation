@@ -425,10 +425,10 @@ export class DeepHeating {
   }
 
   publishHiveTrvAction(newAction: TrvAction): void {
-    this.provider.trvActionSubject.next(newAction);
+    this.provider.trvActions.next(newAction);
   }
 
   publishHiveHeatingAction(newAction: HeatingAction): void {
-    this.provider.heatingActionSubject.next(newAction);
+    this.provider.heatingActions.next(newAction);
   }
 }
