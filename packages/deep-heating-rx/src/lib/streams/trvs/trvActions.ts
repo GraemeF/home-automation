@@ -8,7 +8,6 @@ import {
   shareReplay,
 } from 'rxjs/operators';
 import { TrvDesiredTargetTemperature } from './trvDesiredTargetTemperatures';
-import { isNotNull } from '../filters';
 import { isDeepStrictEqual } from 'util';
 import {
   TrvAction,
@@ -17,6 +16,7 @@ import {
   TrvScheduledTargetTemperature,
   TrvTemperature,
 } from '@home-automation/deep-heating-types';
+import { Predicate } from 'effect';
 
 function getTrvAction(
   new_target: number,
@@ -109,7 +109,7 @@ export function getTrvActions(
               trvScheduledTargetTemperature
             )
         ),
-        filter(isNotNull),
+        filter(Predicate.isNotNull),
         shareReplay(1)
       )
     ),

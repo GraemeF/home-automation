@@ -94,7 +94,6 @@ import {
   getTrvApiUpdates,
   HeatingUpdate,
   HiveApiAccess,
-  ProductResponse,
   RoomHiveHeatingSchedule,
   setHeating,
   setTrv,
