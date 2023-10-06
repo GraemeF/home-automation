@@ -5,7 +5,6 @@ import {
   isTemperatureSensorUpdate,
 } from './rooms/roomSensors';
 import {
-  debounceTime,
   distinctUntilChanged,
   filter,
   groupBy,
@@ -14,7 +13,6 @@ import {
   mergeMap,
   share,
   shareReplay,
-  withLatestFrom,
 } from 'rxjs/operators';
 import { getRoomTemperatures } from './rooms/roomTemperatures';
 import { getTrvSynthesisedStatuses } from './trvs/trvSynthesisedStatuses';
@@ -86,9 +84,7 @@ import {
 } from '@home-automation/deep-heating-types';
 import {
   HeatingProvider,
-  HiveApiAccess,
   createHiveProvider,
-  setTrv,
 } from '@home-automation/deep-heating-hive';
 import { getHueSensorUpdates } from '@home-automation/deep-heating-hue';
 import { getRoomTrvs } from './rooms/roomTrvs';
@@ -110,9 +106,6 @@ export class DeepHeating {
   readonly trvControlStates$: Observable<TrvControlState>;
   readonly trvStatuses$: Observable<TrvStatus>;
   readonly heatingStatuses$: Observable<HeatingStatus>;
-  readonly hiveApiAccess$: Observable<HiveApiAccess>;
-  readonly trvApiUpdates$: Observable<TrvUpdate>;
-  readonly heatingApiUpdates$: Observable<HeatingUpdate>;
   readonly trvReportedStatuses$: Observable<TrvStatus>;
   readonly heatingReportedStatuses$: Observable<HeatingStatus>;
   readonly trvHiveHeatingSchedules$: Observable<TrvWeekHeatingSchedule>;
@@ -235,34 +228,7 @@ export class DeepHeating {
 
     this.provider = createHiveProvider();
 
-    this.provider.trvActionSubject
-      .pipe(
-        groupBy((x) => x.trvId),
-        mergeMap((x) => x.pipe(debounceTime(5000))),
-        withLatestFrom(this.hiveApiAccess$),
-        mergeMap(([action, apiAccess]) =>
-          from(
-            setTrv(
-              apiAccess,
-              action.trvId,
-              action.mode,
-              action.targetTemperature
-            )
-          )
-        )
-      )
-      .subscribe((x) =>
-        log(
-          'TRV',
-          trvDisplayName(x.trvId),
-          x.result.ok ? 'has' : 'has not',
-          'been changed to',
-          x.mode ?? '',
-          x.targetTemperature ?? ''
-        )
-      );
-
-    this.trvApiUpdates$.subscribe((x) =>
+    this.provider.trvApiUpdates$.subscribe((x) =>
       this.publishTrvControlState({
         trvId: x.trvId,
         mode: x.state.mode,
@@ -271,7 +237,7 @@ export class DeepHeating {
       })
     );
 
-    this.trvReportedStatuses$ = this.trvApiUpdates$.pipe(
+    this.trvReportedStatuses$ = this.provider.trvApiUpdates$.pipe(
       map((x) => ({
         trvId: x.trvId,
         isHeating: x.state.isHeating,
@@ -280,7 +246,7 @@ export class DeepHeating {
 
     this.trvReportedStatuses$.subscribe((x) => this.publishTrvStatus(x));
 
-    this.heatingReportedStatuses$ = this.heatingApiUpdates$.pipe(
+    this.heatingReportedStatuses$ = this.provider.heatingApiUpdates$.pipe(
       map((x) => ({
         heatingId: x.heatingId,
         isHeating: x.state.isHeating,
@@ -293,7 +259,7 @@ export class DeepHeating {
     );
 
     this.trvHiveHeatingSchedules$ = getTrvWeekHeatingSchedules(
-      this.trvApiUpdates$
+      this.provider.trvApiUpdates$
     );
 
     this.roomTrvs$ = getRoomTrvs(this.rooms$);
@@ -342,7 +308,7 @@ export class DeepHeating {
       this.roomTrvs$,
       this.trvTargetTemperatures$
     );
-    this.trvTemperatures$ = getTrvTemperatures(this.trvApiUpdates$);
+    this.trvTemperatures$ = getTrvTemperatures(this.provider.trvApiUpdates$);
     this.roomTrvTemperatures$ = getRoomTrvTemperatures(
       this.roomTrvs$,
       this.trvTemperatures$

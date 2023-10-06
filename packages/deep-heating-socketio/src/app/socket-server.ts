@@ -77,7 +77,7 @@ export class SocketServer {
     const influxUrl = process.env['INFLUXDB_URL'];
     if (influxUrl) {
       const writer = new InfluxDBWriter(
-        deepHeating.trvApiUpdates$,
+        deepHeating.provider.trvApiUpdates$,
         deepHeating.roomTemperatures$
       );
       writer.subscribe({
