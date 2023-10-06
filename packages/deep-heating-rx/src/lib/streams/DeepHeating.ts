@@ -89,8 +89,6 @@ import {
   getHeatingApiUpdates,
   getHiveApiAccess,
   getHiveProductUpdates,
-  getRoomHiveHeatingSchedules,
-  getRoomSchedules,
   getTrvApiUpdates,
   HeatingUpdate,
   HiveApiAccess,
@@ -101,6 +99,8 @@ import { getHueSensorUpdates } from '@home-automation/deep-heating-hue';
 import { getRoomTrvs } from './rooms/roomTrvs';
 import { getTrvWeekHeatingSchedules } from './trvs/trvSchedules';
 import { Predicate } from 'effect';
+import { getRoomHiveHeatingSchedules } from './rooms/roomHiveHeatingSchedules';
+import { getRoomSchedules } from './rooms/roomSchedules';
 
 const log = debug('deep-heating');
 
