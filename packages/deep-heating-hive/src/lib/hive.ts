@@ -15,10 +15,6 @@ import {
   switchMap,
   throttleTime,
 } from 'rxjs/operators';
-import {
-  TemperatureReading,
-  WeekHeatingSchedule,
-} from '@home-automation/deep-heating-types';
 
 const refreshIntervalSeconds = 60 * 1000;
 const tokenRefreshIntervalSeconds = 55 * 60 * 1000;
@@ -60,16 +56,4 @@ export function getHiveProductUpdates(
     mergeAll(),
     shareReplay(1)
   );
-}
-
-export interface HeatingUpdate {
-  state: {
-    temperature: TemperatureReading;
-    target: number;
-    mode: string;
-    isHeating: boolean;
-    schedule: WeekHeatingSchedule;
-  };
-  heatingId: string;
-  name: string;
 }

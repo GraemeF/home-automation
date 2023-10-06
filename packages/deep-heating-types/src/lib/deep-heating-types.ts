@@ -228,3 +228,15 @@ export interface TrvUpdate {
   deviceType: string;
   name: string;
 }
+
+export interface HeatingUpdate {
+  state: {
+    temperature: TemperatureReading;
+    target: number;
+    mode: string;
+    isHeating: boolean;
+    schedule: WeekHeatingSchedule;
+  };
+  heatingId: string;
+  name: string;
+}

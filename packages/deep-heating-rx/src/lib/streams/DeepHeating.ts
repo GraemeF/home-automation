@@ -82,6 +82,7 @@ import {
   TrvUpdate,
   TrvWeekHeatingSchedule,
   RoomWeekHeatingSchedule,
+  HeatingUpdate,
 } from '@home-automation/deep-heating-types';
 import {
   applyHeatingActions,
@@ -90,7 +91,6 @@ import {
   getHiveApiAccess,
   getHiveProductUpdates,
   getTrvApiUpdates,
-  HeatingUpdate,
   HiveApiAccess,
   setHeating,
   setTrv,

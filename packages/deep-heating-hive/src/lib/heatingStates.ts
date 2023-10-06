@@ -3,7 +3,8 @@ import { filter, map } from 'rxjs/operators';
 import { DateTime } from 'luxon';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import { ProductResponse } from './hive-api';
-import { HeatingUpdate, isHeatingProduct } from './hive';
+import { isHeatingProduct } from './hive';
+import { HeatingUpdate } from '@home-automation/deep-heating-types';
 
 export const getHeatingApiUpdates = (
   p$: Observable<ProductResponse>
