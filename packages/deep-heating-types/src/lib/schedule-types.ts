@@ -22,3 +22,8 @@ export interface TrvWeekHeatingSchedule {
   trvId: string;
   schedule: WeekHeatingSchedule;
 }
+
+export interface RoomWeekHeatingSchedule {
+  roomName: string;
+  schedule: WeekHeatingSchedule;
+}

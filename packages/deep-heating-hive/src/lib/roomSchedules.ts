@@ -4,15 +4,15 @@ import { filter, map, mergeMap, shareReplay } from 'rxjs/operators';
 import {
   RoomDefinition,
   RoomSchedule,
+  RoomWeekHeatingSchedule,
   toHeatingSchedule,
 } from '@home-automation/deep-heating-types';
-import { RoomHiveHeatingSchedule } from './hive';
 
 const refreshIntervalSeconds = 60;
 
 export function getRoomSchedules(
   rooms$: Observable<RoomDefinition>,
-  roomHiveHeatingSchedules: Observable<RoomHiveHeatingSchedule>
+  roomHiveHeatingSchedules: Observable<RoomWeekHeatingSchedule>
 ): Observable<RoomSchedule> {
   const time = timer(0, refreshIntervalSeconds * 1000).pipe(
     map(() => DateTime.local()),

@@ -81,6 +81,7 @@ import {
   TrvTemperature,
   TrvUpdate,
   TrvWeekHeatingSchedule,
+  RoomWeekHeatingSchedule,
 } from '@home-automation/deep-heating-types';
 import {
   applyHeatingActions,
@@ -93,7 +94,6 @@ import {
   getTrvApiUpdates,
   HeatingUpdate,
   HiveApiAccess,
-  RoomHiveHeatingSchedule,
   setHeating,
   setTrv,
 } from '@home-automation/deep-heating-hive';
@@ -121,7 +121,7 @@ export class DeepHeating {
   readonly heatingReportedStatuses$: Observable<HeatingStatus>;
   readonly trvHiveHeatingSchedules$: Observable<TrvWeekHeatingSchedule>;
   readonly roomTrvs$: Observable<RoomTrvs>;
-  readonly roomHiveHeatingSchedules$: Observable<RoomHiveHeatingSchedule>;
+  readonly roomHiveHeatingSchedules$: Observable<RoomWeekHeatingSchedule>;
   readonly roomSchedules$: Observable<RoomSchedule>;
   readonly roomTargetTemperatures$: Observable<RoomTargetTemperature>;
   readonly trvTargetTemperatures$: Observable<TrvTargetTemperature>;

@@ -73,8 +73,3 @@ export interface HeatingUpdate {
   heatingId: string;
   name: string;
 }
-
-export interface RoomHiveHeatingSchedule {
-  roomName: string;
-  schedule: WeekHeatingSchedule;
-}
