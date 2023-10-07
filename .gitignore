@@ -39,6 +39,7 @@ testem.log
 Thumbs.db
 
 /home
+/data
 /.env
 .nx-container
 /migrations.json
