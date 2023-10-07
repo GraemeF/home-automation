@@ -1,5 +1,5 @@
 import { HttpClientError } from '@effect/platform/Http/ClientError';
-import { ClimateEntity, EntityId } from './schema';
+import { ClimateEntity, EntityId, HassState, Temperature } from './schema';
 import * as HttpClient from '@effect/platform/HttpClient';
 import * as Schema from '@effect/schema/Schema';
 import { Config, Context, Effect, Layer } from 'effect';
@@ -7,11 +7,11 @@ import { pipe } from 'effect/Function';
 import { Tag } from 'effect/Context';
 import { ParseError } from '@effect/schema/ParseResult';
 
-interface HomeAssistantConfig {
+export interface HomeAssistantConfig {
   readonly url: string;
   readonly token: string;
 }
-const HomeAssistantConfig = Context.Tag<HomeAssistantConfig>();
+export const HomeAssistantConfig = Context.Tag<HomeAssistantConfig>();
 
 export const HomeAssistantConfigLive = Layer.effect(
   HomeAssistantConfig,
@@ -26,48 +26,26 @@ export const HomeAssistantConfigLive = Layer.effect(
   )
 );
 
-const getRequest = (path: string) =>
-  pipe(
-    HomeAssistantConfig,
-    Effect.flatMap(({ url, token }) =>
-      pipe(
-        url + path,
-        Effect.succeed,
-        Effect.tap((url) => Effect.log(`Fetching ${url}`)),
-        Effect.map((url) =>
-          HttpClient.request.get(url, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-        ),
-        Effect.flatMap((request) =>
-          pipe(
-            request,
-            HttpClient.client.fetchOk(),
-            Effect.withSpan('fetch_states')
-          )
-        ),
-        Effect.flatMap(HttpClient.response.schemaBodyJson(Schema.unknown)),
-        Effect.tapBoth({
-          onSuccess: () => Effect.log('OK'),
-          onFailure: (error) =>
-            Effect.log(`Error ${JSON.stringify(error, null, 2)}`),
-        })
-      )
-    )
-  );
-
 export interface HomeAssistantApi {
   getStates: () => Effect.Effect<
     HomeAssistantConfig,
     HttpClientError | ParseError,
     unknown
   >;
-  setState: <T>(
+  setTemperature: (
     entityId: EntityId,
-    state: T
+    temperature: Temperature
   ) => Effect.Effect<
     HomeAssistantConfig,
-    HttpClientError | ParseError | Error,
+    HttpClientError,
+    { readonly ok: boolean }
+  >;
+  setHvacMode: (
+    entityId: EntityId,
+    mode: HassState
+  ) => Effect.Effect<
+    HomeAssistantConfig,
+    HttpClientError,
     { readonly ok: boolean }
   >;
 }
@@ -79,12 +57,9 @@ export const getClimateEntities = pipe(
   Effect.flatMap((api) =>
     pipe(
       api.getStates(),
-      Effect.flatMap(Schema.decode(Schema.array(Schema.any))),
+      Effect.flatMap(Schema.parse(Schema.array(Schema.any))),
       Effect.map((states) =>
         states.filter((state) => state['entity_id'].startsWith('climate.'))
-      ),
-      Effect.tap((states) =>
-        Effect.log(`Found ${states.length} climate entities`)
       ),
       Effect.flatMap(Schema.decode(Schema.array(ClimateEntity))),
       Effect.withLogSpan(`fetch_climate_entities`)
@@ -95,8 +70,72 @@ export const getClimateEntities = pipe(
 export const HomeAssistantApiLive = Layer.effect(
   HomeAssistantApi,
   Effect.succeed({
-    getStates: () => pipe('/api/states', getRequest),
-    setState: () => Effect.fail(new Error('Not implemented')),
+    getStates: () =>
+      pipe(
+        HomeAssistantConfig,
+        Effect.flatMap(({ url, token }) =>
+          pipe(
+            url + '/api/states',
+            Effect.succeed,
+            Effect.map((url) =>
+              HttpClient.request.get(url, {
+                headers: { Authorization: `Bearer ${token}` },
+              })
+            ),
+            Effect.flatMap((request) =>
+              pipe(
+                request,
+                HttpClient.client.fetchOk(),
+                Effect.withSpan('fetch_states')
+              )
+            ),
+            Effect.flatMap(HttpClient.response.schemaBodyJson(Schema.unknown))
+          )
+        )
+      ),
+    setTemperature: (entityId: EntityId, temperature: Temperature) =>
+      pipe(
+        HomeAssistantConfig,
+        Effect.flatMap(({ url, token }) =>
+          pipe(
+            url + '/api/services/climate/set_temperature',
+            (url) => HttpClient.request.post(url),
+            HttpClient.request.setHeader('Authorization', `Bearer ${token}`),
+            HttpClient.request.jsonBody({ entity_id: entityId, temperature }),
+            Effect.flatMap((request) =>
+              pipe(request, HttpClient.client.fetchOk())
+            ),
+            Effect.withSpan('set_temperature'),
+            Effect.match({
+              onSuccess: () => ({ ok: true }),
+              onFailure: (error) => ({ ok: false }),
+            })
+          )
+        )
+      ),
+    setHvacMode: (entityId: EntityId, mode: HassState) =>
+      pipe(
+        HomeAssistantConfig,
+        Effect.flatMap(({ url, token }) =>
+          pipe(
+            url + '/api/services/climate/set_hvac_mode',
+            (url) => HttpClient.request.post(url),
+            HttpClient.request.setHeader('Authorization', `Bearer ${token}`),
+            HttpClient.request.jsonBody({
+              entity_id: entityId,
+              hvac_mode: mode,
+            }),
+            Effect.flatMap((request) =>
+              pipe(request, HttpClient.client.fetchOk())
+            ),
+            Effect.withSpan('set_hvac_mode'),
+            Effect.match({
+              onSuccess: () => ({ ok: true }),
+              onFailure: (error) => ({ ok: false }),
+            })
+          )
+        )
+      ),
   })
 );
 
@@ -107,6 +146,7 @@ export const HomeAssistantApiTest = (
     HomeAssistantApi,
     Effect.succeed({
       getStates: () => states,
-      setState: () => Effect.fail(new Error('Not implemented')),
+      setTemperature: () => Effect.succeed({ ok: true }),
+      setHvacMode: () => Effect.succeed({ ok: true }),
     })
   );

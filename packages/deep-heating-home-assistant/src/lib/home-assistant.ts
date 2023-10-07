@@ -1,8 +1,12 @@
 import { from, Observable, timer } from 'rxjs';
-import { getClimateEntities, HomeAssistantApi } from './home-assistant-api';
-import { shareReplay, switchMap, throttleTime } from 'rxjs/operators';
+import {
+  getClimateEntities,
+  HomeAssistantApi,
+  HomeAssistantConfig,
+} from './home-assistant-api';
+import { shareReplay, switchMap, throttleTime, mergeAll } from 'rxjs/operators';
 import { ClimateEntity, EntityId, HassState, Temperature } from './schema';
-import { Effect, pipe, ReadonlyArray, Runtime } from 'effect';
+import { Effect, pipe, Runtime } from 'effect';
 import { filter, map } from 'rxjs/operators';
 import { shareReplayLatestByKey } from '@home-automation/rxx';
 import {
@@ -13,11 +17,6 @@ import {
 } from '@home-automation/deep-heating-types';
 import * as Schema from '@effect/schema/Schema';
 
-const trvEntityIds = Schema.decodeSync(Schema.array(EntityId))([
-  'climate.kitchen',
-  'climate.lounge',
-  'climate.bedroom',
-]);
 const heatingEntityId = Schema.decodeSync(EntityId)('climate.main');
 
 const defaultSchedule: WeekHeatingSchedule = {
@@ -250,7 +249,7 @@ export const getTrvApiUpdates = (
   p$: Observable<ClimateEntity>
 ): Observable<TrvUpdate> =>
   p$.pipe(
-    filter((entity) => ReadonlyArray.contains(entity.entity_id)(trvEntityIds)),
+    filter((entity) => entity.entity_id !== heatingEntityId),
     map((response) => ({
       trvId: response.entity_id,
       name: response.attributes.friendly_name,
@@ -295,38 +294,52 @@ export const getHeatingApiUpdates = (
 const refreshIntervalMilliseconds = 60 * 1000;
 
 export const getClimateEntityUpdates = (
-  runtime: Runtime.Runtime<HomeAssistantApi>
+  runtime: Runtime.Runtime<HomeAssistantApi | HomeAssistantConfig>
 ): Observable<ClimateEntity> =>
   timer(0, refreshIntervalMilliseconds).pipe(
     throttleTime(refreshIntervalMilliseconds),
-    switchMap(() => from(pipe(getClimateEntities, Runtime.runSync(runtime)))),
+    switchMap(() =>
+      from(pipe(Runtime.runPromise(runtime)(getClimateEntities)))
+    ),
+    mergeAll(),
     shareReplay(1)
   );
 
-export const setClimateEntityState =
-  (runtime: Runtime.Runtime<HomeAssistantApi>) =>
-  (entityId: EntityId, mode: HassState, temperature: Temperature) =>
-    pipe(
-      HomeAssistantApi,
-      Effect.flatMap((api) =>
-        api.setState(entityId, {
-          state: mode,
-          attributes: { temperature },
-        })
-      ),
-      Effect.match({
-        onFailure: () => ({
-          result: { ok: false },
-          entityId,
-          mode,
-          targetTemperature: temperature,
-        }),
-        onSuccess: () => ({
-          result: { ok: true },
-          entityId,
-          mode,
-          targetTemperature: temperature,
-        }),
+export const setClimateEntityTemperature = (
+  entityId: EntityId,
+  temperature: Temperature
+) =>
+  pipe(
+    HomeAssistantApi,
+    Effect.flatMap((api) => api.setTemperature(entityId, temperature)),
+    Effect.match({
+      onFailure: () => ({
+        result: { ok: false },
+        entityId,
+        targetTemperature: temperature,
       }),
-      Runtime.runPromise(runtime)
-    );
+      onSuccess: () => ({
+        result: { ok: true },
+        entityId,
+        targetTemperature: temperature,
+      }),
+    })
+  );
+
+export const setClimateEntityMode = (entityId: EntityId, mode: HassState) =>
+  pipe(
+    HomeAssistantApi,
+    Effect.flatMap((api) => api.setHvacMode(entityId, mode)),
+    Effect.match({
+      onFailure: () => ({
+        result: { ok: false },
+        entityId,
+        mode,
+      }),
+      onSuccess: () => ({
+        result: { ok: true },
+        entityId,
+        mode,
+      }),
+    })
+  );
