@@ -94,6 +94,7 @@ export const createHomeAssistantProvider: () => HeatingProvider = () => {
           ),
           map((result) => ({
             entityId: action.heatingId,
+            mode: action.mode,
             targetTemperature: action.targetTemperature,
             result,
           }))
@@ -106,7 +107,7 @@ export const createHomeAssistantProvider: () => HeatingProvider = () => {
         x.entityId,
         x.result.ok ? 'has' : 'has not',
         'been changed to',
-        // x.mode ?? '',
+        x.mode ?? '',
         x.targetTemperature ?? ''
       )
     );
@@ -130,6 +131,7 @@ export const createHomeAssistantProvider: () => HeatingProvider = () => {
           ),
           map((result) => ({
             entityId: action.trvId,
+            mode: action.mode,
             targetTemperature: action.targetTemperature,
             result,
           }))
@@ -142,7 +144,7 @@ export const createHomeAssistantProvider: () => HeatingProvider = () => {
         x.entityId,
         x.result.ok ? 'has' : 'has not',
         'been changed to',
-        // x.mode ?? '',
+        x.mode ?? '',
         x.targetTemperature ?? ''
       )
     );
