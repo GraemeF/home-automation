@@ -18,17 +18,10 @@ import {
 } from '@home-automation/deep-heating-types';
 import { Predicate } from 'effect';
 
-function getTrvAction(
-  new_target: number,
-  schedule_target: number,
-  trv_current: number
-): { mode: TrvModeValue; targetTemperature?: number } {
-  if (new_target <= schedule_target && schedule_target <= trv_current)
-    return { mode: 'SCHEDULE' };
-
-  if (new_target >= schedule_target && schedule_target >= trv_current)
-    return { mode: 'SCHEDULE' };
-
+function getTrvAction(new_target: number): {
+  mode: TrvModeValue;
+  targetTemperature?: number;
+} {
   return { mode: 'MANUAL', targetTemperature: new_target };
 }
 
@@ -48,9 +41,7 @@ export function determineAction(
   if (trvControlState.mode === 'OFF') return null;
 
   const possibleAction = getTrvAction(
-    trvDesiredTargetTemperature.targetTemperature,
-    trvScheduledTargetTemperature.scheduledTargetTemperature,
-    trvTemperature.temperatureReading.temperature
+    trvDesiredTargetTemperature.targetTemperature
   );
 
   if (possibleAction.mode !== trvControlState.mode)

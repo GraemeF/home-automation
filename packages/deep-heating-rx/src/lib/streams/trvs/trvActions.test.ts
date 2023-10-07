@@ -51,7 +51,7 @@ describe('TRV action', () => {
     });
   });
 
-  it('should change from MANUAL to SCHEDULE', () => {
+  it('should not change from MANUAL to SCHEDULE', () => {
     const action = determineAction(
       {
         targetTemperature: 23,
@@ -77,7 +77,8 @@ describe('TRV action', () => {
     );
 
     expect(action).toStrictEqual({
-      mode: 'SCHEDULE',
+      mode: 'MANUAL',
+      targetTemperature: 23,
       trvId: trvId,
     });
   });
