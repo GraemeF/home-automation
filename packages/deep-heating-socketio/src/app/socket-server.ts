@@ -68,7 +68,7 @@ export class SocketServer {
       share()
     );
 
-    const provider = createHomeAssistantProvider();
+    const provider = createHomeAssistantProvider(home);
 
     const deepHeating = new DeepHeating(
       provider,

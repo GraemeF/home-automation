@@ -11,229 +11,17 @@ import { filter, map } from 'rxjs/operators';
 import { shareReplayLatestByKey } from '@home-automation/rxx';
 import {
   HeatingUpdate,
+  Home,
+  SimpleDaySchedule,
+  simpleToWeekSchedule,
+  SimpleWeekSchedule,
   Temperature,
   TrvModeValue,
   TrvUpdate,
-  WeekHeatingSchedule,
 } from '@home-automation/deep-heating-types';
 import * as Schema from '@effect/schema/Schema';
 
 const heatingEntityId = Schema.decodeSync(EntityId)('climate.main');
-
-const defaultSchedule: WeekHeatingSchedule = {
-  monday: [
-    {
-      start: 450,
-      value: {
-        target: 20,
-      },
-    },
-    {
-      start: 480,
-      value: {
-        target: 20,
-      },
-    },
-    {
-      start: 1020,
-      value: {
-        target: 21,
-      },
-    },
-    {
-      start: 1140,
-      value: {
-        target: 21,
-      },
-    },
-    {
-      start: 1320,
-      value: {
-        target: 7,
-      },
-    },
-  ],
-  tuesday: [
-    {
-      start: 450,
-      value: {
-        target: 20,
-      },
-    },
-    {
-      start: 480,
-      value: {
-        target: 20,
-      },
-    },
-    {
-      start: 1020,
-      value: {
-        target: 21,
-      },
-    },
-    {
-      start: 1140,
-      value: {
-        target: 21,
-      },
-    },
-    {
-      start: 1320,
-      value: {
-        target: 7,
-      },
-    },
-  ],
-  wednesday: [
-    {
-      start: 450,
-      value: {
-        target: 20,
-      },
-    },
-    {
-      start: 480,
-      value: {
-        target: 20,
-      },
-    },
-    {
-      start: 1020,
-      value: {
-        target: 21,
-      },
-    },
-    {
-      start: 1140,
-      value: {
-        target: 21,
-      },
-    },
-    {
-      start: 1320,
-      value: {
-        target: 7,
-      },
-    },
-  ],
-  thursday: [
-    {
-      start: 450,
-      value: {
-        target: 20,
-      },
-    },
-    {
-      start: 480,
-      value: {
-        target: 20,
-      },
-    },
-    {
-      start: 1020,
-      value: {
-        target: 21,
-      },
-    },
-    {
-      start: 1140,
-      value: {
-        target: 21,
-      },
-    },
-    {
-      start: 1320,
-      value: {
-        target: 7,
-      },
-    },
-  ],
-  friday: [
-    {
-      start: 450,
-      value: {
-        target: 20,
-      },
-    },
-    {
-      start: 480,
-      value: {
-        target: 20,
-      },
-    },
-    {
-      start: 1020,
-      value: {
-        target: 21,
-      },
-    },
-    {
-      start: 1140,
-      value: {
-        target: 21,
-      },
-    },
-    {
-      start: 1425,
-      value: {
-        target: 7,
-      },
-    },
-  ],
-  saturday: [
-    {
-      start: 480,
-      value: {
-        target: 20,
-      },
-    },
-    {
-      start: 960,
-      value: {
-        target: 20,
-      },
-    },
-    {
-      start: 1260,
-      value: {
-        target: 21,
-      },
-    },
-    {
-      start: 1425,
-      value: {
-        target: 7,
-      },
-    },
-  ],
-  sunday: [
-    {
-      start: 480,
-      value: {
-        target: 20,
-      },
-    },
-    {
-      start: 960,
-      value: {
-        target: 20.5,
-      },
-    },
-    {
-      start: 1260,
-      value: {
-        target: 21,
-      },
-    },
-    {
-      start: 1320,
-      value: {
-        target: 7,
-      },
-    },
-  ],
-};
 
 const hassStateToTrvModeValue: (state: HassState) => TrvModeValue = (state) => {
   switch (state) {
@@ -246,28 +34,45 @@ const hassStateToTrvModeValue: (state: HassState) => TrvModeValue = (state) => {
   }
 };
 
-export const getTrvApiUpdates = (
-  p$: Observable<ClimateEntity>
-): Observable<TrvUpdate> =>
-  p$.pipe(
-    filter((entity) => entity.entity_id !== heatingEntityId),
-    map((response) => ({
-      trvId: response.entity_id,
-      name: response.attributes.friendly_name,
-      deviceType: 'trv',
-      state: {
-        temperature: {
-          temperature: response.attributes.current_temperature,
-          time: response.last_updated,
+const defaultDaySchedule = Schema.decodeSync(SimpleDaySchedule)({ '00:00': 7 });
+const defaultSchedule: SimpleWeekSchedule = Schema.decodeSync(
+  SimpleWeekSchedule
+)({
+  monday: defaultDaySchedule,
+  tuesday: defaultDaySchedule,
+  wednesday: defaultDaySchedule,
+  thursday: defaultDaySchedule,
+  friday: defaultDaySchedule,
+  saturday: defaultDaySchedule,
+  sunday: defaultDaySchedule,
+});
+
+export const getTrvApiUpdates =
+  (home: Home) =>
+  (p$: Observable<ClimateEntity>): Observable<TrvUpdate> =>
+    p$.pipe(
+      filter((entity) => entity.entity_id !== heatingEntityId),
+      map((response) => ({
+        trvId: response.entity_id,
+        name: response.attributes.friendly_name,
+        deviceType: 'trv',
+        state: {
+          temperature: {
+            temperature: response.attributes.current_temperature,
+            time: response.last_updated,
+          },
+          target: response.attributes.temperature,
+          mode: hassStateToTrvModeValue(response.state),
+          isHeating: response.attributes.hvac_action === 'heating',
+          schedule: simpleToWeekSchedule(
+            home.rooms.find((room) =>
+              room.trvControlIds.includes(response.entity_id)
+            )?.schedule ?? defaultSchedule
+          ),
         },
-        target: response.attributes.temperature,
-        mode: hassStateToTrvModeValue(response.state),
-        isHeating: response.attributes.hvac_action === 'heating',
-        schedule: defaultSchedule,
-      },
-    })),
-    shareReplayLatestByKey((x) => x.trvId)
-  );
+      })),
+      shareReplayLatestByKey((x) => x.trvId)
+    );
 
 export const getHeatingApiUpdates = (
   p$: Observable<ClimateEntity>
@@ -286,7 +91,7 @@ export const getHeatingApiUpdates = (
         target: response.attributes.temperature,
         mode: hassStateToTrvModeValue(response.state),
         isHeating: response.attributes.hvac_action === 'heating',
-        schedule: defaultSchedule,
+        schedule: simpleToWeekSchedule(defaultSchedule),
       },
     })),
     shareReplayLatestByKey((x) => x.heatingId)

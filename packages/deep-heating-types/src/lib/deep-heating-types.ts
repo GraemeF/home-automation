@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { WeekHeatingSchedule } from './schedule-types';
+import { SimpleWeekSchedule, WeekHeatingSchedule } from './schedule-types';
 import { pipe } from 'effect';
 import { Schema } from '@effect/schema';
 
@@ -29,6 +29,7 @@ export interface RoomDefinition {
   name: string;
   temperatureSensorId: string | null;
   trvControlIds: (string | null)[];
+  schedule: SimpleWeekSchedule;
 }
 
 export interface RoomTrvs {

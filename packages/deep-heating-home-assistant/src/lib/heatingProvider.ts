@@ -1,6 +1,6 @@
 import {
   HeatingAction,
-  HeatingProvider,
+  Home,
   Temperature,
   TrvAction,
   TrvModeValue,
@@ -37,7 +37,7 @@ const hiveModeValueToHassState: (mode: TrvModeValue) => HassState = (mode) => {
       return 'off';
   }
 };
-export const createHomeAssistantProvider: () => HeatingProvider = () => {
+export const createHomeAssistantProvider = (home: Home) => {
   const runtime = pipe(
     HomeAssistantApiLive.pipe(Layer.merge(HomeAssistantConfigLive)),
     Layer.toRuntime,
@@ -154,7 +154,7 @@ export const createHomeAssistantProvider: () => HeatingProvider = () => {
   return {
     trvActions,
     heatingActions,
-    trvApiUpdates$: getTrvApiUpdates(climateEntityUpdates$),
+    trvApiUpdates$: getTrvApiUpdates(home)(climateEntityUpdates$),
     heatingApiUpdates$: getHeatingApiUpdates(climateEntityUpdates$),
   };
 };
