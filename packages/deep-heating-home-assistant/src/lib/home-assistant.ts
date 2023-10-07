@@ -325,3 +325,21 @@ export const setClimateEntityTemperature = (
       }),
     })
   );
+
+export const setClimateEntityMode = (entityId: EntityId, mode: HassState) =>
+  pipe(
+    HomeAssistantApi,
+    Effect.flatMap((api) => api.setHvacMode(entityId, mode)),
+    Effect.match({
+      onFailure: () => ({
+        result: { ok: false },
+        entityId,
+        mode,
+      }),
+      onSuccess: () => ({
+        result: { ok: true },
+        entityId,
+        mode,
+      }),
+    })
+  );

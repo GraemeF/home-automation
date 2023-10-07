@@ -11,6 +11,7 @@ import {
   getClimateEntityUpdates,
   getHeatingApiUpdates,
   getTrvApiUpdates,
+  setClimateEntityMode,
   setClimateEntityTemperature,
 } from './home-assistant';
 import {
@@ -50,21 +51,24 @@ export const createHomeAssistantProvider: () => HeatingProvider = () => {
     (runtime: Runtime.Runtime<HomeAssistantApi | HomeAssistantConfig>) =>
     (
       entityId: EntityId,
-      state: HassState,
+      mode: HassState,
       temperature: Option.Option<Temperature>
     ) =>
       pipe(
-        temperature,
-        Option.match({
-          onSome: (temperature) =>
-            pipe(
-              setClimateEntityTemperature(entityId, temperature),
-              Effect.match({
-                onSuccess: () => ({ ok: true }),
-                onFailure: () => ({ ok: false }),
-              })
-            ),
-          onNone: () => Effect.succeed({ ok: true }),
+        Effect.all([
+          setClimateEntityMode(entityId, mode),
+          pipe(
+            temperature,
+            Option.match({
+              onSome: (temperature) =>
+                pipe(setClimateEntityTemperature(entityId, temperature)),
+              onNone: () => Effect.unit,
+            })
+          ),
+        ]),
+        Effect.match({
+          onSuccess: () => ({ ok: true }),
+          onFailure: () => ({ ok: false }),
         }),
         Runtime.runPromise(runtime)
       );
