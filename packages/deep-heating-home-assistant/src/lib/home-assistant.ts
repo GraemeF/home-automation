@@ -305,23 +305,23 @@ export const getClimateEntityUpdates = (
     shareReplay(1)
   );
 
-export const setClimateEntityTemperature =
-  (runtime: Runtime.Runtime<HomeAssistantApi | HomeAssistantConfig>) =>
-  (entityId: EntityId, temperature: Temperature) =>
-    pipe(
-      HomeAssistantApi,
-      Effect.flatMap((api) => api.setTemperature(entityId, temperature)),
-      Effect.match({
-        onFailure: () => ({
-          result: { ok: false },
-          entityId,
-          targetTemperature: temperature,
-        }),
-        onSuccess: () => ({
-          result: { ok: true },
-          entityId,
-          targetTemperature: temperature,
-        }),
+export const setClimateEntityTemperature = (
+  entityId: EntityId,
+  temperature: Temperature
+) =>
+  pipe(
+    HomeAssistantApi,
+    Effect.flatMap((api) => api.setTemperature(entityId, temperature)),
+    Effect.match({
+      onFailure: () => ({
+        result: { ok: false },
+        entityId,
+        targetTemperature: temperature,
       }),
-      Runtime.runPromise(runtime)
-    );
+      onSuccess: () => ({
+        result: { ok: true },
+        entityId,
+        targetTemperature: temperature,
+      }),
+    })
+  );
