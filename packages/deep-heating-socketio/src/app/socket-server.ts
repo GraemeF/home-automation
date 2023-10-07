@@ -18,7 +18,6 @@ import {
   RoomAdjustment,
 } from '@home-automation/deep-heating-types';
 import { DeepHeating } from '@home-automation/deep-heating-rx';
-import { InfluxDBWriter } from '@home-automation/deep-heating-influxdb';
 import { maintainState } from '@home-automation/deep-heating-state';
 import { ServerOptions } from 'socket.io';
 import { createHomeAssistantProvider } from '@home-automation/deep-heating-home-assistant';
@@ -77,24 +76,6 @@ export class SocketServer {
       initialRoomAdjustments,
       roomAdjustments$
     );
-
-    const influxUrl = process.env['INFLUXDB_URL'];
-    if (influxUrl) {
-      const writer = new InfluxDBWriter(
-        provider.trvApiUpdates$,
-        deepHeating.roomTemperatures$
-      );
-      writer.subscribe({
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        url: influxUrl!,
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        token: process.env['INFLUXDB_TOKEN']!,
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        bucket: process.env['INFLUXDB_BUCKET']!,
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        org: process.env['INFLUXDB_ORG']!,
-      });
-    }
 
     this.state$ = maintainState(deepHeating).pipe(
       throttleTime(100, undefined, { leading: true, trailing: true })

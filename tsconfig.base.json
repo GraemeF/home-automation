@@ -24,9 +24,6 @@
       "@home-automation/deep-heating-hue": [
         "packages/deep-heating-hue/src/index.ts"
       ],
-      "@home-automation/deep-heating-influxdb": [
-        "packages/deep-heating-influxdb/src/index.ts"
-      ],
       "@home-automation/deep-heating-rx": [
         "packages/deep-heating-rx/src/index.ts"
       ],
