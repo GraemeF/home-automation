@@ -2,10 +2,11 @@ import { HttpClientError } from '@effect/platform/Http/ClientError';
 import { ClimateEntity, EntityId } from './schema';
 import * as HttpClient from '@effect/platform/HttpClient';
 import * as Schema from '@effect/schema/Schema';
-import { Config, Context, Effect, Layer } from 'effect';
+import { Config, Context, Effect, Layer, Request } from 'effect';
 import { pipe } from 'effect/Function';
 import { Tag } from 'effect/Context';
 import { ParseError } from '@effect/schema/ParseResult';
+import { BodyError } from '@effect/platform/dist/declarations/src/Http/Body';
 
 export interface HomeAssistantConfig {
   readonly url: string;
@@ -26,36 +27,6 @@ export const HomeAssistantConfigLive = Layer.effect(
   )
 );
 
-const getRequest = (path: string) =>
-  pipe(
-    HomeAssistantConfig,
-    Effect.flatMap(({ url, token }) =>
-      pipe(
-        url + path,
-        Effect.succeed,
-        Effect.tap((url) => Effect.log(`Fetching ${url}`)),
-        Effect.map((url) =>
-          HttpClient.request.get(url, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-        ),
-        Effect.flatMap((request) =>
-          pipe(
-            request,
-            HttpClient.client.fetchOk(),
-            Effect.withSpan('fetch_states')
-          )
-        ),
-        Effect.flatMap(HttpClient.response.schemaBodyJson(Schema.unknown)),
-        Effect.tapBoth({
-          onSuccess: () => Effect.log('OK'),
-          onFailure: (error) =>
-            Effect.log(`Error ${JSON.stringify(error, null, 2)}`),
-        })
-      )
-    )
-  );
-
 export interface HomeAssistantApi {
   getStates: () => Effect.Effect<
     HomeAssistantConfig,
@@ -67,7 +38,7 @@ export interface HomeAssistantApi {
     state: T
   ) => Effect.Effect<
     HomeAssistantConfig,
-    HttpClientError | ParseError | Error,
+    HttpClientError | ParseError | BodyError,
     { readonly ok: boolean }
   >;
 }
@@ -95,8 +66,52 @@ export const getClimateEntities = pipe(
 export const HomeAssistantApiLive = Layer.effect(
   HomeAssistantApi,
   Effect.succeed({
-    getStates: () => pipe('/api/states', getRequest),
-    setState: () => Effect.fail(new Error('Not implemented')),
+    getStates: () =>
+      pipe(
+        HomeAssistantConfig,
+        Effect.flatMap(({ url, token }) =>
+          pipe(
+            url + '/api/states',
+            Effect.succeed,
+            Effect.map((url) =>
+              HttpClient.request.get(url, {
+                headers: { Authorization: `Bearer ${token}` },
+              })
+            ),
+            Effect.flatMap((request) =>
+              pipe(
+                request,
+                HttpClient.client.fetchOk(),
+                Effect.withSpan('fetch_states')
+              )
+            ),
+            Effect.flatMap(HttpClient.response.schemaBodyJson(Schema.unknown))
+          )
+        )
+      ),
+    setState: <T>(entityId: EntityId, state: T) =>
+      pipe(
+        HomeAssistantConfig,
+        Effect.flatMap(({ url, token }) =>
+          pipe(
+            url + '/api/states/' + entityId,
+            (url) => HttpClient.request.post(url),
+            HttpClient.request.setHeader('Authorization', `Bearer ${token}`),
+            HttpClient.request.jsonBody(state),
+            Effect.flatMap((request) =>
+              pipe(
+                request,
+                HttpClient.client.fetchOk(),
+                Effect.withSpan('set_state')
+              )
+            ),
+            Effect.match({
+              onSuccess: () => ({ ok: true }),
+              onFailure: (error) => ({ ok: false }),
+            })
+          )
+        )
+      ),
   })
 );
 
@@ -107,6 +122,6 @@ export const HomeAssistantApiTest = (
     HomeAssistantApi,
     Effect.succeed({
       getStates: () => states,
-      setState: () => Effect.fail(new Error('Not implemented')),
+      setState: () => Effect.succeed({ ok: true }),
     })
   );
