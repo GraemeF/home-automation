@@ -1,4 +1,5 @@
 import * as Schema from '@effect/schema/Schema';
+import { Temperature } from '@home-automation/deep-heating-types';
 import { pipe } from 'effect/Function';
 
 export const EntityId = pipe(
@@ -7,13 +8,6 @@ export const EntityId = pipe(
   Schema.brand('EntityId')
 );
 export type EntityId = Schema.Schema.To<typeof EntityId>;
-
-export const Temperature = pipe(
-  Schema.number,
-  Schema.between(-20, 60),
-  Schema.brand('ºC')
-);
-export type Temperature = Schema.Schema.To<typeof Temperature>;
 
 export const HomeAssistantEntity = Schema.struct({
   state: Schema.string,

@@ -1,5 +1,7 @@
 import { DateTime } from 'luxon';
 import { WeekHeatingSchedule } from './schedule-types';
+import { pipe } from 'effect';
+import { Schema } from '@effect/schema';
 
 export type DegreesCelsius = number;
 
@@ -240,3 +242,10 @@ export interface HeatingUpdate {
   heatingId: string;
   name: string;
 }
+
+export const Temperature = pipe(
+  Schema.number,
+  Schema.between(-20, 60),
+  Schema.brand('ºC')
+);
+export type Temperature = Schema.Schema.To<typeof Temperature>;

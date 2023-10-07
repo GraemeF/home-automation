@@ -1,6 +1,11 @@
 import { DateTime, Duration } from 'luxon';
-import { HeatingScheduleSlot, WeekHeatingSchedule } from './schedule-types';
+import {
+  HeatingScheduleSlot,
+  SimpleWeekSchedule,
+  WeekHeatingSchedule,
+} from './schedule-types';
 import { HeatingSchedule, HeatingScheduleEntry } from './deep-heating-types';
+import { ReadonlyRecord, pipe } from 'effect';
 
 function getDaySchedules(
   heatingSchedule: WeekHeatingSchedule
@@ -24,10 +29,10 @@ function byStart(a: HeatingScheduleEntry, b: HeatingScheduleEntry) {
   return a.start < b.start ? -1 : a.start > b.start ? 1 : 0;
 }
 
-export function toHeatingSchedule(
+export const toHeatingSchedule = (
   schedule: WeekHeatingSchedule,
   now: DateTime
-): HeatingSchedule {
+): HeatingSchedule => {
   const today = now.startOf('day');
   const futureSlots = getDaySchedules(schedule)
     .flatMap(([dayName, slots]) =>
@@ -51,4 +56,20 @@ export function toHeatingSchedule(
     },
     ...futureSlots,
   ];
-}
+};
+
+export const simpleToWeekSchedule = (
+  simpleSchedule: SimpleWeekSchedule
+): WeekHeatingSchedule =>
+  pipe(
+    simpleSchedule,
+    ReadonlyRecord.map((daySchedule) =>
+      pipe(
+        daySchedule,
+        ReadonlyRecord.collect((time, temperature) => ({
+          start: Duration.fromISOTime(time).as('minutes'),
+          value: { target: temperature },
+        }))
+      )
+    )
+  );

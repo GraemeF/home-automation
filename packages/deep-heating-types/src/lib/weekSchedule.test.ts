@@ -1,6 +1,8 @@
 import { DateTime } from 'luxon';
-import { toHeatingSchedule } from './weekSchedule';
-import { WeekHeatingSchedule } from './schedule-types';
+import { simpleToWeekSchedule, toHeatingSchedule } from './weekSchedule';
+import { SimpleWeekSchedule, WeekHeatingSchedule } from './schedule-types';
+import { Schema } from '@effect/schema';
+import { Effect, pipe } from 'effect';
 
 const exampleSchedule: WeekHeatingSchedule = {
   monday: [
@@ -232,6 +234,55 @@ describe('Hive schedule', () => {
       const nextSlot = slots[1];
       expect(nextSlot.start).toEqual(DateTime.local(2020, 10, 23, 17, 0));
       expect(nextSlot.targetTemperature).toEqual(21);
+    });
+  });
+
+  describe('converting simple to Hive schedule', () => {
+    it('should work out minutes', async () => {
+      expect(
+        await pipe(
+          {
+            monday: { '09:24': 20, '10:00:00.000': 22 },
+            tuesday: { '09:25': 21 },
+            wednesday: {},
+            thursday: {},
+            friday: {},
+            saturday: {},
+            sunday: {},
+          },
+          Schema.decode(SimpleWeekSchedule),
+          Effect.map(simpleToWeekSchedule),
+          Effect.runPromise
+        )
+      ).toEqual({
+        monday: [
+          {
+            start: 564,
+            value: {
+              target: 20,
+            },
+          },
+          {
+            start: 600,
+            value: {
+              target: 22,
+            },
+          },
+        ],
+        tuesday: [
+          {
+            start: 565,
+            value: {
+              target: 21,
+            },
+          },
+        ],
+        wednesday: [],
+        thursday: [],
+        friday: [],
+        saturday: [],
+        sunday: [],
+      });
     });
   });
 });

@@ -5,12 +5,13 @@ import {
   HomeAssistantConfig,
 } from './home-assistant-api';
 import { shareReplay, switchMap, throttleTime, mergeAll } from 'rxjs/operators';
-import { ClimateEntity, EntityId, HassState, Temperature } from './schema';
+import { ClimateEntity, EntityId, HassState } from './schema';
 import { Effect, pipe, Runtime } from 'effect';
 import { filter, map } from 'rxjs/operators';
 import { shareReplayLatestByKey } from '@home-automation/rxx';
 import {
   HeatingUpdate,
+  Temperature,
   TrvModeValue,
   TrvUpdate,
   WeekHeatingSchedule,

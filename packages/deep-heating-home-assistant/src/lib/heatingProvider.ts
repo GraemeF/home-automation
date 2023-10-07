@@ -1,6 +1,7 @@
 import {
   HeatingAction,
   HeatingProvider,
+  Temperature,
   TrvAction,
   TrvModeValue,
 } from '@home-automation/deep-heating-types';
@@ -22,7 +23,7 @@ import {
 } from './home-assistant-api';
 import { Effect, Layer, pipe, Option, Runtime } from 'effect';
 import { Schema } from '@effect/schema';
-import { EntityId, HassState, Temperature } from './schema';
+import { EntityId, HassState } from './schema';
 
 const log = debug('home-assistant');
 

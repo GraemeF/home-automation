@@ -1,11 +1,12 @@
 import { HttpClientError } from '@effect/platform/Http/ClientError';
-import { ClimateEntity, EntityId, HassState, Temperature } from './schema';
+import { ClimateEntity, EntityId, HassState } from './schema';
 import * as HttpClient from '@effect/platform/HttpClient';
 import * as Schema from '@effect/schema/Schema';
 import { Config, Context, Effect, Layer } from 'effect';
 import { pipe } from 'effect/Function';
 import { Tag } from 'effect/Context';
 import { ParseError } from '@effect/schema/ParseResult';
+import { Temperature } from '@home-automation/deep-heating-types';
 
 export interface HomeAssistantConfig {
   readonly url: string;
