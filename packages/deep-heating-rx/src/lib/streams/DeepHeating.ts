@@ -81,7 +81,6 @@ import {
   TrvWeekHeatingSchedule,
   RoomWeekHeatingSchedule,
 } from '@home-automation/deep-heating-types';
-import { createHiveProvider } from '@home-automation/deep-heating-hive';
 import { getHueSensorUpdates } from '@home-automation/deep-heating-hue';
 import { getRoomTrvs } from './rooms/roomTrvs';
 import { getTrvWeekHeatingSchedules } from './trvs/trvSchedules';
@@ -136,7 +135,6 @@ export class DeepHeating {
   readonly roomsAnyHeating$: Observable<boolean>;
   readonly trvsHeating$: Observable<Set<string>>;
   readonly roomsHeating$: Observable<Set<string>>;
-  readonly provider: HeatingProvider;
 
   private readonly trvControlStateSubject: Subject<TrvControlState> =
     new Subject<TrvControlState>();
@@ -146,6 +144,7 @@ export class DeepHeating {
     new Subject<HeatingStatus>();
 
   constructor(
+    provider: HeatingProvider,
     home: Home,
     initialRoomAdjustments: RoomAdjustment[],
     roomAdjustmentCommands$: Observable<RoomAdjustment>
@@ -222,9 +221,7 @@ export class DeepHeating {
       log('Heating', x.heatingId, x.isHeating ? 'is heating' : 'is cooling')
     );
 
-    this.provider = createHiveProvider();
-
-    this.provider.trvApiUpdates$.subscribe((x) =>
+    provider.trvApiUpdates$.subscribe((x) =>
       this.publishTrvControlState({
         trvId: x.trvId,
         mode: x.state.mode,
@@ -233,7 +230,7 @@ export class DeepHeating {
       })
     );
 
-    this.trvReportedStatuses$ = this.provider.trvApiUpdates$.pipe(
+    this.trvReportedStatuses$ = provider.trvApiUpdates$.pipe(
       map((x) => ({
         trvId: x.trvId,
         isHeating: x.state.isHeating,
@@ -242,7 +239,7 @@ export class DeepHeating {
 
     this.trvReportedStatuses$.subscribe((x) => this.publishTrvStatus(x));
 
-    this.heatingReportedStatuses$ = this.provider.heatingApiUpdates$.pipe(
+    this.heatingReportedStatuses$ = provider.heatingApiUpdates$.pipe(
       map((x) => ({
         heatingId: x.heatingId,
         isHeating: x.state.isHeating,
@@ -255,7 +252,7 @@ export class DeepHeating {
     );
 
     this.trvHiveHeatingSchedules$ = getTrvWeekHeatingSchedules(
-      this.provider.trvApiUpdates$
+      provider.trvApiUpdates$
     );
 
     this.roomTrvs$ = getRoomTrvs(this.rooms$);
@@ -304,7 +301,7 @@ export class DeepHeating {
       this.roomTrvs$,
       this.trvTargetTemperatures$
     );
-    this.trvTemperatures$ = getTrvTemperatures(this.provider.trvApiUpdates$);
+    this.trvTemperatures$ = getTrvTemperatures(provider.trvApiUpdates$);
     this.roomTrvTemperatures$ = getRoomTrvTemperatures(
       this.roomTrvs$,
       this.trvTemperatures$
@@ -355,7 +352,7 @@ export class DeepHeating {
       this.trvActions$,
       this.trvControlStates$,
       this.trvScheduledTargetTemperatures$,
-      (x) => this.publishHiveTrvAction(x)
+      publishTrvAction
     );
     this.trvsHeating$ = getTrvsHeating(this.trvStatuses$);
     this.trvsHeating$.subscribe((x) =>
@@ -391,7 +388,7 @@ export class DeepHeating {
 
     this.appliedHeatingActions$ = applyHeatingActions(
       this.heatingActions$,
-      (x) => this.publishHiveHeatingAction(x)
+      publishHeatingAction
     );
     this.appliedHeatingActions$.subscribe((x) => {
       log(
@@ -406,6 +403,14 @@ export class DeepHeating {
     this.roomStatuses$ = getRoomStatuses(this.roomTrvStatuses$);
 
     this.appliedTrvActions$.subscribe((x) => this.publishTrvControlState(x));
+
+    function publishTrvAction(newAction: TrvAction): void {
+      provider.trvActions.next(newAction);
+    }
+
+    function publishHeatingAction(newAction: HeatingAction): void {
+      provider.heatingActions.next(newAction);
+    }
   }
 
   publishTrvControlState(newState: TrvControlState): void {
@@ -418,13 +423,5 @@ export class DeepHeating {
 
   publishHeatingStatus(newStatus: HeatingStatus): void {
     this.heatingStatusSubject.next(newStatus);
-  }
-
-  publishHiveTrvAction(newAction: TrvAction): void {
-    this.provider.trvActions.next(newAction);
-  }
-
-  publishHiveHeatingAction(newAction: HeatingAction): void {
-    this.provider.heatingActions.next(newAction);
   }
 }

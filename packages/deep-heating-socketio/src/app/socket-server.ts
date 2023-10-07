@@ -21,6 +21,7 @@ import { DeepHeating } from '@home-automation/deep-heating-rx';
 import { InfluxDBWriter } from '@home-automation/deep-heating-influxdb';
 import { maintainState } from '@home-automation/deep-heating-state';
 import { ServerOptions } from 'socket.io';
+import { createHiveProvider } from '@home-automation/deep-heating-hive';
 
 export interface SocketEvent<T> {
   io: SocketIO.Server;
@@ -68,7 +69,10 @@ export class SocketServer {
       share()
     );
 
+    const provider = createHiveProvider();
+
     const deepHeating = new DeepHeating(
+      provider,
       home,
       initialRoomAdjustments,
       roomAdjustments$
@@ -77,7 +81,7 @@ export class SocketServer {
     const influxUrl = process.env['INFLUXDB_URL'];
     if (influxUrl) {
       const writer = new InfluxDBWriter(
-        deepHeating.provider.trvApiUpdates$,
+        provider.trvApiUpdates$,
         deepHeating.roomTemperatures$
       );
       writer.subscribe({
