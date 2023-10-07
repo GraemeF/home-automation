@@ -79,7 +79,7 @@ export const getClimateEntities = pipe(
   Effect.flatMap((api) =>
     pipe(
       api.getStates(),
-      Effect.flatMap(Schema.decode(Schema.array(Schema.any))),
+      Effect.flatMap(Schema.parse(Schema.array(Schema.any))),
       Effect.map((states) =>
         states.filter((state) => state['entity_id'].startsWith('climate.'))
       ),
