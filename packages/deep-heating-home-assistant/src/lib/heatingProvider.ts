@@ -11,7 +11,7 @@ import {
   getClimateEntityUpdates,
   getHeatingApiUpdates,
   getTrvApiUpdates,
-  setClimateEntityState,
+  setClimateEntityTemperature,
 } from './home-assistant';
 import {
   HomeAssistantApiLive,
@@ -44,16 +44,15 @@ export const createHomeAssistantProvider: () => HeatingProvider = () => {
   const heatingActions = new Subject<HeatingAction>();
   const trvActions = new Subject<TrvAction>();
 
-  const setClimate = setClimateEntityState(runtime);
+  const setTemperature = setClimateEntityTemperature(runtime);
 
   heatingActions
     .pipe(
       debounceTime(5000),
       mergeMap((action) =>
         from(
-          setClimate(
+          setTemperature(
             Schema.decodeSync(EntityId)(action.heatingId),
-            trvModeValueToHassState(action.mode),
             Schema.decodeSync(Temperature)(action.targetTemperature)
           )
         )
@@ -65,7 +64,7 @@ export const createHomeAssistantProvider: () => HeatingProvider = () => {
         x.entityId,
         x.result.ok ? 'has' : 'has not',
         'been changed to',
-        x.mode ?? '',
+        // x.mode ?? '',
         x.targetTemperature ?? ''
       )
     );
@@ -76,9 +75,8 @@ export const createHomeAssistantProvider: () => HeatingProvider = () => {
       mergeMap((x) => x.pipe(debounceTime(5000))),
       mergeMap((action) =>
         from(
-          setClimate(
+          setTemperature(
             Schema.decodeSync(EntityId)(action.trvId),
-            trvModeValueToHassState(action.mode),
             Schema.decodeSync(Temperature)(action.targetTemperature)
           )
         )
@@ -90,7 +88,7 @@ export const createHomeAssistantProvider: () => HeatingProvider = () => {
         x.entityId,
         x.result.ok ? 'has' : 'has not',
         'been changed to',
-        x.mode ?? '',
+        // x.mode ?? '',
         x.targetTemperature ?? ''
       )
     );

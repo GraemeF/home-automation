@@ -305,28 +305,21 @@ export const getClimateEntityUpdates = (
     shareReplay(1)
   );
 
-export const setClimateEntityState =
+export const setClimateEntityTemperature =
   (runtime: Runtime.Runtime<HomeAssistantApi | HomeAssistantConfig>) =>
-  (entityId: EntityId, mode: HassState, temperature: Temperature) =>
+  (entityId: EntityId, temperature: Temperature) =>
     pipe(
       HomeAssistantApi,
-      Effect.flatMap((api) =>
-        api.setState(entityId, {
-          state: mode,
-          attributes: { temperature },
-        })
-      ),
+      Effect.flatMap((api) => api.setTemperature(entityId, temperature)),
       Effect.match({
         onFailure: () => ({
           result: { ok: false },
           entityId,
-          mode,
           targetTemperature: temperature,
         }),
         onSuccess: () => ({
           result: { ok: true },
           entityId,
-          mode,
           targetTemperature: temperature,
         }),
       }),

@@ -1,12 +1,11 @@
 import { HttpClientError } from '@effect/platform/Http/ClientError';
-import { ClimateEntity, EntityId } from './schema';
+import { ClimateEntity, EntityId, Temperature } from './schema';
 import * as HttpClient from '@effect/platform/HttpClient';
 import * as Schema from '@effect/schema/Schema';
-import { Config, Context, Effect, Layer, Request } from 'effect';
+import { Config, Context, Effect, Layer } from 'effect';
 import { pipe } from 'effect/Function';
 import { Tag } from 'effect/Context';
 import { ParseError } from '@effect/schema/ParseResult';
-import { BodyError } from '@effect/platform/dist/declarations/src/Http/Body';
 
 export interface HomeAssistantConfig {
   readonly url: string;
@@ -33,12 +32,12 @@ export interface HomeAssistantApi {
     HttpClientError | ParseError,
     unknown
   >;
-  setState: <T>(
+  setTemperature: (
     entityId: EntityId,
-    state: T
+    temperature: Temperature
   ) => Effect.Effect<
     HomeAssistantConfig,
-    HttpClientError | ParseError | BodyError,
+    HttpClientError,
     { readonly ok: boolean }
   >;
 }
@@ -89,15 +88,15 @@ export const HomeAssistantApiLive = Layer.effect(
           )
         )
       ),
-    setState: <T>(entityId: EntityId, state: T) =>
+    setTemperature: (entityId: EntityId, temperature: Temperature) =>
       pipe(
         HomeAssistantConfig,
         Effect.flatMap(({ url, token }) =>
           pipe(
-            url + '/api/states/' + entityId,
+            url + '/api/services/climate/set_temperature',
             (url) => HttpClient.request.post(url),
             HttpClient.request.setHeader('Authorization', `Bearer ${token}`),
-            HttpClient.request.jsonBody(state),
+            HttpClient.request.jsonBody({ entity_id: entityId, temperature }),
             Effect.flatMap((request) =>
               pipe(
                 request,
@@ -122,6 +121,6 @@ export const HomeAssistantApiTest = (
     HomeAssistantApi,
     Effect.succeed({
       getStates: () => states,
-      setState: () => Effect.succeed({ ok: true }),
+      setTemperature: () => Effect.succeed({ ok: true }),
     })
   );
