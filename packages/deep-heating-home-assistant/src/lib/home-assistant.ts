@@ -6,7 +6,7 @@ import {
 } from './home-assistant-api';
 import { shareReplay, switchMap, throttleTime, mergeAll } from 'rxjs/operators';
 import { ClimateEntity, EntityId, HassState, Temperature } from './schema';
-import { Effect, pipe, ReadonlyArray, Runtime } from 'effect';
+import { Effect, pipe, Runtime } from 'effect';
 import { filter, map } from 'rxjs/operators';
 import { shareReplayLatestByKey } from '@home-automation/rxx';
 import {
@@ -17,11 +17,6 @@ import {
 } from '@home-automation/deep-heating-types';
 import * as Schema from '@effect/schema/Schema';
 
-const trvEntityIds = Schema.decodeSync(Schema.array(EntityId))([
-  'climate.kitchen',
-  'climate.lounge',
-  'climate.bedroom',
-]);
 const heatingEntityId = Schema.decodeSync(EntityId)('climate.main');
 
 const defaultSchedule: WeekHeatingSchedule = {
@@ -254,7 +249,7 @@ export const getTrvApiUpdates = (
   p$: Observable<ClimateEntity>
 ): Observable<TrvUpdate> =>
   p$.pipe(
-    filter((entity) => ReadonlyArray.contains(entity.entity_id)(trvEntityIds)),
+    filter((entity) => entity.entity_id !== heatingEntityId),
     map((response) => ({
       trvId: response.entity_id,
       name: response.attributes.friendly_name,
