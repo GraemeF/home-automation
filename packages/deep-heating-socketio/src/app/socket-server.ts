@@ -21,7 +21,7 @@ import { DeepHeating } from '@home-automation/deep-heating-rx';
 import { InfluxDBWriter } from '@home-automation/deep-heating-influxdb';
 import { maintainState } from '@home-automation/deep-heating-state';
 import { ServerOptions } from 'socket.io';
-import { createHiveProvider } from '@home-automation/deep-heating-hive';
+import { createHomeAssistantProvider } from '@home-automation/deep-heating-home-assistant';
 
 export interface SocketEvent<T> {
   io: SocketIO.Server;
@@ -69,7 +69,7 @@ export class SocketServer {
       share()
     );
 
-    const provider = createHiveProvider();
+    const provider = createHomeAssistantProvider();
 
     const deepHeating = new DeepHeating(
       provider,

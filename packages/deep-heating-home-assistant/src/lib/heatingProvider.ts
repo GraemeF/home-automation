@@ -13,7 +13,10 @@ import {
   getTrvApiUpdates,
   setClimateEntityState,
 } from './home-assistant';
-import { HomeAssistantApiLive } from './home-assistant-api';
+import {
+  HomeAssistantApiLive,
+  HomeAssistantConfigLive,
+} from './home-assistant-api';
 import { Effect, Layer, pipe } from 'effect';
 import { Schema } from '@effect/schema';
 import { EntityId, HassState, Temperature } from './schema';
@@ -32,7 +35,7 @@ const trvModeValueToHassState: (mode: TrvModeValue) => HassState = (mode) => {
 };
 export const createHomeAssistantProvider: () => HeatingProvider = () => {
   const runtime = pipe(
-    HomeAssistantApiLive,
+    HomeAssistantApiLive.pipe(Layer.merge(HomeAssistantConfigLive)),
     Layer.toRuntime,
     Effect.scoped,
     Effect.runSync

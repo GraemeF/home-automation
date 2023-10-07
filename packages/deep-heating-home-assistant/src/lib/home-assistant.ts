@@ -1,6 +1,10 @@
 import { from, Observable, timer } from 'rxjs';
-import { getClimateEntities, HomeAssistantApi } from './home-assistant-api';
-import { shareReplay, switchMap, throttleTime } from 'rxjs/operators';
+import {
+  getClimateEntities,
+  HomeAssistantApi,
+  HomeAssistantConfig,
+} from './home-assistant-api';
+import { shareReplay, switchMap, throttleTime, tap } from 'rxjs/operators';
 import { ClimateEntity, EntityId, HassState, Temperature } from './schema';
 import { Effect, pipe, ReadonlyArray, Runtime } from 'effect';
 import { filter, map } from 'rxjs/operators';
@@ -295,16 +299,18 @@ export const getHeatingApiUpdates = (
 const refreshIntervalMilliseconds = 60 * 1000;
 
 export const getClimateEntityUpdates = (
-  runtime: Runtime.Runtime<HomeAssistantApi>
+  runtime: Runtime.Runtime<HomeAssistantApi | HomeAssistantConfig>
 ): Observable<ClimateEntity> =>
   timer(0, refreshIntervalMilliseconds).pipe(
     throttleTime(refreshIntervalMilliseconds),
-    switchMap(() => from(pipe(getClimateEntities, Runtime.runSync(runtime)))),
+    switchMap(() =>
+      pipe(pipe(getClimateEntities, Runtime.runPromise(runtime)), from)
+    ),
     shareReplay(1)
   );
 
 export const setClimateEntityState =
-  (runtime: Runtime.Runtime<HomeAssistantApi>) =>
+  (runtime: Runtime.Runtime<HomeAssistantApi | HomeAssistantConfig>) =>
   (entityId: EntityId, mode: HassState, temperature: Temperature) =>
     pipe(
       HomeAssistantApi,
