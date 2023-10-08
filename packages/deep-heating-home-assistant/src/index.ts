@@ -1,4 +1,3 @@
-export * from './lib/home-assistant';
 export * from './lib/home-assistant-api';
-export * from './lib/schema';
-export * from './lib/heatingProvider';
+export * from './lib/climate';
+export * from './lib/entity';

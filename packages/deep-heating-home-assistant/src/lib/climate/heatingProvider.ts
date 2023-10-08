@@ -14,16 +14,17 @@ import {
   getTrvApiUpdates,
   setClimateEntityMode,
   setClimateEntityTemperature,
-} from './home-assistant';
+} from './climate';
 import {
   HomeAssistantApi,
   HomeAssistantApiLive,
   HomeAssistantConfig,
   HomeAssistantConfigLive,
-} from './home-assistant-api';
+} from '../home-assistant-api';
 import { Effect, Layer, pipe, Option, Runtime } from 'effect';
 import { Schema } from '@effect/schema';
-import { EntityId, HassState } from './schema';
+import { HassState } from './climateEntity';
+import { EntityId } from '../entity';
 
 const log = debug('home-assistant');
 

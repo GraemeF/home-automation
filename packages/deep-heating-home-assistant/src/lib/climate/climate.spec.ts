@@ -1,6 +1,7 @@
 import { Effect, pipe } from 'effect';
-import { HomeAssistantApiTest, getClimateEntities } from './home-assistant-api';
-import { ClimateEntity } from './schema';
+import { HomeAssistantApiTest } from '../home-assistant-api';
+import { ClimateEntity } from './climateEntity';
+import { getClimateEntities } from './climate';
 
 const exampleStates = [
   {
@@ -192,75 +193,3 @@ describe('home-assistant-api', () => {
     });
   });
 });
-
-const heatingIdle = {
-  entity_id: 'climate.main',
-  state: 'heat',
-  attributes: {
-    hvac_modes: ['auto', 'heat', 'off'],
-    min_temp: 5,
-    max_temp: 32,
-    preset_modes: ['boost', 'none'],
-    current_temperature: 20.9,
-    temperature: 11.5,
-    hvac_action: 'idle',
-    preset_mode: 'none',
-    friendly_name: 'Heating thermostat',
-    supported_features: 17,
-  },
-  last_changed: '2023-10-06T13:35:28.417248+00:00',
-  last_updated: '2023-10-06T17:01:44.373143+00:00',
-  context: {
-    id: '01HC2Z07HN2E82JRK9K0M0BN5F',
-    parent_id: null,
-    user_id: null,
-  },
-};
-
-const heatingHeating = {
-  entity_id: 'climate.main',
-  state: 'heat',
-  attributes: {
-    hvac_modes: ['auto', 'heat', 'off'],
-    min_temp: 5,
-    max_temp: 32,
-    preset_modes: ['boost', 'none'],
-    current_temperature: 20.9,
-    temperature: 24.0,
-    hvac_action: 'heating',
-    preset_mode: 'none',
-    friendly_name: 'Heating thermostat',
-    supported_features: 17,
-  },
-  last_changed: '2023-10-06T13:35:28.417248+00:00',
-  last_updated: '2023-10-06T17:11:14.411250+00:00',
-  context: {
-    id: '01HC2ZHM7BZPRVRWSC1YSZ66EE',
-    parent_id: null,
-    user_id: null,
-  },
-};
-
-const loungeIdle = {
-  entity_id: 'climate.lounge',
-  state: 'auto',
-  attributes: {
-    hvac_modes: ['auto', 'heat', 'off'],
-    min_temp: 5,
-    max_temp: 32,
-    preset_modes: ['boost', 'none'],
-    current_temperature: 21.2,
-    temperature: 21.0,
-    hvac_action: 'idle',
-    preset_mode: 'none',
-    friendly_name: 'Lounge',
-    supported_features: 17,
-  },
-  last_changed: '2023-10-06T07:05:41.595785+00:00',
-  last_updated: '2023-10-06T17:11:14.409778+00:00',
-  context: {
-    id: '01HC2ZHM79NVY079TMKA904NQE',
-    parent_id: null,
-    user_id: null,
-  },
-};

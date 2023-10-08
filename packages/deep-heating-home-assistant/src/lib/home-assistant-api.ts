@@ -1,5 +1,5 @@
 import { HttpClientError } from '@effect/platform/Http/ClientError';
-import { ClimateEntity, EntityId, HassState } from './schema';
+import { HassState } from './climate/climateEntity';
 import * as HttpClient from '@effect/platform/HttpClient';
 import * as Schema from '@effect/schema/Schema';
 import { Config, Context, Effect, Layer } from 'effect';
@@ -7,6 +7,7 @@ import { pipe } from 'effect/Function';
 import { Tag } from 'effect/Context';
 import { ParseError } from '@effect/schema/ParseResult';
 import { Temperature } from '@home-automation/deep-heating-types';
+import { EntityId } from './entity';
 
 export interface HomeAssistantConfig {
   readonly url: string;
@@ -52,21 +53,6 @@ export interface HomeAssistantApi {
 }
 
 export const HomeAssistantApi = Tag<HomeAssistantApi>();
-
-export const getClimateEntities = pipe(
-  HomeAssistantApi,
-  Effect.flatMap((api) =>
-    pipe(
-      api.getStates(),
-      Effect.flatMap(Schema.parse(Schema.array(Schema.any))),
-      Effect.map((states) =>
-        states.filter((state) => state['entity_id'].startsWith('climate.'))
-      ),
-      Effect.flatMap(Schema.decode(Schema.array(ClimateEntity))),
-      Effect.withLogSpan(`fetch_climate_entities`)
-    )
-  )
-);
 
 export const HomeAssistantApiLive = Layer.effect(
   HomeAssistantApi,

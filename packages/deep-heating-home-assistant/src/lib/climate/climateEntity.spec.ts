@@ -1,7 +1,7 @@
 import * as Schema from '@effect/schema/Schema';
 import { Effect } from 'effect';
 import { pipe } from 'effect/Function';
-import { ClimateEntity } from './schema';
+import { ClimateEntity } from './climateEntity';
 
 const exampleClimateEntity = {
   entity_id: 'climate.bedroom_radiator',
