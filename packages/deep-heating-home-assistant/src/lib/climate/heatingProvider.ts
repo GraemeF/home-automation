@@ -39,7 +39,7 @@ const hiveModeValueToHassState: (mode: TrvModeValue) => HassState = (mode) => {
 };
 export const createHomeAssistantProvider = (home: Home) => {
   const runtime = pipe(
-    HomeAssistantApiLive.pipe(Layer.merge(HomeAssistantConfigLive)),
+    HomeAssistantApiLive.pipe(Layer.use(HomeAssistantConfigLive)),
     Layer.toRuntime,
     Effect.scoped,
     Effect.runSync
