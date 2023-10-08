@@ -49,7 +49,7 @@ export const createHomeAssistantProvider = (home: Home) => {
   const trvActions = new Subject<TrvAction>();
 
   const setClimateEntity =
-    (runtime: Runtime.Runtime<HomeAssistantApi | HomeAssistantConfig>) =>
+    (runtime: Runtime.Runtime<HomeAssistantApi>) =>
     (
       entityId: ClimateEntityId,
       mode: HassState,

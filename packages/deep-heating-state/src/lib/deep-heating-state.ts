@@ -66,7 +66,11 @@ function maintainRoomState(
   deepHeating: DeepHeating,
   room: RoomDefinition
 ): Observable<RoomState> {
-  const initialRoomState = { radiators: [], name: room.name, adjustment: 0 };
+  const initialRoomState: RoomState = {
+    radiators: [],
+    name: room.name,
+    adjustment: 0,
+  };
   return multiScan(
     deepHeating.roomTemperatures$.pipe(filter((x) => x.roomName === room.name)),
     (state, update) => ({
@@ -114,6 +118,8 @@ function maintainRoomState(
   ).pipe(startWith<RoomState>(initialRoomState));
 }
 
+const emptyState: DeepHeatingState = { rooms: [] };
+
 export function maintainState(
   deepHeating: DeepHeating
 ): Observable<DeepHeatingState> {
@@ -138,6 +144,6 @@ export function maintainState(
       isHeating: heatingStatus.isHeating,
     }),
 
-    { rooms: [] }
+    emptyState
   );
 }

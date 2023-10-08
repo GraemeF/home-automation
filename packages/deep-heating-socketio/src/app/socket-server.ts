@@ -116,7 +116,7 @@ export class SocketServer {
   private events<T>(eventName: string): Observable<SocketEvent<T>> {
     return this.connection$.pipe(
       mergeMap(({ io, client }) =>
-        fromEvent(client, eventName).pipe(
+        fromEvent<T>(client, eventName).pipe(
           takeUntil(fromEvent(client, 'disconnect')),
           map((data: T) => ({ io, client, data }))
         )

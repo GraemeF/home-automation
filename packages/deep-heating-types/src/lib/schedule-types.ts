@@ -3,8 +3,7 @@ import { Temperature } from './deep-heating-types';
 
 export interface HeatingScheduleSlot {
   value: {
-    heat?: number;
-    target?: number;
+    target: number;
   };
   start: number;
 }

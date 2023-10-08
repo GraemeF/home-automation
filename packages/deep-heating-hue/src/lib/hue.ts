@@ -11,11 +11,14 @@ import { getSensors } from './hue-api';
 import { SensorUpdate } from '@home-automation/deep-heating-types';
 import { Dictionary } from '@home-automation/dictionary';
 import { shareReplayLatestDistinct } from '@home-automation/rxx';
+import { isNotUndefined } from 'effect/Predicate';
 
 function splitIntoDevices(
   sensors: Dictionary<string, SensorUpdate>
 ): SensorUpdate[] {
-  return Object.entries(sensors).map(([, value]) => value);
+  return Object.entries(sensors)
+    .map(([, value]) => value)
+    .filter(isNotUndefined);
 }
 
 export function getHueSensorUpdates(): Observable<SensorUpdate> {

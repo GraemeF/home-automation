@@ -97,7 +97,7 @@ export const getHeatingApiUpdates = (
 const refreshIntervalMilliseconds = 60 * 1000;
 
 export const getClimateEntityUpdates = (
-  runtime: Runtime.Runtime<HomeAssistantApi | HomeAssistantConfig>
+  runtime: Runtime.Runtime<HomeAssistantApi>
 ): Observable<ClimateEntity> =>
   timer(0, refreshIntervalMilliseconds).pipe(
     throttleTime(refreshIntervalMilliseconds),

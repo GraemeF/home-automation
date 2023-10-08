@@ -43,7 +43,7 @@ export const toHeatingSchedule = (
           Duration.fromObject({ minutes: slot.start }),
           now
         ).plus({ minutes: slot.start }),
-        targetTemperature: slot.value.heat ?? slot.value.target,
+        targetTemperature: slot.value.target,
       }))
     )
     .sort(byStart);

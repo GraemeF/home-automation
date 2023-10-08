@@ -13,13 +13,15 @@ export function getTrvDecisionPoints(
         .map((trvId) => ({
           roomTargetTemperature: roomDecisionPoint.targetTemperature,
           roomTemperature: roomDecisionPoint.temperature,
-          trvTemperature: roomDecisionPoint.trvTemperatures.find(
-            (trvTemperature) => trvTemperature.trvId === trvId
-          ).temperatureReading.temperature,
+          trvTemperature:
+            roomDecisionPoint.trvTemperatures.find(
+              (trvTemperature) => trvTemperature.trvId === trvId
+            )?.temperatureReading.temperature ?? roomDecisionPoint.temperature,
           trvId: trvId,
-          trvMode: roomDecisionPoint.trvModes.find(
-            (trvMode) => trvMode.trvId === trvId
-          ).mode,
+          trvMode:
+            roomDecisionPoint.trvModes.find(
+              (trvMode) => trvMode.trvId === trvId
+            )?.mode ?? 'OFF',
         }))
     ),
     shareReplayLatestDistinctByKey((x) => x.trvId),
