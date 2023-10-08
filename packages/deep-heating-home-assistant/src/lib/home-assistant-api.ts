@@ -1,5 +1,5 @@
 import { HttpClientError } from '@effect/platform/Http/ClientError';
-import { HassState } from './climate/climateEntity';
+import { ClimateEntityId, HassState } from './climate';
 import * as HttpClient from '@effect/platform/HttpClient';
 import * as Schema from '@effect/schema/Schema';
 import { Config, Context, Effect, Layer } from 'effect';
@@ -35,7 +35,7 @@ export interface HomeAssistantApi {
     unknown
   >;
   setTemperature: (
-    entityId: EntityId,
+    entityId: ClimateEntityId,
     temperature: Temperature
   ) => Effect.Effect<
     HomeAssistantConfig,
@@ -43,7 +43,7 @@ export interface HomeAssistantApi {
     { readonly ok: boolean }
   >;
   setHvacMode: (
-    entityId: EntityId,
+    entityId: ClimateEntityId,
     mode: HassState
   ) => Effect.Effect<
     HomeAssistantConfig,
@@ -80,7 +80,7 @@ export const HomeAssistantApiLive = Layer.effect(
           )
         )
       ),
-    setTemperature: (entityId: EntityId, temperature: Temperature) =>
+    setTemperature: (entityId: ClimateEntityId, temperature: Temperature) =>
       pipe(
         HomeAssistantConfig,
         Effect.flatMap(({ url, token }) =>
@@ -100,7 +100,7 @@ export const HomeAssistantApiLive = Layer.effect(
           )
         )
       ),
-    setHvacMode: (entityId: EntityId, mode: HassState) =>
+    setHvacMode: (entityId: ClimateEntityId, mode: HassState) =>
       pipe(
         HomeAssistantConfig,
         Effect.flatMap(({ url, token }) =>

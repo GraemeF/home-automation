@@ -1,7 +1,7 @@
 import { from, Observable, timer } from 'rxjs';
 import { HomeAssistantApi, HomeAssistantConfig } from '../home-assistant-api';
 import { shareReplay, switchMap, throttleTime, mergeAll } from 'rxjs/operators';
-import { ClimateEntity, HassState } from './climateEntity';
+import { ClimateEntity, ClimateEntityId, HassState } from './climateEntity';
 import { Effect, pipe, Runtime } from 'effect';
 import { filter, map } from 'rxjs/operators';
 import { shareReplayLatestByKey } from '@home-automation/rxx';
@@ -16,9 +16,8 @@ import {
   TrvUpdate,
 } from '@home-automation/deep-heating-types';
 import * as Schema from '@effect/schema/Schema';
-import { EntityId } from '../entity';
 
-const heatingEntityId = Schema.decodeSync(EntityId)('climate.main');
+const heatingEntityId = Schema.decodeSync(ClimateEntityId)('climate.main');
 
 const hassStateToTrvModeValue: (state: HassState) => TrvModeValue = (state) => {
   switch (state) {
@@ -109,7 +108,7 @@ export const getClimateEntityUpdates = (
   );
 
 export const setClimateEntityTemperature = (
-  entityId: EntityId,
+  entityId: ClimateEntityId,
   temperature: Temperature
 ) =>
   pipe(
@@ -129,7 +128,10 @@ export const setClimateEntityTemperature = (
     })
   );
 
-export const setClimateEntityMode = (entityId: EntityId, mode: HassState) =>
+export const setClimateEntityMode = (
+  entityId: ClimateEntityId,
+  mode: HassState
+) =>
   pipe(
     HomeAssistantApi,
     Effect.flatMap((api) => api.setHvacMode(entityId, mode)),

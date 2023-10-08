@@ -23,8 +23,7 @@ import {
 } from '../home-assistant-api';
 import { Effect, Layer, pipe, Option, Runtime } from 'effect';
 import { Schema } from '@effect/schema';
-import { HassState } from './climateEntity';
-import { EntityId } from '../entity';
+import { ClimateEntityId, HassState } from './climateEntity';
 
 const log = debug('home-assistant');
 
@@ -52,7 +51,7 @@ export const createHomeAssistantProvider = (home: Home) => {
   const setClimateEntity =
     (runtime: Runtime.Runtime<HomeAssistantApi | HomeAssistantConfig>) =>
     (
-      entityId: EntityId,
+      entityId: ClimateEntityId,
       mode: HassState,
       temperature: Option.Option<Temperature>
     ) =>
@@ -84,7 +83,7 @@ export const createHomeAssistantProvider = (home: Home) => {
         pipe(
           from(
             setClimate(
-              Schema.decodeSync(EntityId)(action.heatingId),
+              Schema.decodeSync(ClimateEntityId)(action.heatingId),
               hiveModeValueToHassState(action.mode),
               pipe(
                 action.targetTemperature,
@@ -121,7 +120,7 @@ export const createHomeAssistantProvider = (home: Home) => {
         pipe(
           from(
             setClimate(
-              Schema.decodeSync(EntityId)(action.trvId),
+              Schema.decodeSync(ClimateEntityId)(action.trvId),
               hiveModeValueToHassState(action.mode),
               pipe(
                 action.targetTemperature,
