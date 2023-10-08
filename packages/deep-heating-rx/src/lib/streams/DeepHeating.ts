@@ -144,7 +144,7 @@ export class DeepHeating {
     new Subject<HeatingStatus>();
 
   constructor(
-    provider: HeatingProvider,
+    heatingProvider: HeatingProvider,
     home: Home,
     initialRoomAdjustments: RoomAdjustment[],
     roomAdjustmentCommands$: Observable<RoomAdjustment>
@@ -221,7 +221,7 @@ export class DeepHeating {
       log('Heating', x.heatingId, x.isHeating ? 'is heating' : 'is cooling')
     );
 
-    provider.trvApiUpdates$.subscribe((x) =>
+    heatingProvider.trvApiUpdates$.subscribe((x) =>
       this.publishTrvControlState({
         trvId: x.trvId,
         mode: x.state.mode,
@@ -230,7 +230,7 @@ export class DeepHeating {
       })
     );
 
-    this.trvReportedStatuses$ = provider.trvApiUpdates$.pipe(
+    this.trvReportedStatuses$ = heatingProvider.trvApiUpdates$.pipe(
       map((x) => ({
         trvId: x.trvId,
         isHeating: x.state.isHeating,
@@ -239,7 +239,7 @@ export class DeepHeating {
 
     this.trvReportedStatuses$.subscribe((x) => this.publishTrvStatus(x));
 
-    this.heatingReportedStatuses$ = provider.heatingApiUpdates$.pipe(
+    this.heatingReportedStatuses$ = heatingProvider.heatingApiUpdates$.pipe(
       map((x) => ({
         heatingId: x.heatingId,
         isHeating: x.state.isHeating,
@@ -252,7 +252,7 @@ export class DeepHeating {
     );
 
     this.trvHiveHeatingSchedules$ = getTrvWeekHeatingSchedules(
-      provider.trvApiUpdates$
+      heatingProvider.trvApiUpdates$
     );
 
     this.roomTrvs$ = getRoomTrvs(this.rooms$);
@@ -301,7 +301,7 @@ export class DeepHeating {
       this.roomTrvs$,
       this.trvTargetTemperatures$
     );
-    this.trvTemperatures$ = getTrvTemperatures(provider.trvApiUpdates$);
+    this.trvTemperatures$ = getTrvTemperatures(heatingProvider.trvApiUpdates$);
     this.roomTrvTemperatures$ = getRoomTrvTemperatures(
       this.roomTrvs$,
       this.trvTemperatures$
@@ -405,11 +405,11 @@ export class DeepHeating {
     this.appliedTrvActions$.subscribe((x) => this.publishTrvControlState(x));
 
     function publishTrvAction(newAction: TrvAction): void {
-      provider.trvActions.next(newAction);
+      heatingProvider.trvActions.next(newAction);
     }
 
     function publishHeatingAction(newAction: HeatingAction): void {
-      provider.heatingActions.next(newAction);
+      heatingProvider.heatingActions.next(newAction);
     }
   }
 
