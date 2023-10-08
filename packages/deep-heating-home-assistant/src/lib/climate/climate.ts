@@ -16,6 +16,7 @@ import {
   TrvUpdate,
 } from '@home-automation/deep-heating-types';
 import * as Schema from '@effect/schema/Schema';
+import { DateTime } from 'luxon';
 
 const heatingEntityId = Schema.decodeSync(ClimateEntityId)('climate.main');
 
@@ -55,7 +56,7 @@ export const getTrvApiUpdates =
         state: {
           temperature: {
             temperature: response.attributes.current_temperature,
-            time: response.last_updated,
+            time: DateTime.fromJSDate(response.last_updated),
           },
           target: response.attributes.temperature,
           mode: hassStateToTrvModeValue(response.state),
@@ -82,7 +83,7 @@ export const getHeatingApiUpdates = (
       state: {
         temperature: {
           temperature: response.attributes.current_temperature,
-          time: response.last_updated,
+          time: DateTime.fromJSDate(response.last_updated),
         },
         target: response.attributes.temperature,
         mode: hassStateToTrvModeValue(response.state),
