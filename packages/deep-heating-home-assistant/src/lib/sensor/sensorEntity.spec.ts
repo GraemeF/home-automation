@@ -1,7 +1,7 @@
 import * as Schema from '@effect/schema/Schema';
 import { Effect } from 'effect';
 import { pipe } from 'effect/Function';
-import { SensorEntity } from './sensorEntity';
+import { TemperatureSensorEntity } from './sensorEntity';
 
 const exampleSensorEntity = {
   entity_id: 'sensor.bedroom_sensor_temperature',
@@ -25,7 +25,11 @@ describe('sensor', () => {
   describe('schema', () => {
     it('decodes a sensor entity', () => {
       expect(
-        pipe(exampleSensorEntity, Schema.parse(SensorEntity), Effect.runSync)
+        pipe(
+          exampleSensorEntity,
+          Schema.parse(TemperatureSensorEntity),
+          Effect.runSync
+        )
       ).toStrictEqual({
         entity_id: 'sensor.bedroom_sensor_temperature',
         state: 21.1,

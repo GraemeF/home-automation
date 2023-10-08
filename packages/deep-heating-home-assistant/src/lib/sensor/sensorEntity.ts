@@ -18,6 +18,21 @@ export const SensorEntity = pipe(
   Schema.extend(
     Schema.struct({
       entity_id: SensorEntityId,
+      state: Schema.string,
+      attributes: Schema.struct({
+        friendly_name: Schema.string,
+      }),
+    })
+  )
+);
+export type SensorEntity = Schema.Schema.To<typeof SensorEntity>;
+
+export const TemperatureSensorEntity = pipe(
+  SensorEntity,
+  Schema.omit('attributes'),
+  Schema.omit('state'),
+  Schema.extend(
+    Schema.struct({
       state: Schema.compose(Schema.NumberFromString, Temperature),
       attributes: Schema.struct({
         state_class: Schema.literal('measurement'),
@@ -28,4 +43,6 @@ export const SensorEntity = pipe(
     })
   )
 );
-export type SensorEntity = Schema.Schema.To<typeof SensorEntity>;
+export type TemperatureSensorEntity = Schema.Schema.To<
+  typeof TemperatureSensorEntity
+>;
