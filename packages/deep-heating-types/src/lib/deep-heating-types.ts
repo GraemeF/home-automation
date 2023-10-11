@@ -1,7 +1,7 @@
+import { Schema } from '@effect/schema';
+import { pipe } from 'effect';
 import { DateTime } from 'luxon';
 import { SimpleWeekSchedule, WeekHeatingSchedule } from './schedule-types';
-import { pipe } from 'effect';
-import { Schema } from '@effect/schema';
 
 export type DegreesCelsius = number;
 

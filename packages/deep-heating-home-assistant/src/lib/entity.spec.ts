@@ -1,7 +1,15 @@
+import * as Schema from '@effect/schema/Schema';
 import { Effect, pipe } from 'effect';
-import { HomeAssistantApiTest } from '../home-assistant-api';
-import { ClimateEntity } from './climateEntity';
-import { getClimateEntities } from './climate';
+import {
+  ButtonPressEventEntity,
+  ClimateEntity,
+  HomeAssistantEntity,
+  OtherEntity,
+  SensorEntity,
+  TemperatureSensorEntity,
+  getEntities,
+} from './entity';
+import { HomeAssistantApiTest } from './home-assistant-api';
 
 const exampleStates = [
   {
@@ -111,6 +119,29 @@ const exampleStates = [
     },
   },
   {
+    entity_id: 'event.hall_button_button_1',
+    state: '2023-10-07T22:24:18.321+00:00',
+    attributes: {
+      event_types: [
+        'initial_press',
+        'repeat',
+        'short_release',
+        'long_press',
+        'long_release',
+      ],
+      event_type: 'short_release',
+      device_class: 'button',
+      friendly_name: 'Hall Button Button 1',
+    },
+    last_changed: '2023-10-07T22:24:18.322157+00:00',
+    last_updated: '2023-10-07T22:24:18.322157+00:00',
+    context: {
+      id: '01HC63VJWJQBDPBGT1GSY0DDZS',
+      parent_id: null,
+      user_id: null,
+    },
+  },
+  {
     entity_id: 'climate.main',
     state: 'off',
     attributes: {
@@ -172,24 +203,51 @@ const exampleStates = [
 ];
 
 describe('home-assistant-api', () => {
-  describe('getClimateEntities', () => {
-    let result: readonly ClimateEntity[];
-
+  describe('getEntities', () => {
+    let entities: ReadonlyArray<HomeAssistantEntity>;
     beforeAll(async () => {
-      result = await pipe(
-        getClimateEntities,
+      entities = await pipe(
+        getEntities,
         Effect.provide(HomeAssistantApiTest(Effect.succeed(exampleStates))),
         Effect.runPromise
       );
     });
+    it('parses all entities', async () => {
+      expect(entities).toHaveLength(9);
+    });
 
-    it('returns only the climate entities', async () => {
-      expect(result).toHaveLength(3);
-      expect(result.map((e) => e.entity_id)).toEqual([
-        'climate.kitchen',
-        'climate.panel_heater',
-        'climate.main',
-      ]);
+    it('parses climate entities', async () => {
+      expect(
+        entities.filter(Schema.is(ClimateEntity)).map((e) => e.entity_id)
+      ).toHaveLength(3);
+    });
+
+    it('parses sensor entities', async () => {
+      expect(
+        entities.filter(Schema.is(SensorEntity)).map((e) => e.entity_id)
+      ).toHaveLength(3);
+    });
+
+    it('parses temperature sensor entities', async () => {
+      expect(
+        entities
+          .filter(Schema.is(TemperatureSensorEntity))
+          .map((e) => e.entity_id)
+      ).toHaveLength(2);
+    });
+
+    it('parses button press event entities', async () => {
+      expect(
+        entities
+          .filter(Schema.is(ButtonPressEventEntity))
+          .map((e) => e.entity_id)
+      ).toHaveLength(1);
+    });
+
+    it('parses other entities', async () => {
+      expect(
+        entities.filter(Schema.is(OtherEntity)).map((e) => e.entity_id)
+      ).toHaveLength(6);
     });
   });
 });

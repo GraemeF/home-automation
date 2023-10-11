@@ -1,51 +1,11 @@
-import { from, GroupedObservable, Observable, Subject } from 'rxjs';
 import {
-  getRoomSensors,
-  isSwitchSensorUpdate,
-  isTemperatureSensorUpdate,
-} from './rooms/roomSensors';
-import {
-  distinctUntilChanged,
-  filter,
-  groupBy,
-  map,
-  mergeAll,
-  mergeMap,
-  share,
-  shareReplay,
-} from 'rxjs/operators';
-import { getRoomTemperatures } from './rooms/roomTemperatures';
-import { getTrvSynthesisedStatuses } from './trvs/trvSynthesisedStatuses';
-import { isDeepStrictEqual } from 'util';
-import { getTrvTargetTemperatures } from './trvs/trvTargetTemperatures';
-import { getTrvTemperatures } from './trvs/trvTemperatures';
-import { getTrvModes } from './trvs/trvModes';
-import { getRoomTrvModes } from './rooms/roomTrvModes';
-import { getRoomDecisionPoints } from './rooms/roomDecisionPoints';
-import {
-  getTrvDecisionPoints,
-  TrvDecisionPoint,
-} from './trvs/trvDecisionPoints';
-import {
-  getTrvDesiredTargetTemperatures,
-  TrvDesiredTargetTemperature,
-} from './trvs/trvDesiredTargetTemperatures';
-import { getTrvScheduledTargetTemperatures } from './trvs/trvScheduledTargetTemperatures';
-import { getTrvActions } from './trvs/trvActions';
-import { getRoomTargetTemperatures } from './rooms/roomTargetTemperatures';
-import { getRoomTrvTargetTemperatures } from './rooms/roomTrvTargetTemperatures';
-import { getRoomTrvTemperatures } from './rooms/roomTrvTemperatures';
-import { getRoomModes } from './rooms/roomModes';
-import { getRoomTrvStatuses } from './rooms/roomTrvStatuses';
-import { getRoomStatuses } from './rooms/roomStatuses';
-import { getRoomAdjustments } from './rooms/roomAdjustments';
-import debug from 'debug';
-import { getRoomScheduledTargetTemperatures } from './rooms/roomScheduledTargetTemperatures';
-import { getButtonEvents } from './buttons/buttonEvents';
-import { getHouseModes } from './house/houseModes';
-import { getAnyHeating, getTrvsHeating } from './trvs/trvsHeating';
-import { getRoomsHeating } from './rooms/roomsHeating';
-import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
+  createHomeAssistantButtonEventProvider,
+  createHomeAssistantHeatingProvider,
+  createHomeAssistantSensorProvider,
+  getEntityUpdates,
+  HomeAssistantApiLive,
+  HomeAssistantConfigLive,
+} from '@home-automation/deep-heating-home-assistant';
 import {
   ButtonEvent,
   getHeatingActions,
@@ -67,8 +27,7 @@ import {
   RoomTrvStatuses,
   RoomTrvTargetTemperatures,
   RoomTrvTemperatures,
-  SensorUpdate,
-  SwitchSensorUpdate,
+  RoomWeekHeatingSchedule,
   TemperatureSensorUpdate,
   TrvAction,
   TrvControlState,
@@ -76,25 +35,63 @@ import {
   TrvScheduledTargetTemperature,
   TrvStatus,
   TrvTargetTemperature,
-  HeatingProvider,
   TrvTemperature,
   TrvWeekHeatingSchedule,
-  RoomWeekHeatingSchedule,
 } from '@home-automation/deep-heating-types';
-import { getHueSensorUpdates } from '@home-automation/deep-heating-hue';
-import { getRoomTrvs } from './rooms/roomTrvs';
-import { getTrvWeekHeatingSchedules } from './trvs/trvSchedules';
-import { Predicate } from 'effect';
-import { getRoomHiveHeatingSchedules } from './rooms/roomHiveHeatingSchedules';
-import { getRoomSchedules } from './rooms/roomSchedules';
+import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
+import debug from 'debug';
+import { Effect, Layer, pipe, Predicate } from 'effect';
+import { from, GroupedObservable, Observable, Subject } from 'rxjs';
+import {
+  distinctUntilChanged,
+  filter,
+  groupBy,
+  map,
+  mergeAll,
+  mergeMap,
+  share,
+  shareReplay,
+} from 'rxjs/operators';
+import { isDeepStrictEqual } from 'util';
 import { applyHeatingActions, applyTrvActions } from './actions';
+import { getHouseModes } from './house/houseModes';
+import { getRoomAdjustments } from './rooms/roomAdjustments';
+import { getRoomDecisionPoints } from './rooms/roomDecisionPoints';
+import { getRoomHiveHeatingSchedules } from './rooms/roomHiveHeatingSchedules';
+import { getRoomModes } from './rooms/roomModes';
+import { getRoomScheduledTargetTemperatures } from './rooms/roomScheduledTargetTemperatures';
+import { getRoomSchedules } from './rooms/roomSchedules';
+import { getRoomSensors, isTemperatureSensorUpdate } from './rooms/roomSensors';
+import { getRoomsHeating } from './rooms/roomsHeating';
+import { getRoomStatuses } from './rooms/roomStatuses';
+import { getRoomTargetTemperatures } from './rooms/roomTargetTemperatures';
+import { getRoomTemperatures } from './rooms/roomTemperatures';
+import { getRoomTrvModes } from './rooms/roomTrvModes';
+import { getRoomTrvs } from './rooms/roomTrvs';
+import { getRoomTrvStatuses } from './rooms/roomTrvStatuses';
+import { getRoomTrvTargetTemperatures } from './rooms/roomTrvTargetTemperatures';
+import { getRoomTrvTemperatures } from './rooms/roomTrvTemperatures';
+import { getTrvActions } from './trvs/trvActions';
+import {
+  getTrvDecisionPoints,
+  TrvDecisionPoint,
+} from './trvs/trvDecisionPoints';
+import {
+  getTrvDesiredTargetTemperatures,
+  TrvDesiredTargetTemperature,
+} from './trvs/trvDesiredTargetTemperatures';
+import { getTrvModes } from './trvs/trvModes';
+import { getTrvScheduledTargetTemperatures } from './trvs/trvScheduledTargetTemperatures';
+import { getTrvWeekHeatingSchedules } from './trvs/trvSchedules';
+import { getAnyHeating, getTrvsHeating } from './trvs/trvsHeating';
+import { getTrvSynthesisedStatuses } from './trvs/trvSynthesisedStatuses';
+import { getTrvTargetTemperatures } from './trvs/trvTargetTemperatures';
+import { getTrvTemperatures } from './trvs/trvTemperatures';
 
 const log = debug('deep-heating');
 
 export class DeepHeating {
-  readonly hueSensorUpdate$: Observable<SensorUpdate>;
   readonly temperatureSensorUpdate$: Observable<TemperatureSensorUpdate>;
-  readonly switchSensorUpdate$: Observable<SwitchSensorUpdate>;
   readonly rooms$: Observable<GroupedObservable<string, RoomDefinition>>;
   readonly roomSensors$: Observable<Observable<RoomSensors>>;
   readonly roomTemperatures$: Observable<RoomTemperature>;
@@ -144,19 +141,31 @@ export class DeepHeating {
     new Subject<HeatingStatus>();
 
   constructor(
-    heatingProvider: HeatingProvider,
     home: Home,
     initialRoomAdjustments: RoomAdjustment[],
     roomAdjustmentCommands$: Observable<RoomAdjustment>
   ) {
-    this.hueSensorUpdate$ = getHueSensorUpdates();
-    this.temperatureSensorUpdate$ = this.hueSensorUpdate$.pipe(
+    const runtime = pipe(
+      HomeAssistantApiLive.pipe(Layer.use(HomeAssistantConfigLive)),
+      Layer.toRuntime,
+      Effect.scoped,
+      Effect.runSync
+    );
+
+    const entityUpdates$ = getEntityUpdates(runtime);
+
+    const heatingProvider = createHomeAssistantHeatingProvider(
+      home,
+      entityUpdates$,
+      runtime
+    );
+    const sensorProvider = createHomeAssistantSensorProvider(entityUpdates$);
+
+    this.temperatureSensorUpdate$ = sensorProvider.sensorUpdates$.pipe(
       filter(isTemperatureSensorUpdate)
     );
-    this.switchSensorUpdate$ = this.hueSensorUpdate$.pipe(
-      filter(isSwitchSensorUpdate)
-    );
-    this.buttonEvents$ = getButtonEvents(this.switchSensorUpdate$);
+    this.buttonEvents$ =
+      createHomeAssistantButtonEventProvider(entityUpdates$).buttonPressEvents$;
     this.buttonEvents$.subscribe((x) =>
       log(
         'Button',

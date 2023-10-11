@@ -1,5 +1,12 @@
-import * as SocketIO from 'socket.io';
-import { combineLatest, fromEvent, Observable, of, Subscription } from 'rxjs';
+import { DeepHeating } from '@home-automation/deep-heating-rx';
+import { maintainState } from '@home-automation/deep-heating-state';
+import {
+  DeepHeatingState,
+  Home,
+  RoomAdjustment,
+} from '@home-automation/deep-heating-types';
+import { Server } from 'http';
+import { Observable, Subscription, combineLatest, fromEvent, of } from 'rxjs';
 import {
   distinctUntilChanged,
   map,
@@ -10,17 +17,9 @@ import {
   throttleTime,
   withLatestFrom,
 } from 'rxjs/operators';
-import { Server } from 'http';
-import { isDeepStrictEqual } from 'util';
-import {
-  DeepHeatingState,
-  Home,
-  RoomAdjustment,
-} from '@home-automation/deep-heating-types';
-import { DeepHeating } from '@home-automation/deep-heating-rx';
-import { maintainState } from '@home-automation/deep-heating-state';
+import * as SocketIO from 'socket.io';
 import { ServerOptions } from 'socket.io';
-import { createHomeAssistantProvider } from '@home-automation/deep-heating-home-assistant';
+import { isDeepStrictEqual } from 'util';
 
 export interface SocketEvent<T> {
   io: SocketIO.Server;
@@ -67,11 +66,7 @@ export class SocketServer {
       distinctUntilChanged<RoomAdjustment>(isDeepStrictEqual),
       share()
     );
-
-    const provider = createHomeAssistantProvider(home);
-
     const deepHeating = new DeepHeating(
-      provider,
       home,
       initialRoomAdjustments,
       roomAdjustments$

@@ -1,7 +1,7 @@
 import * as Schema from '@effect/schema/Schema';
 import { Effect } from 'effect';
 import { pipe } from 'effect/Function';
-import { TemperatureSensorEntity } from './sensorEntity';
+import { TemperatureSensorEntity } from '../entity';
 
 const exampleSensorEntity = {
   entity_id: 'sensor.bedroom_sensor_temperature',

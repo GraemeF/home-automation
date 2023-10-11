@@ -1,10 +1,4 @@
-import { from, Observable, timer } from 'rxjs';
-import { HomeAssistantApi, HomeAssistantConfig } from '../home-assistant-api';
-import { shareReplay, switchMap, throttleTime, mergeAll } from 'rxjs/operators';
-import { ClimateEntity, ClimateEntityId, HassState } from './climateEntity';
-import { Effect, pipe, Runtime } from 'effect';
-import { filter, map } from 'rxjs/operators';
-import { shareReplayLatestByKey } from '@home-automation/rxx';
+import * as Schema from '@effect/schema/Schema';
 import {
   HeatingUpdate,
   Home,
@@ -15,8 +9,18 @@ import {
   TrvModeValue,
   TrvUpdate,
 } from '@home-automation/deep-heating-types';
-import * as Schema from '@effect/schema/Schema';
+import { shareReplayLatestByKey } from '@home-automation/rxx';
+import { Effect, pipe } from 'effect';
 import { DateTime } from 'luxon';
+import { Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
+import {
+  ClimateEntity,
+  ClimateEntityId,
+  HassState,
+  HomeAssistantEntity,
+} from '../entity';
+import { HomeAssistantApi } from '../home-assistant-api';
 
 const heatingEntityId = Schema.decodeSync(ClimateEntityId)('climate.main');
 
@@ -94,19 +98,9 @@ export const getHeatingApiUpdates = (
     shareReplayLatestByKey((x) => x.heatingId)
   );
 
-const refreshIntervalMilliseconds = 60 * 1000;
-
 export const getClimateEntityUpdates = (
-  runtime: Runtime.Runtime<HomeAssistantApi>
-): Observable<ClimateEntity> =>
-  timer(0, refreshIntervalMilliseconds).pipe(
-    throttleTime(refreshIntervalMilliseconds),
-    switchMap(() =>
-      from(pipe(Runtime.runPromise(runtime)(getClimateEntities)))
-    ),
-    mergeAll(),
-    shareReplay(1)
-  );
+  entityUpdates$: Observable<HomeAssistantEntity>
+) => entityUpdates$.pipe(filter(Schema.is(ClimateEntity)));
 
 export const setClimateEntityTemperature = (
   entityId: ClimateEntityId,
@@ -149,18 +143,3 @@ export const setClimateEntityMode = (
       }),
     })
   );
-
-export const getClimateEntities = pipe(
-  HomeAssistantApi,
-  Effect.flatMap((api) =>
-    pipe(
-      api.getStates(),
-      Effect.flatMap(Schema.parse(Schema.array(Schema.any))),
-      Effect.map((states) =>
-        states.filter((state) => state['entity_id'].startsWith('climate.'))
-      ),
-      Effect.flatMap(Schema.decode(Schema.array(ClimateEntity))),
-      Effect.withLogSpan(`fetch_climate_entities`)
-    )
-  )
-);

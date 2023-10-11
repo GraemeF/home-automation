@@ -1,3 +1,4 @@
+import { Schema } from '@effect/schema';
 import {
   HeatingAction,
   Home,
@@ -6,8 +7,11 @@ import {
   TrvModeValue,
 } from '@home-automation/deep-heating-types';
 import debug from 'debug';
-import { debounceTime, groupBy, mergeMap, map } from 'rxjs/operators';
-import { from, Subject } from 'rxjs';
+import { Effect, Option, Runtime, pipe } from 'effect';
+import { Observable, Subject, from } from 'rxjs';
+import { debounceTime, groupBy, map, mergeMap } from 'rxjs/operators';
+import { ClimateEntityId, HassState, HomeAssistantEntity } from '../entity';
+import { HomeAssistantApi } from '../home-assistant-api';
 import {
   getClimateEntityUpdates,
   getHeatingApiUpdates,
@@ -15,15 +19,6 @@ import {
   setClimateEntityMode,
   setClimateEntityTemperature,
 } from './climate';
-import {
-  HomeAssistantApi,
-  HomeAssistantApiLive,
-  HomeAssistantConfig,
-  HomeAssistantConfigLive,
-} from '../home-assistant-api';
-import { Effect, Layer, pipe, Option, Runtime } from 'effect';
-import { Schema } from '@effect/schema';
-import { ClimateEntityId, HassState } from './climateEntity';
 
 const log = debug('home-assistant');
 
@@ -37,14 +32,12 @@ const hiveModeValueToHassState: (mode: TrvModeValue) => HassState = (mode) => {
       return 'off';
   }
 };
-export const createHomeAssistantProvider = (home: Home) => {
-  const runtime = pipe(
-    HomeAssistantApiLive.pipe(Layer.use(HomeAssistantConfigLive)),
-    Layer.toRuntime,
-    Effect.scoped,
-    Effect.runSync
-  );
 
+export const createHomeAssistantHeatingProvider = (
+  home: Home,
+  entityUpdates$: Observable<HomeAssistantEntity>,
+  runtime: Runtime.Runtime<HomeAssistantApi>
+) => {
   const heatingActions = new Subject<HeatingAction>();
   const trvActions = new Subject<TrvAction>();
 
@@ -149,8 +142,7 @@ export const createHomeAssistantProvider = (home: Home) => {
       )
     );
 
-  const climateEntityUpdates$ = getClimateEntityUpdates(runtime);
-
+  const climateEntityUpdates$ = getClimateEntityUpdates(entityUpdates$);
   return {
     trvActions,
     heatingActions,
