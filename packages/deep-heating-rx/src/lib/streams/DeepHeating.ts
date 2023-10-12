@@ -164,8 +164,10 @@ export class DeepHeating {
     this.temperatureSensorUpdate$ = sensorProvider.sensorUpdates$.pipe(
       filter(isTemperatureSensorUpdate)
     );
-    this.buttonEvents$ =
-      createHomeAssistantButtonEventProvider(entityUpdates$).buttonPressEvents$;
+    this.buttonEvents$ = createHomeAssistantButtonEventProvider(
+      home,
+      entityUpdates$
+    ).buttonPressEvents$;
     this.buttonEvents$.subscribe((x) =>
       log(
         'Button',
