@@ -1,5 +1,6 @@
 import { Schema } from '@effect/schema';
 import { ButtonEvent, Home } from '@home-automation/deep-heating-types';
+import { shareReplayLatestByKey } from '@home-automation/rxx';
 import { DateTime } from 'luxon';
 import { Observable } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
@@ -28,6 +29,7 @@ export const createHomeAssistantButtonEventProvider: (
       buttonIndex: 0,
       eventType: entity.attributes.event_type,
       time: DateTime.fromJSDate(entity.state),
-    }))
+    })),
+    shareReplayLatestByKey((x) => x.switchId)
   ),
 });
