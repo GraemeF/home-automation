@@ -1,10 +1,6 @@
 import * as Schema from '@effect/schema/Schema';
-import { Temperature } from '@home-automation/deep-heating-types';
-import { Effect, Runtime } from 'effect';
 import { pipe } from 'effect/Function';
-import { Observable, from, timer } from 'rxjs';
-import { mergeAll, shareReplay, switchMap, throttleTime } from 'rxjs/operators';
-import { HomeAssistantApi } from './home-assistant-api';
+import { Temperature } from '../deep-heating-types';
 
 export const EntityId = pipe(
   Schema.string,
@@ -139,26 +135,3 @@ export const HomeAssistantEntity = Schema.union(
   OtherEntity
 );
 export type HomeAssistantEntity = Schema.Schema.To<typeof HomeAssistantEntity>;
-
-export const getEntities = pipe(
-  HomeAssistantApi,
-  Effect.flatMap((api) =>
-    pipe(
-      api.getStates(),
-      Effect.map(Schema.parseSync(Schema.array(HomeAssistantEntity))),
-      Effect.withLogSpan(`fetch_entities`)
-    )
-  )
-);
-
-const refreshIntervalMilliseconds = 60 * 1000;
-
-export const getEntityUpdates = (
-  runtime: Runtime.Runtime<HomeAssistantApi>
-): Observable<HomeAssistantEntity> =>
-  timer(0, refreshIntervalMilliseconds).pipe(
-    throttleTime(refreshIntervalMilliseconds),
-    switchMap(() => from(pipe(Runtime.runPromise(runtime)(getEntities)))),
-    mergeAll(),
-    shareReplay(1)
-  );

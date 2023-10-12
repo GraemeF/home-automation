@@ -1,8 +1,11 @@
 import { Schema } from '@effect/schema';
-import { SensorUpdate } from '@home-automation/deep-heating-types';
+import {
+  HomeAssistantEntity,
+  SensorUpdate,
+  TemperatureSensorEntity,
+} from '@home-automation/deep-heating-types';
 import { Observable } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
-import { HomeAssistantEntity, TemperatureSensorEntity } from '../entity';
 
 export const createHomeAssistantSensorProvider: (
   entityUpdates$: Observable<HomeAssistantEntity>

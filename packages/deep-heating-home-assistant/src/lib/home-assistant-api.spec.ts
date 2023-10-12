@@ -1,5 +1,4 @@
 import * as Schema from '@effect/schema/Schema';
-import { Effect, pipe } from 'effect';
 import {
   ButtonPressEventEntity,
   ClimateEntity,
@@ -7,9 +6,9 @@ import {
   OtherEntity,
   SensorEntity,
   TemperatureSensorEntity,
-  getEntities,
-} from './entity';
-import { HomeAssistantApiTest } from './home-assistant-api';
+} from '@home-automation/deep-heating-types';
+import { Effect, pipe } from 'effect';
+import { HomeAssistantApiTest, getEntities } from './home-assistant-api';
 
 const exampleStates = [
   {

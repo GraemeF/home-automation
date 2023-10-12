@@ -2,11 +2,17 @@ import { HttpClientError } from '@effect/platform/Http/ClientError';
 import * as HttpClient from '@effect/platform/HttpClient';
 import { ParseError } from '@effect/schema/ParseResult';
 import * as Schema from '@effect/schema/Schema';
-import { Temperature } from '@home-automation/deep-heating-types';
-import { Config, Context, Effect, Layer } from 'effect';
+import {
+  ClimateEntityId,
+  HassState,
+  HomeAssistantEntity,
+  Temperature,
+} from '@home-automation/deep-heating-types';
+import { Config, Context, Effect, Layer, Runtime } from 'effect';
 import { Tag } from 'effect/Context';
 import { pipe } from 'effect/Function';
-import { ClimateEntityId, HassState } from './entity';
+import { Observable, from, timer } from 'rxjs';
+import { mergeAll, shareReplay, switchMap, throttleTime } from 'rxjs/operators';
 
 export interface HomeAssistantConfig {
   readonly url: string;
@@ -79,7 +85,7 @@ export const HomeAssistantApiLive = Layer.effect(
             Effect.withSpan('set_temperature'),
             Effect.match({
               onSuccess: () => ({ ok: true }),
-              onFailure: (error) => ({ ok: false }),
+              onFailure: () => ({ ok: false }),
             })
           ),
         setHvacMode: (entityId: ClimateEntityId, mode: HassState) =>
@@ -97,7 +103,7 @@ export const HomeAssistantApiLive = Layer.effect(
             Effect.withSpan('set_hvac_mode'),
             Effect.match({
               onSuccess: () => ({ ok: true }),
-              onFailure: (error) => ({ ok: false }),
+              onFailure: () => ({ ok: false }),
             })
           ),
       })
@@ -115,4 +121,27 @@ export const HomeAssistantApiTest = (
       setTemperature: () => Effect.succeed({ ok: true }),
       setHvacMode: () => Effect.succeed({ ok: true }),
     })
+  );
+
+export const getEntities = pipe(
+  HomeAssistantApi,
+  Effect.flatMap((api) =>
+    pipe(
+      api.getStates(),
+      Effect.map(Schema.parseSync(Schema.array(HomeAssistantEntity))),
+      Effect.withLogSpan(`fetch_entities`)
+    )
+  )
+);
+
+const refreshIntervalMilliseconds = 60 * 1000;
+
+export const getEntityUpdates = (
+  runtime: Runtime.Runtime<HomeAssistantApi>
+): Observable<HomeAssistantEntity> =>
+  timer(0, refreshIntervalMilliseconds).pipe(
+    throttleTime(refreshIntervalMilliseconds),
+    switchMap(() => from(pipe(Runtime.runPromise(runtime)(getEntities)))),
+    mergeAll(),
+    shareReplay(1)
   );
