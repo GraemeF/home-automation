@@ -1,6 +1,7 @@
 import { combineLatest, Observable } from 'rxjs';
 import { filter, map, shareReplay } from 'rxjs/operators';
 import { HeatingStatus } from './deep-heating-types';
+import { Temperature } from './temperature';
 
 export function getHeatingActions(
   heatingId: string,
@@ -25,5 +26,5 @@ export function getHeatingActions(
 export interface HeatingAction {
   heatingId: string;
   mode: 'MANUAL' | 'SCHEDULE' | 'OFF';
-  targetTemperature: number;
+  targetTemperature: Temperature;
 }

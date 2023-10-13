@@ -1,39 +1,40 @@
-import { DateTime } from 'luxon';
-import { simpleToWeekSchedule, toHeatingSchedule } from './weekSchedule';
-import { SimpleWeekSchedule, WeekHeatingSchedule } from './schedule-types';
 import { Schema } from '@effect/schema';
 import { Effect, pipe } from 'effect';
+import { DateTime } from 'luxon';
+import { SimpleWeekSchedule, WeekHeatingSchedule } from './schedule-types';
+import { Temperature } from './temperature';
+import { simpleToWeekSchedule, toHeatingSchedule } from './weekSchedule';
 
 const exampleSchedule: WeekHeatingSchedule = {
   monday: [
     {
       start: 450,
       value: {
-        target: 20,
+        target: Schema.parseSync(Temperature)(20),
       },
     },
     {
       start: 480,
       value: {
-        target: 20,
+        target: Schema.parseSync(Temperature)(20),
       },
     },
     {
       start: 1020,
       value: {
-        target: 21,
+        target: Schema.parseSync(Temperature)(21),
       },
     },
     {
       start: 1140,
       value: {
-        target: 21,
+        target: Schema.parseSync(Temperature)(21),
       },
     },
     {
       start: 1320,
       value: {
-        target: 7,
+        target: Schema.parseSync(Temperature)(7),
       },
     },
   ],
@@ -41,31 +42,31 @@ const exampleSchedule: WeekHeatingSchedule = {
     {
       start: 450,
       value: {
-        target: 20,
+        target: Schema.parseSync(Temperature)(20),
       },
     },
     {
       start: 480,
       value: {
-        target: 20,
+        target: Schema.parseSync(Temperature)(20),
       },
     },
     {
       start: 1020,
       value: {
-        target: 21,
+        target: Schema.parseSync(Temperature)(21),
       },
     },
     {
       start: 1140,
       value: {
-        target: 21,
+        target: Schema.parseSync(Temperature)(21),
       },
     },
     {
       start: 1320,
       value: {
-        target: 7,
+        target: Schema.parseSync(Temperature)(7),
       },
     },
   ],
@@ -73,31 +74,31 @@ const exampleSchedule: WeekHeatingSchedule = {
     {
       start: 450,
       value: {
-        target: 20,
+        target: Schema.parseSync(Temperature)(20),
       },
     },
     {
       start: 480,
       value: {
-        target: 20,
+        target: Schema.parseSync(Temperature)(20),
       },
     },
     {
       start: 1020,
       value: {
-        target: 21,
+        target: Schema.parseSync(Temperature)(21),
       },
     },
     {
       start: 1140,
       value: {
-        target: 21,
+        target: Schema.parseSync(Temperature)(21),
       },
     },
     {
       start: 1320,
       value: {
-        target: 7,
+        target: Schema.parseSync(Temperature)(7),
       },
     },
   ],
@@ -105,31 +106,31 @@ const exampleSchedule: WeekHeatingSchedule = {
     {
       start: 450,
       value: {
-        target: 20,
+        target: Schema.parseSync(Temperature)(20),
       },
     },
     {
       start: 480,
       value: {
-        target: 20,
+        target: Schema.parseSync(Temperature)(20),
       },
     },
     {
       start: 1020,
       value: {
-        target: 21,
+        target: Schema.parseSync(Temperature)(21),
       },
     },
     {
       start: 1140,
       value: {
-        target: 21,
+        target: Schema.parseSync(Temperature)(21),
       },
     },
     {
       start: 1320,
       value: {
-        target: 7,
+        target: Schema.parseSync(Temperature)(7),
       },
     },
   ],
@@ -137,31 +138,31 @@ const exampleSchedule: WeekHeatingSchedule = {
     {
       start: 450,
       value: {
-        target: 20,
+        target: Schema.parseSync(Temperature)(20),
       },
     },
     {
       start: 480,
       value: {
-        target: 20,
+        target: Schema.parseSync(Temperature)(20),
       },
     },
     {
       start: 1020,
       value: {
-        target: 21,
+        target: Schema.parseSync(Temperature)(21),
       },
     },
     {
       start: 1140,
       value: {
-        target: 21,
+        target: Schema.parseSync(Temperature)(21),
       },
     },
     {
       start: 1425,
       value: {
-        target: 7,
+        target: Schema.parseSync(Temperature)(7),
       },
     },
   ],
@@ -169,25 +170,25 @@ const exampleSchedule: WeekHeatingSchedule = {
     {
       start: 480,
       value: {
-        target: 20,
+        target: Schema.parseSync(Temperature)(20),
       },
     },
     {
       start: 960,
       value: {
-        target: 20,
+        target: Schema.parseSync(Temperature)(20),
       },
     },
     {
       start: 1260,
       value: {
-        target: 21,
+        target: Schema.parseSync(Temperature)(21),
       },
     },
     {
       start: 1425,
       value: {
-        target: 7,
+        target: Schema.parseSync(Temperature)(7),
       },
     },
   ],
@@ -195,25 +196,25 @@ const exampleSchedule: WeekHeatingSchedule = {
     {
       start: 480,
       value: {
-        target: 20,
+        target: Schema.parseSync(Temperature)(20),
       },
     },
     {
       start: 960,
       value: {
-        target: 20.5,
+        target: Schema.parseSync(Temperature)(20.5),
       },
     },
     {
       start: 1260,
       value: {
-        target: 21,
+        target: Schema.parseSync(Temperature)(21),
       },
     },
     {
       start: 1320,
       value: {
-        target: 7,
+        target: Schema.parseSync(Temperature)(7),
       },
     },
   ],
@@ -259,13 +260,13 @@ describe('Hive schedule', () => {
           {
             start: 564,
             value: {
-              target: 20,
+              target: Schema.parseSync(Temperature)(20),
             },
           },
           {
             start: 600,
             value: {
-              target: 22,
+              target: Schema.parseSync(Temperature)(22),
             },
           },
         ],
@@ -273,7 +274,7 @@ describe('Hive schedule', () => {
           {
             start: 565,
             value: {
-              target: 21,
+              target: Schema.parseSync(Temperature)(21),
             },
           },
         ],

@@ -1,21 +1,21 @@
-import { combineLatest, GroupedObservable, Observable } from 'rxjs';
-import { filter, map, mergeMap, share } from 'rxjs/operators';
 import {
+  RoomClimateTargetTemperatures,
   RoomDecisionPoint,
   RoomDefinition,
   RoomTargetTemperature,
   RoomTemperature,
   RoomTrvModes,
-  RoomTrvTargetTemperatures,
   RoomTrvTemperatures,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinct } from '@home-automation/rxx';
+import { GroupedObservable, Observable, combineLatest } from 'rxjs';
+import { filter, map, mergeMap, share } from 'rxjs/operators';
 
 export function getRoomDecisionPoints(
   rooms: Observable<GroupedObservable<string, RoomDefinition>>,
   roomTargetTemperatures: Observable<RoomTargetTemperature>,
   roomTemperatures: Observable<RoomTemperature>,
-  roomTrvTargetTemperatures: Observable<RoomTrvTargetTemperatures>,
+  roomTrvTargetTemperatures: Observable<RoomClimateTargetTemperatures>,
   roomTrvTemperatures: Observable<RoomTrvTemperatures>,
   roomTrvModes: Observable<RoomTrvModes>
 ): Observable<RoomDecisionPoint> {
@@ -42,8 +42,9 @@ export function getRoomDecisionPoints(
         roomName: room.name,
         targetTemperature: roomTargetTemperature.targetTemperature,
         temperature: roomTemperature.temperatureReading.temperature,
-        trvTargetTemperatures: roomTrvTargetTemperatures.trvTargetTemperatures,
-        trvTemperatures: roomTrvTemperatures.trvTargetTemperatures,
+        trvTargetTemperatures:
+          roomTrvTargetTemperatures.climateTargetTemperatures,
+        trvTemperatures: roomTrvTemperatures.trvTemperatures,
         trvModes: roomTrvModes.trvModes,
       })
     ),

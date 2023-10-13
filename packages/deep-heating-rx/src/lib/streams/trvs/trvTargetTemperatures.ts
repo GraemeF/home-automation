@@ -1,18 +1,21 @@
-import { map } from 'rxjs/operators';
-import { Observable } from 'rxjs';
-import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import {
+  ClimateTargetTemperature,
   TrvControlState,
-  TrvTargetTemperature,
 } from '@home-automation/deep-heating-types';
+import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 export function getTrvTargetTemperatures(
   trvControlStates$: Observable<TrvControlState>
-): Observable<TrvTargetTemperature> {
+): Observable<ClimateTargetTemperature> {
   return trvControlStates$.pipe(
-    map((x) => ({ trvId: x.trvId, targetTemperature: x.targetTemperature })),
+    map((x) => ({
+      climateEntityId: x.climateEntityId,
+      targetTemperature: x.targetTemperature,
+    })),
     shareReplayLatestDistinctByKey(
-      (x) => x.trvId,
+      (x) => x.climateEntityId,
       (a, b) => a.targetTemperature === b.targetTemperature
     )
   );

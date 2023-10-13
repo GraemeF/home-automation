@@ -14,8 +14,7 @@ import {
   simpleToWeekSchedule,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestByKey } from '@home-automation/rxx';
-import { Effect, pipe } from 'effect';
-import { DateTime } from 'luxon';
+import { Effect, Option, pipe } from 'effect';
 import { Observable } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 import { HomeAssistantApi } from '../home-assistant-api';
@@ -51,26 +50,34 @@ export const getTrvApiUpdates =
   (p$: Observable<ClimateEntity>): Observable<TrvUpdate> =>
     p$.pipe(
       filter((entity) => entity.entity_id !== heatingEntityId),
-      map((response) => ({
-        trvId: response.entity_id,
-        name: response.attributes.friendly_name,
-        deviceType: 'trv',
-        state: {
-          temperature: {
-            temperature: response.attributes.current_temperature,
-            time: DateTime.fromJSDate(response.last_updated),
+      map((response) => {
+        return {
+          climateEntityId: response.entity_id,
+          name: response.attributes.friendly_name,
+          deviceType: 'trv',
+
+          state: {
+            temperature: {
+              temperature: response.attributes.current_temperature,
+              time: response.last_updated,
+            },
+            target: response.attributes.temperature,
+            mode: hassStateToTrvModeValue(response.state),
+            isHeating: response.attributes.hvac_action === 'heating',
+            schedule: simpleToWeekSchedule(
+              pipe(
+                home.rooms.find((room) =>
+                  room.climateEntityIds.includes(response.entity_id)
+                ),
+                Option.fromNullable,
+                Option.flatMap((room) => room.schedule),
+                Option.getOrElse(() => defaultSchedule)
+              )
+            ),
           },
-          target: response.attributes.temperature,
-          mode: hassStateToTrvModeValue(response.state),
-          isHeating: response.attributes.hvac_action === 'heating',
-          schedule: simpleToWeekSchedule(
-            home.rooms.find((room) =>
-              room.trvControlIds.includes(response.entity_id)
-            )?.schedule ?? defaultSchedule
-          ),
-        },
-      })),
-      shareReplayLatestByKey((x) => x.trvId)
+        };
+      }),
+      shareReplayLatestByKey((x) => x.climateEntityId)
     );
 
 export const getHeatingApiUpdates = (
@@ -85,7 +92,7 @@ export const getHeatingApiUpdates = (
       state: {
         temperature: {
           temperature: response.attributes.current_temperature,
-          time: DateTime.fromJSDate(response.last_updated),
+          time: response.last_updated,
         },
         target: response.attributes.temperature,
         mode: hassStateToTrvModeValue(response.state),

@@ -1,3 +1,10 @@
+import {
+  ButtonPressEventEntity,
+  EventEntityId,
+  HouseModeValue,
+} from '@home-automation/deep-heating-types';
+import { shareReplayLatestDistinct } from '@home-automation/rxx';
+import { DateTime } from 'luxon';
 import { Observable, timer } from 'rxjs';
 import {
   filter,
@@ -6,12 +13,6 @@ import {
   startWith,
   withLatestFrom,
 } from 'rxjs/operators';
-import { DateTime } from 'luxon';
-import {
-  ButtonEvent,
-  HouseModeValue,
-} from '@home-automation/deep-heating-types';
-import { shareReplayLatestDistinct } from '@home-automation/rxx';
 
 const refreshIntervalSeconds = 63;
 
@@ -28,8 +29,8 @@ export function getHouseMode(
 }
 
 export function getHouseModes(
-  buttonEvents$: Observable<ButtonEvent>,
-  sleepSwitchId: string
+  buttonEvents$: Observable<ButtonPressEventEntity>,
+  sleepSwitchId: EventEntityId
 ): Observable<HouseModeValue> {
   const time$ = timer(0, refreshIntervalSeconds * 1000).pipe(
     map(() => DateTime.local()),
@@ -39,11 +40,16 @@ export function getHouseModes(
   return time$.pipe(
     withLatestFrom(
       buttonEvents$.pipe(
-        filter((x) => x.switchId === sleepSwitchId),
+        filter((x) => x.entity_id === sleepSwitchId),
         startWith(undefined)
       )
     ),
-    map(([time, lastButtonEvent]) => getHouseMode(time, lastButtonEvent?.time)),
+    map(([time, lastButtonEvent]) =>
+      getHouseMode(
+        time,
+        lastButtonEvent ? DateTime.fromJSDate(lastButtonEvent.state) : undefined
+      )
+    ),
     shareReplayLatestDistinct()
   );
 }

@@ -1,16 +1,19 @@
-import { map } from 'rxjs/operators';
-import { Observable } from 'rxjs';
+import {
+  ClimateTemperatureReading,
+  TrvUpdate,
+} from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
-import { TrvTemperature, TrvUpdate } from '@home-automation/deep-heating-types';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 export function getTrvTemperatures(
   trvUpdates: Observable<TrvUpdate>
-): Observable<TrvTemperature> {
+): Observable<ClimateTemperatureReading> {
   return trvUpdates.pipe(
     map((x) => ({
-      trvId: x.trvId,
+      climateEntityId: x.climateEntityId,
       temperatureReading: x.state.temperature,
     })),
-    shareReplayLatestDistinctByKey((x) => x.trvId)
+    shareReplayLatestDistinctByKey((x) => x.climateEntityId)
   );
 }

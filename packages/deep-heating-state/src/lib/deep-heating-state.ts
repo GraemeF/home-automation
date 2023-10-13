@@ -1,14 +1,13 @@
-import { Observable } from 'rxjs';
-import { filter, mergeAll, mergeMap, startWith } from 'rxjs/operators';
-import { multiScan } from 'rxjs-multi-scan';
-import { DateTime } from 'luxon';
+import { DeepHeating } from '@home-automation/deep-heating-rx';
 import {
   DeepHeatingState,
   RadiatorState,
   RoomDefinition,
   RoomState,
 } from '@home-automation/deep-heating-types';
-import { DeepHeating } from '@home-automation/deep-heating-rx';
+import { Observable } from 'rxjs';
+import { multiScan } from 'rxjs-multi-scan';
+import { filter, mergeAll, mergeMap, startWith } from 'rxjs/operators';
 
 export const addOrReplace = function <T>(a: T[], o: T, k: keyof T): T[] {
   const fi = a.findIndex((f) => f[k] === o[k]);
@@ -26,35 +25,39 @@ function maintainTrvState(
 ): Observable<RadiatorState> {
   const initialState: RadiatorState = { name: trvId };
   return multiScan(
-    deepHeating.trvTemperatures$.pipe(filter((x) => x.trvId === trvId)),
+    deepHeating.trvTemperatures$.pipe(
+      filter((x) => x.climateEntityId === trvId)
+    ),
     (state, update) => ({
       ...state,
       temperature: update.temperatureReading,
     }),
 
-    deepHeating.trvTargetTemperatures$.pipe(filter((x) => x.trvId === trvId)),
+    deepHeating.trvTargetTemperatures$.pipe(
+      filter((x) => x.climateEntityId === trvId)
+    ),
     (state, update) => ({
       ...state,
       targetTemperature: {
         temperature: update.targetTemperature,
-        time: DateTime.local(),
+        time: new Date(),
       },
     }),
 
-    deepHeating.trvStatuses$.pipe(filter((x) => x.trvId === trvId)),
+    deepHeating.trvStatuses$.pipe(filter((x) => x.climateEntityId === trvId)),
     (state, update) => ({
       ...state,
       isHeating: update.isHeating,
     }),
 
     deepHeating.trvDesiredTargetTemperatures$.pipe(
-      filter((x) => x.trvId === trvId)
+      filter((x) => x.climateEntityId === trvId)
     ),
     (state, desired) => ({
       ...state,
       desiredTargetTemperature: {
         temperature: desired.targetTemperature,
-        time: DateTime.local(),
+        time: new Date(),
       },
     }),
 
@@ -106,7 +109,9 @@ function maintainRoomState(
 
     deepHeating.roomTrvs$.pipe(
       filter((x) => x.roomName === room.name),
-      mergeMap((x) => x.trvIds.map((y) => maintainTrvState(deepHeating, y))),
+      mergeMap((x) =>
+        x.climateEntityIds.map((y) => maintainTrvState(deepHeating, y))
+      ),
       mergeAll()
     ),
     (state, _update) => ({

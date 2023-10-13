@@ -2,18 +2,18 @@ import { config } from 'dotenv';
 
 config();
 
+import { FileSystem } from '@effect/platform-node';
+import { Schema } from '@effect/schema';
+import { Home } from '@home-automation/deep-heating-types';
+import debug from 'debug';
+import { Effect, pipe } from 'effect';
 import { readFileSync, writeFileSync } from 'fs';
+import { createServer } from 'http';
 import { tmpdir } from 'os';
 import * as path from 'path';
-import { createServer } from 'http';
 import { SocketServer } from './app/socket-server';
-import debug from 'debug';
 
 const log = debug('app');
-
-const data = readFileSync(
-  process.env['HOME_CONFIG_PATH'] || './home.json'
-).toString();
 
 const roomAdjustmentsPath =
   process.env['ROOM_ADJUSTMENTS_PATH'] ||
@@ -27,40 +27,42 @@ const loadAdjustments = () => {
     return '[]';
   }
 };
-
 const initialRoomAdjustments = loadAdjustments();
 
 const httpServer = createServer();
 
-const socketServer = new SocketServer(
-  httpServer,
-  JSON.parse(data.toString()),
-  JSON.parse(initialRoomAdjustments),
-  (roomAdjustments) =>
-    writeFileSync(roomAdjustmentsPath, JSON.stringify(roomAdjustments)),
-  {
-    cors: {
-      origin: (process.env['CORS_ORIGINS'] || '').split(','),
-      methods: ['GET', 'POST', 'OPTIONS'],
-    },
-  }
+const JsonHomeData = Schema.ParseJson.pipe(Schema.compose(Home));
+
+const readDataFromFile = (fs: FileSystem.FileSystem) =>
+  pipe(
+    process.env['HOME_CONFIG_PATH'] || './home.json',
+    fs.readFileString,
+    Effect.flatMap(Schema.decode(JsonHomeData))
+  );
+
+pipe(
+  FileSystem.FileSystem,
+  Effect.flatMap((fs) => readDataFromFile(fs)),
+  Effect.map((data) => {
+    const socketServer = new SocketServer(
+      httpServer,
+      data,
+      JSON.parse(initialRoomAdjustments),
+      (roomAdjustments) =>
+        writeFileSync(roomAdjustmentsPath, JSON.stringify(roomAdjustments)),
+      {
+        cors: {
+          origin: (process.env['CORS_ORIGINS'] || '').split(','),
+          methods: ['GET', 'POST', 'OPTIONS'],
+        },
+      }
+    );
+
+    const port = process.env['PORT'] || 5123;
+    log('Listening on port %d', port);
+
+    httpServer.listen(port);
+  }),
+  Effect.provide(FileSystem.layer),
+  Effect.runPromise
 );
-
-process.on('SIGINT', function () {
-  log('Shutting down');
-  socketServer.dispose();
-  httpServer.close();
-  process.exit();
-});
-
-process.on('SIGTERM', function () {
-  log('Terminating');
-  socketServer.dispose();
-  httpServer.close();
-  process.exit();
-});
-
-const port = process.env['PORT'] || 5123;
-log('Listening on port %d', port);
-
-httpServer.listen(port);

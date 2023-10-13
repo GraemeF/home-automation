@@ -1,11 +1,11 @@
-import { map, shareReplay } from 'rxjs/operators';
-import { combineLatest, Observable, timer } from 'rxjs';
-import { DateTime } from 'luxon';
 import {
   TrvScheduledTargetTemperature,
   TrvWeekHeatingSchedule,
   toHeatingSchedule,
 } from '@home-automation/deep-heating-types';
+import { DateTime } from 'luxon';
+import { Observable, combineLatest, timer } from 'rxjs';
+import { map, shareReplay } from 'rxjs/operators';
 const refreshIntervalSeconds = 60;
 
 export function getTrvScheduledTargetTemperatures(
@@ -18,7 +18,7 @@ export function getTrvScheduledTargetTemperatures(
 
   return combineLatest([trvHiveHeatingSchedule$, time]).pipe(
     map(([trvSchedule, now]) => ({
-      trvId: trvSchedule.trvId,
+      climateEntityId: trvSchedule.climateEntityId,
       scheduledTargetTemperature: toHeatingSchedule(
         trvSchedule.schedule,
         now

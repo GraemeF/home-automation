@@ -21,3 +21,10 @@ export const SensorEntityId = pipe(
   Schema.brand('SensorEntityId')
 );
 export type SensorEntityId = Schema.Schema.To<typeof SensorEntityId>;
+
+export const EventEntityId = pipe(
+  EntityId,
+  Schema.startsWith('event.'),
+  Schema.brand('EventEntityId')
+);
+export type EventEntityId = Schema.Schema.To<typeof EventEntityId>;

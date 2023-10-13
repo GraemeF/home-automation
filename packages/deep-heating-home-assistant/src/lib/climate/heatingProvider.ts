@@ -109,13 +109,13 @@ export const createHomeAssistantHeatingProvider = (
 
   trvActions
     .pipe(
-      groupBy((x) => x.trvId),
+      groupBy((x) => x.climateEntityId),
       mergeMap((x) => x.pipe(debounceTime(5000))),
       mergeMap((action) =>
         pipe(
           from(
             setClimate(
-              Schema.decodeSync(ClimateEntityId)(action.trvId),
+              Schema.decodeSync(ClimateEntityId)(action.climateEntityId),
               hiveModeValueToHassState(action.mode),
               pipe(
                 action.targetTemperature,
@@ -125,7 +125,7 @@ export const createHomeAssistantHeatingProvider = (
             )
           ),
           map((result) => ({
-            entityId: action.trvId,
+            entityId: action.climateEntityId,
             mode: action.mode,
             targetTemperature: action.targetTemperature,
             result,

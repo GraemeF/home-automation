@@ -1,13 +1,12 @@
 import * as Schema from '@effect/schema/Schema';
 import { pipe } from 'effect/Function';
-import { Temperature } from '../deep-heating-types';
-
-export const EntityId = pipe(
-  Schema.string,
-  Schema.nonEmpty(),
-  Schema.brand('EntityId')
-);
-export type EntityId = Schema.Schema.To<typeof EntityId>;
+import {
+  ClimateEntityId,
+  EntityId,
+  EventEntityId,
+  SensorEntityId,
+} from '../entities';
+import { Temperature } from '../temperature';
 
 export const BaseEntity = Schema.struct({
   last_changed: pipe(Schema.string, Schema.dateFromString),
@@ -31,13 +30,6 @@ export const OtherEntity = pipe(
   )
 );
 export type OtherEntity = BaseEntity;
-
-export const SensorEntityId = pipe(
-  EntityId,
-  Schema.startsWith('sensor.'),
-  Schema.brand('SensorEntityId')
-);
-export type SensorEntityId = Schema.Schema.To<typeof SensorEntityId>;
 
 export const SensorEntity = pipe(
   BaseEntity,
@@ -73,13 +65,6 @@ export type HassState = Schema.Schema.To<typeof HassState>;
 export const HassHvacAction = Schema.literal('idle', 'heating');
 export type HassHvacAction = Schema.Schema.To<typeof HassHvacAction>;
 
-export const ClimateEntityId = pipe(
-  EntityId,
-  Schema.startsWith('climate.'),
-  Schema.brand('ClimateEntityId')
-);
-export type ClimateEntityId = Schema.Schema.To<typeof ClimateEntityId>;
-
 export const ClimateEntity = pipe(
   BaseEntity,
   Schema.extend(
@@ -102,13 +87,6 @@ export const ClimateEntity = pipe(
   )
 );
 export type ClimateEntity = Schema.Schema.To<typeof ClimateEntity>;
-
-export const EventEntityId = pipe(
-  EntityId,
-  Schema.startsWith('event.'),
-  Schema.brand('EventEntityId')
-);
-export type EventEntityId = Schema.Schema.To<typeof EventEntityId>;
 
 export const ButtonPressEventEntity = pipe(
   BaseEntity,

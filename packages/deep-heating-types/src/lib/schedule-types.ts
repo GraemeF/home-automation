@@ -1,9 +1,10 @@
 import { Schema } from '@effect/schema';
-import { Temperature } from './deep-heating-types';
+import { ClimateEntityId } from './entities';
+import { Temperature } from './temperature';
 
 export interface HeatingScheduleSlot {
   value: {
-    target: number;
+    target: Temperature;
   };
   start: number;
 }
@@ -21,7 +22,7 @@ export interface WeekHeatingSchedule {
 }
 
 export interface TrvWeekHeatingSchedule {
-  trvId: string;
+  climateEntityId: ClimateEntityId;
   schedule: WeekHeatingSchedule;
 }
 

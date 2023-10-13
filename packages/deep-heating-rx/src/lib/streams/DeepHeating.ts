@@ -7,13 +7,17 @@ import {
   HomeAssistantConfigLive,
 } from '@home-automation/deep-heating-home-assistant';
 import {
-  ButtonEvent,
+  ButtonPressEventEntity,
+  ClimateEntityId,
+  ClimateTargetTemperature,
+  ClimateTemperatureReading,
   getHeatingActions,
   HeatingAction,
   HeatingStatus,
   Home,
   HouseModeValue,
   RoomAdjustment,
+  RoomClimateTargetTemperatures,
   RoomDecisionPoint,
   RoomDefinition,
   RoomMode,
@@ -25,17 +29,14 @@ import {
   RoomTrvModes,
   RoomTrvs,
   RoomTrvStatuses,
-  RoomTrvTargetTemperatures,
   RoomTrvTemperatures,
   RoomWeekHeatingSchedule,
-  TemperatureSensorUpdate,
+  TemperatureSensorEntity,
   TrvAction,
   TrvControlState,
   TrvMode,
   TrvScheduledTargetTemperature,
   TrvStatus,
-  TrvTargetTemperature,
-  TrvTemperature,
   TrvWeekHeatingSchedule,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
@@ -44,7 +45,6 @@ import { Effect, Layer, pipe, Predicate } from 'effect';
 import { from, GroupedObservable, Observable, Subject } from 'rxjs';
 import {
   distinctUntilChanged,
-  filter,
   groupBy,
   map,
   mergeAll,
@@ -61,7 +61,7 @@ import { getRoomHiveHeatingSchedules } from './rooms/roomHiveHeatingSchedules';
 import { getRoomModes } from './rooms/roomModes';
 import { getRoomScheduledTargetTemperatures } from './rooms/roomScheduledTargetTemperatures';
 import { getRoomSchedules } from './rooms/roomSchedules';
-import { getRoomSensors, isTemperatureSensorUpdate } from './rooms/roomSensors';
+import { getRoomSensors } from './rooms/roomSensors';
 import { getRoomsHeating } from './rooms/roomsHeating';
 import { getRoomStatuses } from './rooms/roomStatuses';
 import { getRoomTargetTemperatures } from './rooms/roomTargetTemperatures';
@@ -91,7 +91,7 @@ import { getTrvTemperatures } from './trvs/trvTemperatures';
 const log = debug('deep-heating');
 
 export class DeepHeating {
-  readonly temperatureSensorUpdate$: Observable<TemperatureSensorUpdate>;
+  readonly temperatureSensorUpdate$: Observable<TemperatureSensorEntity>;
   readonly rooms$: Observable<GroupedObservable<string, RoomDefinition>>;
   readonly roomSensors$: Observable<Observable<RoomSensors>>;
   readonly roomTemperatures$: Observable<RoomTemperature>;
@@ -105,9 +105,9 @@ export class DeepHeating {
   readonly roomHiveHeatingSchedules$: Observable<RoomWeekHeatingSchedule>;
   readonly roomSchedules$: Observable<RoomSchedule>;
   readonly roomTargetTemperatures$: Observable<RoomTargetTemperature>;
-  readonly trvTargetTemperatures$: Observable<TrvTargetTemperature>;
-  readonly roomTrvTargetTemperatures$: Observable<RoomTrvTargetTemperatures>;
-  readonly trvTemperatures$: Observable<TrvTemperature>;
+  readonly trvTargetTemperatures$: Observable<ClimateTargetTemperature>;
+  readonly roomTrvTargetTemperatures$: Observable<RoomClimateTargetTemperatures>;
+  readonly trvTemperatures$: Observable<ClimateTemperatureReading>;
   readonly roomTrvModes$: Observable<RoomTrvModes>;
   readonly roomTrvStatuses$: Observable<RoomTrvStatuses>;
   readonly trvModes$: Observable<TrvMode>;
@@ -121,12 +121,12 @@ export class DeepHeating {
   readonly appliedTrvActions$: Observable<TrvControlState>;
   readonly trvSynthesisedStatuses: Observable<TrvStatus>;
   readonly trvActions$: Observable<TrvAction>;
-  readonly trvIds$: Observable<string[]>;
+  readonly trvIds$: Observable<ClimateEntityId[]>;
   readonly appliedHeatingActions$: Observable<HeatingStatus>;
   readonly heatingActions$: Observable<HeatingAction>;
   readonly roomAdjustments$: Observable<RoomAdjustment>;
   readonly roomScheduledTargetTemperatures$: Observable<RoomTargetTemperature>;
-  readonly buttonEvents$: Observable<ButtonEvent>;
+  readonly buttonEvents$: Observable<ButtonPressEventEntity>;
   readonly houseModes$: Observable<HouseModeValue>;
   readonly trvsAnyHeating$: Observable<boolean>;
   readonly roomsAnyHeating$: Observable<boolean>;
@@ -159,11 +159,9 @@ export class DeepHeating {
       entityUpdates$,
       runtime
     );
-    const sensorProvider = createHomeAssistantSensorProvider(entityUpdates$);
 
-    this.temperatureSensorUpdate$ = sensorProvider.sensorUpdates$.pipe(
-      filter(isTemperatureSensorUpdate)
-    );
+    this.temperatureSensorUpdate$ =
+      createHomeAssistantSensorProvider(entityUpdates$).sensorUpdates$;
     this.buttonEvents$ = createHomeAssistantButtonEventProvider(
       home,
       entityUpdates$
@@ -171,11 +169,11 @@ export class DeepHeating {
     this.buttonEvents$.subscribe((x) =>
       log(
         'Button',
-        x.switchId,
-        x.switchName,
-        x.buttonIndex,
+        x.entity_id,
+        x.attributes.friendly_name,
         'event',
-        x.eventType
+        x.attributes.event_type,
+        x.state
       )
     );
     this.houseModes$ = getHouseModes(this.buttonEvents$, home.sleepSwitchId);
@@ -189,7 +187,7 @@ export class DeepHeating {
       this.temperatureSensorUpdate$
     );
     this.trvControlStates$ = this.trvControlStateSubject.pipe(
-      groupBy((trvControlState) => trvControlState.trvId),
+      groupBy((trvControlState) => trvControlState.climateEntityId),
       mergeMap((trvControlState) =>
         trvControlState.pipe(
           distinctUntilChanged<TrvControlState>(isDeepStrictEqual),
@@ -198,14 +196,14 @@ export class DeepHeating {
       ),
       share()
     );
-    const trvDisplayName = (trvId: string): string =>
+    const trvDisplayName = (trvId: ClimateEntityId): string =>
       `${
-        home.rooms.find((x) => x.trvControlIds.includes(trvId))?.name
+        home.rooms.find((x) => x.climateEntityIds.includes(trvId))?.name
       } (${trvId})`;
     this.trvControlStates$.subscribe((x) =>
       log(
         'TRV',
-        trvDisplayName(x.trvId),
+        trvDisplayName(x.climateEntityId),
         x.source === 'Device' ? 'is set to' : 'will be changed to',
         x.mode,
         x.targetTemperature
@@ -213,13 +211,13 @@ export class DeepHeating {
     );
 
     this.trvStatuses$ = this.trvStatusSubject.pipe(
-      shareReplayLatestDistinctByKey((x) => x.trvId)
+      shareReplayLatestDistinctByKey((x) => x.climateEntityId)
     );
 
     this.trvStatuses$.subscribe((x) =>
       log(
         'TRV',
-        trvDisplayName(x.trvId),
+        trvDisplayName(x.climateEntityId),
         x.isHeating ? 'is heating' : 'is cooling'
       )
     );
@@ -234,7 +232,7 @@ export class DeepHeating {
 
     heatingProvider.trvApiUpdates$.subscribe((x) =>
       this.publishTrvControlState({
-        trvId: x.trvId,
+        climateEntityId: x.climateEntityId,
         mode: x.state.mode,
         targetTemperature: x.state.target,
         source: 'Device',
@@ -243,7 +241,7 @@ export class DeepHeating {
 
     this.trvReportedStatuses$ = heatingProvider.trvApiUpdates$.pipe(
       map((x) => ({
-        trvId: x.trvId,
+        climateEntityId: x.climateEntityId,
         isHeating: x.state.isHeating,
       }))
     );
@@ -340,7 +338,7 @@ export class DeepHeating {
       mergeMap((roomDefinitions$) =>
         roomDefinitions$.pipe(
           map((roomDefinition) =>
-            roomDefinition.trvControlIds.filter(Predicate.isNotNull)
+            roomDefinition.climateEntityIds.filter(Predicate.isNotNull)
           )
         )
       )

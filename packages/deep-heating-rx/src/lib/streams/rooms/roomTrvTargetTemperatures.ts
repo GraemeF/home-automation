@@ -1,30 +1,31 @@
-import { filter, map, mergeMap } from 'rxjs/operators';
-import { combineLatest, Observable } from 'rxjs';
-import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import {
-  RoomTrvTargetTemperatures,
+  ClimateTargetTemperature,
+  RoomClimateTargetTemperatures,
   RoomTrvs,
-  TrvTargetTemperature,
 } from '@home-automation/deep-heating-types';
+import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
+import { Observable, combineLatest } from 'rxjs';
+import { filter, map, mergeMap } from 'rxjs/operators';
 
 export function getRoomTrvTargetTemperatures(
   roomTrvs$: Observable<RoomTrvs>,
-  trvTargetTemperatures$: Observable<TrvTargetTemperature>
-): Observable<RoomTrvTargetTemperatures> {
+  trvTargetTemperatures$: Observable<ClimateTargetTemperature>
+): Observable<RoomClimateTargetTemperatures> {
   return roomTrvs$.pipe(
     mergeMap((roomTrvs) => {
       return combineLatest(
-        roomTrvs.trvIds.map((trvId) =>
+        roomTrvs.climateEntityIds.map((trvId) =>
           trvTargetTemperatures$.pipe(
             filter(
-              (trvTargetTemperature) => trvTargetTemperature.trvId === trvId
+              (trvTargetTemperature) =>
+                trvTargetTemperature.climateEntityId === trvId
             )
           )
         )
       ).pipe(
         map((trvTargetTemperatures) => ({
           roomName: roomTrvs.roomName,
-          trvTargetTemperatures: trvTargetTemperatures,
+          climateTargetTemperatures: trvTargetTemperatures,
         })),
         shareReplayLatestDistinctByKey((x) => x.roomName)
       );

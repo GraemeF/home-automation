@@ -1,19 +1,38 @@
-import { determineAction } from './trvActions';
+import { Schema } from '@effect/schema';
+import {
+  ClimateEntityId,
+  Temperature,
+} from '@home-automation/deep-heating-types';
 import { DateTime } from 'luxon';
+import { determineAction } from './trvActions';
 
 describe('TRV action', () => {
   const daytime: DateTime = DateTime.fromISO('2020-01-01T12:00Z');
-  const trvId = 'the trv';
+  const trvId = Schema.parseSync(ClimateEntityId)('climate.the_trv');
 
   it('OFF', () => {
     const action = determineAction(
-      { trvId, targetTemperature: 20 },
-      { trvId, mode: 'OFF', source: 'Device', targetTemperature: 7 },
       {
-        trvId,
-        temperatureReading: { time: daytime, temperature: 10 },
+        climateEntityId: trvId,
+        targetTemperature: Schema.parseSync(Temperature)(20),
       },
-      { trvId, scheduledTargetTemperature: 18 }
+      {
+        climateEntityId: trvId,
+        mode: 'OFF',
+        source: 'Device',
+        targetTemperature: Schema.parseSync(Temperature)(7),
+      },
+      {
+        climateEntityId: trvId,
+        temperatureReading: {
+          time: daytime.toJSDate(),
+          temperature: Schema.parseSync(Temperature)(10),
+        },
+      },
+      {
+        climateEntityId: trvId,
+        scheduledTargetTemperature: Schema.parseSync(Temperature)(18),
+      }
     );
 
     expect(action).toBeNull();
@@ -22,128 +41,128 @@ describe('TRV action', () => {
   it('should do something', () => {
     const action = determineAction(
       {
-        targetTemperature: 23,
-        trvId: trvId,
+        targetTemperature: Schema.parseSync(Temperature)(23),
+        climateEntityId: trvId,
       },
       {
-        trvId: trvId,
+        climateEntityId: trvId,
         mode: 'MANUAL',
-        targetTemperature: 18.5,
+        targetTemperature: Schema.parseSync(Temperature)(18.5),
         source: 'Device',
       },
       {
-        trvId: trvId,
+        climateEntityId: trvId,
         temperatureReading: {
-          temperature: 21,
-          time: daytime,
+          temperature: Schema.parseSync(Temperature)(21),
+          time: daytime.toJSDate(),
         },
       },
       {
-        trvId: trvId,
-        scheduledTargetTemperature: 18,
+        climateEntityId: trvId,
+        scheduledTargetTemperature: Schema.parseSync(Temperature)(18),
       }
     );
 
     expect(action).toStrictEqual({
       mode: 'MANUAL',
       targetTemperature: 23,
-      trvId: trvId,
+      climateEntityId: trvId,
     });
   });
 
   it('should not change from MANUAL to SCHEDULE', () => {
     const action = determineAction(
       {
-        targetTemperature: 23,
-        trvId: trvId,
+        targetTemperature: Schema.parseSync(Temperature)(23),
+        climateEntityId: trvId,
       },
       {
-        trvId: trvId,
+        climateEntityId: trvId,
         mode: 'MANUAL',
-        targetTemperature: 18.5,
+        targetTemperature: Schema.parseSync(Temperature)(18.5),
         source: 'Device',
       },
       {
-        trvId: trvId,
+        climateEntityId: trvId,
         temperatureReading: {
-          temperature: 18.5,
-          time: daytime,
+          temperature: Schema.parseSync(Temperature)(18.5),
+          time: daytime.toJSDate(),
         },
       },
       {
-        trvId: trvId,
-        scheduledTargetTemperature: 23,
+        climateEntityId: trvId,
+        scheduledTargetTemperature: Schema.parseSync(Temperature)(23),
       }
     );
 
     expect(action).toStrictEqual({
       mode: 'MANUAL',
       targetTemperature: 23,
-      trvId: trvId,
+      climateEntityId: trvId,
     });
   });
 
   it('should change from SCHEDULE to MANUAL', () => {
     const action = determineAction(
       {
-        targetTemperature: 18.5,
-        trvId: trvId,
+        targetTemperature: Schema.parseSync(Temperature)(18.5),
+        climateEntityId: trvId,
       },
       {
-        trvId: trvId,
+        climateEntityId: trvId,
         mode: 'SCHEDULE',
-        targetTemperature: 23,
+        targetTemperature: Schema.parseSync(Temperature)(23),
         source: 'Device',
       },
       {
-        trvId: trvId,
+        climateEntityId: trvId,
         temperatureReading: {
-          temperature: 18.5,
-          time: daytime,
+          temperature: Schema.parseSync(Temperature)(18.5),
+          time: daytime.toJSDate(),
         },
       },
       {
-        trvId: trvId,
-        scheduledTargetTemperature: 23,
+        climateEntityId: trvId,
+        scheduledTargetTemperature: Schema.parseSync(Temperature)(23),
       }
     );
 
     expect(action).toStrictEqual({
       mode: 'MANUAL',
       targetTemperature: 18.5,
-      trvId: trvId,
+      climateEntityId: trvId,
     });
   });
 
   it('should change MANUAL target temperature', () => {
     const action = determineAction(
       {
-        targetTemperature: 18.5,
-        trvId: trvId,
+        targetTemperature: Schema.parseSync(Temperature)(18.5),
+        climateEntityId: trvId,
       },
       {
-        trvId: trvId,
+        climateEntityId: trvId,
         mode: 'MANUAL',
-        targetTemperature: 23,
+        targetTemperature: Schema.parseSync(Temperature)(23),
         source: 'Device',
       },
       {
-        trvId: trvId,
+        climateEntityId: trvId,
         temperatureReading: {
-          temperature: 18.5,
-          time: daytime,
+          temperature: Schema.parseSync(Temperature)(18.5),
+          time: daytime.toJSDate(),
         },
       },
       {
-        trvId: trvId,
-        scheduledTargetTemperature: 23,
+        climateEntityId: trvId,
+        scheduledTargetTemperature: Schema.parseSync(Temperature)(23),
       }
     );
 
     expect(action).toStrictEqual({
       mode: 'MANUAL',
       targetTemperature: 18.5,
-      trvId: trvId,
+      climateEntityId: trvId,
     });
   });
 });

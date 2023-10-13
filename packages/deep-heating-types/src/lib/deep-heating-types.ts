@@ -1,44 +1,55 @@
 import { Schema } from '@effect/schema';
-import { pipe } from 'effect';
 import { DateTime } from 'luxon';
+import { ClimateEntityId, EventEntityId, SensorEntityId } from './entities';
 import { SimpleWeekSchedule, WeekHeatingSchedule } from './schedule-types';
+import { Temperature } from './temperature';
 
-export type DegreesCelsius = number;
+export const ClimateTargetTemperature = Schema.struct({
+  climateEntityId: ClimateEntityId,
+  targetTemperature: Temperature,
+});
+export type ClimateTargetTemperature = Schema.Schema.To<
+  typeof ClimateTargetTemperature
+>;
 
-export interface TrvTargetTemperature {
-  trvId: string;
-  targetTemperature: number;
-}
+export const RoomClimateTargetTemperatures = Schema.struct({
+  roomName: Schema.string,
+  climateTargetTemperatures: Schema.array(ClimateTargetTemperature),
+});
+export type RoomClimateTargetTemperatures = Schema.Schema.To<
+  typeof RoomClimateTargetTemperatures
+>;
 
-export interface RoomTrvTargetTemperatures {
-  roomName: string;
-  trvTargetTemperatures: TrvTargetTemperature[];
-}
+const TemperatureReading = Schema.struct({
+  temperature: Temperature,
+  time: Schema.Date,
+});
+export type TemperatureReading = Schema.Schema.To<typeof TemperatureReading>;
 
-export interface TemperatureReading {
-  temperature: DegreesCelsius;
-  time: DateTime;
-}
+const ClimateTemperatureReading = Schema.struct({
+  climateEntityId: ClimateEntityId,
+  temperatureReading: TemperatureReading,
+});
+export type ClimateTemperatureReading = Schema.Schema.To<
+  typeof ClimateTemperatureReading
+>;
 
-export interface TrvTemperature {
-  trvId: string;
-  temperatureReading: TemperatureReading;
-}
+const RoomDefinition = Schema.struct({
+  name: Schema.string,
+  temperatureSensorEntityId: Schema.optionFromNullable(SensorEntityId),
+  climateEntityIds: Schema.array(ClimateEntityId),
+  schedule: Schema.optionFromNullable(SimpleWeekSchedule),
+});
+export type RoomDefinition = Schema.Schema.To<typeof RoomDefinition>;
 
-export interface RoomDefinition {
-  name: string;
-  temperatureSensorId: string | null;
-  trvControlIds: (string | null)[];
-  schedule: SimpleWeekSchedule;
-}
-
-export interface RoomTrvs {
-  roomName: string;
-  trvIds: string[];
-}
+const RoomTrvs = Schema.struct({
+  roomName: Schema.string,
+  climateEntityIds: Schema.array(ClimateEntityId),
+});
+export type RoomTrvs = Schema.Schema.To<typeof RoomTrvs>;
 
 export interface TrvStatus {
-  trvId: string;
+  climateEntityId: ClimateEntityId;
   isHeating: boolean;
 }
 
@@ -54,7 +65,7 @@ export interface SensorState {
 
 export interface HeatingScheduleEntry {
   start: DateTime;
-  targetTemperature: number;
+  targetTemperature: Temperature;
 }
 
 export type HeatingSchedule = HeatingScheduleEntry[];
@@ -66,21 +77,23 @@ export interface RoomSchedule {
 
 export interface RoomTargetTemperature {
   roomName: string;
-  targetTemperature: number;
+  targetTemperature: Temperature;
 }
 
-export type TrvModeValue = 'OFF' | 'MANUAL' | 'SCHEDULE';
+export const TrvModeValue = Schema.literal('OFF', 'MANUAL', 'SCHEDULE');
+export type TrvModeValue = Schema.Schema.To<typeof TrvModeValue>;
 
-export interface TrvMode {
-  trvId: string;
-  mode: TrvModeValue;
-  source: string;
-}
+export const TrvMode = Schema.struct({
+  climateEntityId: ClimateEntityId,
+  mode: TrvModeValue,
+  source: Schema.string,
+});
+export type TrvMode = Schema.Schema.To<typeof TrvMode>;
 
 export interface TrvAction {
-  trvId: string;
+  climateEntityId: ClimateEntityId;
   mode: TrvModeValue;
-  targetTemperature?: number;
+  targetTemperature?: Temperature;
 }
 
 export interface RoomTrvModes {
@@ -108,7 +121,7 @@ export interface RoomMode {
 
 export interface RoomTrvTemperatures {
   roomName: string;
-  trvTargetTemperatures: TrvTemperature[];
+  trvTemperatures: ClimateTemperatureReading[];
 }
 
 export interface SensorUpdate<TState extends SensorState = SensorState> {
@@ -118,7 +131,7 @@ export interface SensorUpdate<TState extends SensorState = SensorState> {
 }
 
 export interface TemperatureSensorState extends SensorState {
-  temperature: number;
+  temperature: Temperature;
 }
 
 export interface SwitchSensorState extends SensorState {
@@ -127,21 +140,6 @@ export interface SwitchSensorState extends SensorState {
 
 export interface TemperatureSensorUpdate extends SensorUpdate {
   state: TemperatureSensorState;
-}
-
-export interface ButtonEventDefinition {
-  buttonevent: number;
-  eventtype: string;
-}
-
-export interface ButtonDefinition {
-  events: ButtonEventDefinition[];
-}
-
-export interface SwitchSensorUpdate extends SensorUpdate {
-  state: SwitchSensorState;
-  name: string;
-  capabilities: { inputs: ButtonDefinition[] };
 }
 
 export interface RadiatorState {
@@ -155,19 +153,11 @@ export interface RadiatorState {
 export interface RoomState {
   name: string;
   temperature?: TemperatureReading;
-  targetTemperature?: number;
+  targetTemperature?: Temperature;
   radiators: RadiatorState[];
   mode?: RoomModeValue;
   isHeating?: boolean;
   adjustment: number;
-}
-
-export interface ButtonEvent {
-  switchId: string;
-  switchName: string;
-  buttonIndex: number;
-  eventType: string;
-  time: DateTime;
 }
 
 export interface RoomTemperature {
@@ -175,19 +165,21 @@ export interface RoomTemperature {
   temperatureReading: TemperatureReading;
 }
 
-export interface RoomSensors {
-  roomName: string;
-  temperatureSensorIds: string[];
-}
+const RoomSensors = Schema.struct({
+  roomName: Schema.string,
+  temperatureSensorIds: Schema.array(SensorEntityId),
+});
+export type RoomSensors = Schema.Schema.To<typeof RoomSensors>;
 
-export interface RoomDecisionPoint {
-  roomName: string;
-  targetTemperature: number;
-  temperature: number;
-  trvTargetTemperatures: TrvTargetTemperature[];
-  trvTemperatures: TrvTemperature[];
-  trvModes: TrvMode[];
-}
+export const RoomDecisionPoint = Schema.struct({
+  roomName: Schema.string,
+  targetTemperature: Temperature,
+  temperature: Temperature,
+  trvTargetTemperatures: Schema.array(ClimateTargetTemperature),
+  trvTemperatures: Schema.array(ClimateTemperatureReading),
+  trvModes: Schema.array(TrvMode),
+});
+export type RoomDecisionPoint = Schema.Schema.To<typeof RoomDecisionPoint>;
 
 export interface RoomAdjustment {
   roomName: string;
@@ -199,35 +191,38 @@ export interface DeepHeatingState {
   isHeating?: boolean;
 }
 
-export interface Home {
-  rooms: RoomDefinition[];
-  sleepSwitchId: string;
-  heatingId: string;
-}
+export const Home = Schema.struct({
+  rooms: Schema.array(RoomDefinition),
+  sleepSwitchId: EventEntityId,
+  heatingId: ClimateEntityId,
+});
+export type Home = Schema.Schema.To<typeof Home>;
 
 export interface TrvScheduledTargetTemperature {
-  trvId: string;
-  scheduledTargetTemperature: number;
+  climateEntityId: ClimateEntityId;
+  scheduledTargetTemperature: Temperature;
 }
 
-export interface TrvControlState {
-  trvId: string;
-  targetTemperature: number;
-  mode: TrvModeValue;
-  source: UpdateSource;
-}
+export const UpdateSource = Schema.literal('Device', 'Synthesised');
+export type UpdateSource = Schema.Schema.To<typeof UpdateSource>;
 
-export type UpdateSource = 'Device' | 'Synthesised';
+export const TrvControlState = Schema.struct({
+  climateEntityId: ClimateEntityId,
+  targetTemperature: Temperature,
+  mode: TrvModeValue,
+  source: UpdateSource,
+});
+export type TrvControlState = Schema.Schema.To<typeof TrvControlState>;
 
 export interface TrvUpdate {
   state: {
     temperature: TemperatureReading;
-    target: number;
+    target: Temperature;
     mode: TrvModeValue;
     isHeating: boolean;
     schedule: WeekHeatingSchedule;
   };
-  trvId: string;
+  climateEntityId: ClimateEntityId;
   deviceType: string;
   name: string;
 }
@@ -235,7 +230,7 @@ export interface TrvUpdate {
 export interface HeatingUpdate {
   state: {
     temperature: TemperatureReading;
-    target: number;
+    target: Temperature;
     mode: string;
     isHeating: boolean;
     schedule: WeekHeatingSchedule;
@@ -243,10 +238,3 @@ export interface HeatingUpdate {
   heatingId: string;
   name: string;
 }
-
-export const Temperature = pipe(
-  Schema.number,
-  Schema.between(-20, 60),
-  Schema.brand('ºC')
-);
-export type Temperature = Schema.Schema.To<typeof Temperature>;

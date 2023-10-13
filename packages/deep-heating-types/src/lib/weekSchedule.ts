@@ -1,11 +1,11 @@
+import { ReadonlyRecord, pipe } from 'effect';
 import { DateTime, Duration } from 'luxon';
+import { HeatingSchedule, HeatingScheduleEntry } from './deep-heating-types';
 import {
   HeatingScheduleSlot,
   SimpleWeekSchedule,
   WeekHeatingSchedule,
 } from './schedule-types';
-import { HeatingSchedule, HeatingScheduleEntry } from './deep-heating-types';
-import { ReadonlyRecord, pipe } from 'effect';
 
 function getDaySchedules(
   heatingSchedule: WeekHeatingSchedule

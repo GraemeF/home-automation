@@ -1,3 +1,13 @@
+import { Schema } from '@effect/schema';
+import {
+  HeatingAction,
+  HeatingStatus,
+  Temperature,
+  TrvAction,
+  TrvControlState,
+  TrvScheduledTargetTemperature,
+} from '@home-automation/deep-heating-types';
+import { GroupedObservable, Observable } from 'rxjs';
 import {
   filter,
   groupBy,
@@ -8,19 +18,11 @@ import {
   tap,
   withLatestFrom,
 } from 'rxjs/operators';
-import { GroupedObservable, Observable } from 'rxjs';
-import {
-  HeatingAction,
-  HeatingStatus,
-  TrvAction,
-  TrvControlState,
-  TrvScheduledTargetTemperature,
-} from '@home-automation/deep-heating-types';
 
 export function getTrvActionsByTrvId(
   trvActions: Observable<TrvAction>
 ): Observable<GroupedObservable<string, TrvAction>> {
-  return trvActions.pipe(groupBy((x) => x.trvId));
+  return trvActions.pipe(groupBy((x) => x.climateEntityId));
 }
 
 function getNextTrvControlState(
@@ -33,7 +35,7 @@ function getNextTrvControlState(
   function getTargetTemperature() {
     switch (mode) {
       case 'OFF':
-        return 7;
+        return Schema.parseSync(Temperature)(7);
       case 'MANUAL':
         return action.targetTemperature ?? latest.targetTemperature;
       case 'SCHEDULE':
@@ -42,7 +44,7 @@ function getNextTrvControlState(
   }
 
   return {
-    trvId: latest.trvId,
+    climateEntityId: latest.climateEntityId,
     mode: mode,
     targetTemperature: getTargetTemperature(),
     source: 'Synthesised',
@@ -68,11 +70,11 @@ export function applyTrvActions(
     mergeMap((trvIds) =>
       trvIds.map((trvId) =>
         trvActions.pipe(
-          filter((x) => x.trvId === trvId),
+          filter((x) => x.climateEntityId === trvId),
           withLatestFrom(
-            trvControlStates$.pipe(filter((x) => x.trvId === trvId)),
+            trvControlStates$.pipe(filter((x) => x.climateEntityId === trvId)),
             trvScheduledTargetTemperatures$.pipe(
-              filter((x) => x.trvId === trvId)
+              filter((x) => x.climateEntityId === trvId)
             )
           ),
           tap(([action]) => publishHiveTrvAction(action)),

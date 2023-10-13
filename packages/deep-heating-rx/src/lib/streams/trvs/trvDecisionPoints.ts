@@ -1,7 +1,11 @@
+import {
+  ClimateEntityId,
+  RoomDecisionPoint,
+  Temperature,
+} from '@home-automation/deep-heating-types';
+import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import { Observable } from 'rxjs';
 import { mergeMap, share } from 'rxjs/operators';
-import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
-import { RoomDecisionPoint } from '@home-automation/deep-heating-types';
 
 export function getTrvDecisionPoints(
   roomDecisionPoints$: Observable<RoomDecisionPoint>
@@ -9,30 +13,30 @@ export function getTrvDecisionPoints(
   return roomDecisionPoints$.pipe(
     mergeMap((roomDecisionPoint) =>
       roomDecisionPoint.trvTargetTemperatures
-        .map((y) => y.trvId)
+        .map((y) => y.climateEntityId)
         .map((trvId) => ({
           roomTargetTemperature: roomDecisionPoint.targetTemperature,
           roomTemperature: roomDecisionPoint.temperature,
           trvTemperature:
             roomDecisionPoint.trvTemperatures.find(
-              (trvTemperature) => trvTemperature.trvId === trvId
+              (trvTemperature) => trvTemperature.climateEntityId === trvId
             )?.temperatureReading.temperature ?? roomDecisionPoint.temperature,
-          trvId: trvId,
+          climateEntityId: trvId,
           trvMode:
             roomDecisionPoint.trvModes.find(
-              (trvMode) => trvMode.trvId === trvId
+              (trvMode) => trvMode.climateEntityId === trvId
             )?.mode ?? 'OFF',
         }))
     ),
-    shareReplayLatestDistinctByKey((x) => x.trvId),
+    shareReplayLatestDistinctByKey((x) => x.climateEntityId),
     share()
   );
 }
 
 export interface TrvDecisionPoint {
-  trvId: string;
-  trvTemperature: number;
-  roomTemperature: number;
-  roomTargetTemperature: number;
+  climateEntityId: ClimateEntityId;
+  trvTemperature: Temperature;
+  roomTemperature: Temperature;
+  roomTargetTemperature: Temperature;
   trvMode: string;
 }

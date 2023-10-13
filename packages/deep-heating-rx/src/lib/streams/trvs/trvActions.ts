@@ -1,4 +1,14 @@
-import { combineLatest, Observable } from 'rxjs';
+import {
+  ClimateEntityId,
+  ClimateTemperatureReading,
+  Temperature,
+  TrvAction,
+  TrvControlState,
+  TrvModeValue,
+  TrvScheduledTargetTemperature,
+} from '@home-automation/deep-heating-types';
+import { Predicate } from 'effect';
+import { Observable, combineLatest } from 'rxjs';
 import {
   distinctUntilChanged,
   filter,
@@ -7,20 +17,12 @@ import {
   share,
   shareReplay,
 } from 'rxjs/operators';
-import { TrvDesiredTargetTemperature } from './trvDesiredTargetTemperatures';
 import { isDeepStrictEqual } from 'util';
-import {
-  TrvAction,
-  TrvControlState,
-  TrvModeValue,
-  TrvScheduledTargetTemperature,
-  TrvTemperature,
-} from '@home-automation/deep-heating-types';
-import { Predicate } from 'effect';
+import { TrvDesiredTargetTemperature } from './trvDesiredTargetTemperatures';
 
-function getTrvAction(new_target: number): {
+function getTrvAction(new_target: Temperature): {
   mode: TrvModeValue;
-  targetTemperature?: number;
+  targetTemperature?: Temperature;
 } {
   return { mode: 'MANUAL', targetTemperature: new_target };
 }
@@ -28,15 +30,18 @@ function getTrvAction(new_target: number): {
 export function determineAction(
   trvDesiredTargetTemperature: TrvDesiredTargetTemperature,
   trvControlState: TrvControlState,
-  trvTemperature: TrvTemperature,
+  trvTemperature: ClimateTemperatureReading,
   trvScheduledTargetTemperature: TrvScheduledTargetTemperature
 ): TrvAction | null {
   if (
-    trvControlState.trvId !== trvDesiredTargetTemperature.trvId ||
-    trvDesiredTargetTemperature.trvId !== trvTemperature.trvId ||
-    trvTemperature.trvId !== trvScheduledTargetTemperature.trvId
+    trvControlState.climateEntityId !==
+      trvDesiredTargetTemperature.climateEntityId ||
+    trvDesiredTargetTemperature.climateEntityId !==
+      trvTemperature.climateEntityId ||
+    trvTemperature.climateEntityId !==
+      trvScheduledTargetTemperature.climateEntityId
   )
-    throw Error('mismatched trvIds');
+    throw Error('mismatched climateEntityIds');
 
   if (trvControlState.mode === 'OFF') return null;
 
@@ -45,38 +50,48 @@ export function determineAction(
   );
 
   if (possibleAction.mode !== trvControlState.mode)
-    return { trvId: trvControlState.trvId, ...possibleAction };
+    return {
+      climateEntityId: trvControlState.climateEntityId,
+      ...possibleAction,
+    };
 
   if (
     possibleAction.targetTemperature &&
     possibleAction.targetTemperature !== trvControlState.targetTemperature
   )
-    return { trvId: trvControlState.trvId, ...possibleAction };
+    return {
+      climateEntityId: trvControlState.climateEntityId,
+      ...possibleAction,
+    };
 
   return null;
 }
 
 export function getTrvActions(
-  trvIds$: Observable<string[]>,
+  trvIds$: Observable<ClimateEntityId[]>,
   trvDesiredTargetTemperatures: Observable<TrvDesiredTargetTemperature>,
   trvControlStates: Observable<TrvControlState>,
-  trvTemperatures: Observable<TrvTemperature>,
+  trvTemperatures: Observable<ClimateTemperatureReading>,
   trvScheduledTargetTemperatures: Observable<TrvScheduledTargetTemperature>
 ): Observable<TrvAction> {
   return trvIds$.pipe(
     mergeMap((trvIds) =>
       trvIds.map((trvId) =>
         combineLatest([
-          trvDesiredTargetTemperatures.pipe(filter((x) => x.trvId === trvId)),
-          trvControlStates.pipe(filter((x) => x.trvId === trvId)),
-          trvTemperatures.pipe(filter((x) => x.trvId === trvId)),
-          trvScheduledTargetTemperatures.pipe(filter((x) => x.trvId === trvId)),
+          trvDesiredTargetTemperatures.pipe(
+            filter((x) => x.climateEntityId === trvId)
+          ),
+          trvControlStates.pipe(filter((x) => x.climateEntityId === trvId)),
+          trvTemperatures.pipe(filter((x) => x.climateEntityId === trvId)),
+          trvScheduledTargetTemperatures.pipe(
+            filter((x) => x.climateEntityId === trvId)
+          ),
         ]).pipe(
           distinctUntilChanged<
             [
               TrvDesiredTargetTemperature,
               TrvControlState,
-              TrvTemperature,
+              ClimateTemperatureReading,
               TrvScheduledTargetTemperature
             ]
           >(isDeepStrictEqual),

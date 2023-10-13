@@ -1,16 +1,18 @@
-import { combineLatest, GroupedObservable, Observable, timer } from 'rxjs';
-import { filter, map, mergeMap, shareReplay } from 'rxjs/operators';
-import { DateTime } from 'luxon';
-import {
-  shareReplayLatestDistinct,
-  shareReplayLatestDistinctByKey,
-} from '@home-automation/rxx';
+import { Schema } from '@effect/schema';
 import {
   HeatingSchedule,
   RoomDefinition,
   RoomSchedule,
   RoomTargetTemperature,
+  Temperature,
 } from '@home-automation/deep-heating-types';
+import {
+  shareReplayLatestDistinct,
+  shareReplayLatestDistinctByKey,
+} from '@home-automation/rxx';
+import { DateTime } from 'luxon';
+import { GroupedObservable, Observable, combineLatest, timer } from 'rxjs';
+import { filter, map, mergeMap, shareReplay } from 'rxjs/operators';
 
 const refreshIntervalSeconds = 60;
 
@@ -18,14 +20,16 @@ function getScheduledTargetTemperature(
   schedule: HeatingSchedule,
   time: DateTime
 ) {
-  return Math.max(
-    ...schedule.map(
-      (entry) =>
-        Math.round(
-          (entry.targetTemperature -
-            0.5 * Math.max(0.0, entry.start.diff(time).as('hours'))) *
-            10
-        ) / 10
+  return Schema.parseSync(Temperature)(
+    Math.max(
+      ...schedule.map(
+        (entry) =>
+          Math.round(
+            (entry.targetTemperature -
+              0.5 * Math.max(0.0, entry.start.diff(time).as('hours'))) *
+              10
+          ) / 10
+      )
     )
   );
 }
