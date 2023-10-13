@@ -1,7 +1,7 @@
+import { Schema } from '@effect/schema';
 import { combineLatest, Observable } from 'rxjs';
 import { filter, map, shareReplay } from 'rxjs/operators';
-import { HeatingStatus } from './deep-heating-types';
-import { Temperature } from './temperature';
+import { HeatingAction, HeatingStatus } from './deep-heating-types';
 
 export function getHeatingActions(
   heatingId: string,
@@ -11,20 +11,16 @@ export function getHeatingActions(
   return combineLatest([trvsHeating$, heatingStatuses]).pipe(
     filter(([needsHeating, status]) => needsHeating !== status.isHeating),
     map(([needsHeating]) =>
-      needsHeating
-        ? ({
-            heatingId,
-            mode: 'MANUAL',
-            targetTemperature: 32,
-          } as HeatingAction)
-        : ({ heatingId, mode: 'MANUAL', targetTemperature: 7 } as HeatingAction)
+      Schema.parseSync(HeatingAction)(
+        needsHeating
+          ? {
+              heatingId,
+              mode: 'MANUAL',
+              targetTemperature: 32,
+            }
+          : { heatingId, mode: 'MANUAL', targetTemperature: 7 }
+      )
     ),
     shareReplay(1)
   );
-}
-
-export interface HeatingAction {
-  heatingId: string;
-  mode: 'MANUAL' | 'SCHEDULE' | 'OFF';
-  targetTemperature: Temperature;
 }

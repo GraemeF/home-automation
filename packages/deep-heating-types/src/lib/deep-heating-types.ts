@@ -54,15 +54,12 @@ const ClimateEntityStatus = Schema.struct({
 });
 export type ClimateEntityStatus = Schema.Schema.To<typeof ClimateEntityStatus>;
 
-export interface HeatingStatus {
-  heatingId: string;
-  isHeating: boolean;
-  source: string;
-}
-
-export interface SensorState {
-  lastupdated: string;
-}
+const HeatingStatus = Schema.struct({
+  heatingId: ClimateEntityId,
+  isHeating: Schema.boolean,
+  source: Schema.string,
+});
+export type HeatingStatus = Schema.Schema.To<typeof HeatingStatus>;
 
 export interface HeatingScheduleEntry {
   start: DateTime;
@@ -210,14 +207,22 @@ export interface TrvUpdate {
   name: string;
 }
 
-export interface HeatingUpdate {
-  state: {
-    temperature: TemperatureReading;
-    target: Temperature;
-    mode: string;
-    isHeating: boolean;
-    schedule: WeekHeatingSchedule;
-  };
-  heatingId: string;
-  name: string;
-}
+export const HeatingUpdate = Schema.struct({
+  state: Schema.struct({
+    temperature: TemperatureReading,
+    target: Temperature,
+    mode: Schema.string,
+    isHeating: Schema.boolean,
+    schedule: SimpleWeekSchedule,
+  }),
+  heatingId: ClimateEntityId,
+  name: Schema.string,
+});
+export type HeatingUpdate = Schema.Schema.To<typeof HeatingUpdate>;
+
+export const HeatingAction = Schema.struct({
+  heatingId: ClimateEntityId,
+  mode: Schema.literal('MANUAL', 'SCHEDULE', 'OFF'),
+  targetTemperature: Temperature,
+});
+export type HeatingAction = Schema.Schema.To<typeof HeatingAction>;
