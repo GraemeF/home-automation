@@ -213,7 +213,6 @@ export const HeatingUpdate = Schema.struct({
     target: Temperature,
     mode: Schema.string,
     isHeating: Schema.boolean,
-    schedule: SimpleWeekSchedule,
   }),
   heatingId: ClimateEntityId,
   name: Schema.string,

@@ -97,7 +97,6 @@ export const getHeatingApiUpdates = (
         target: response.attributes.temperature,
         mode: hassStateToTrvModeValue(response.state),
         isHeating: response.attributes.hvac_action === 'heating',
-        schedule: defaultSchedule,
       },
     })),
     shareReplayLatestByKey((x) => x.heatingId)
