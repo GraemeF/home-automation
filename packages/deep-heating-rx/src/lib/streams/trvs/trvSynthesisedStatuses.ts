@@ -1,8 +1,8 @@
 import {
   ClimateEntityId,
+  ClimateEntityStatus,
   ClimateTemperatureReading,
   TrvControlState,
-  TrvStatus,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinct } from '@home-automation/rxx';
 import { Observable, combineLatest } from 'rxjs';
@@ -12,7 +12,7 @@ export function getTrvSynthesisedStatuses(
   trvIds$: Observable<ClimateEntityId[]>,
   trvTemperatures$: Observable<ClimateTemperatureReading>,
   trvControlStates$: Observable<TrvControlState>
-): Observable<TrvStatus> {
+): Observable<ClimateEntityStatus> {
   return trvIds$.pipe(
     mergeMap((trvIds) =>
       trvIds.map((trvId) =>

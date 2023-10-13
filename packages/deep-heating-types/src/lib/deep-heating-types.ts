@@ -48,7 +48,7 @@ const RoomClimateEntities = Schema.struct({
 });
 export type RoomClimateEntities = Schema.Schema.To<typeof RoomClimateEntities>;
 
-export interface TrvStatus {
+export interface ClimateEntityStatus {
   climateEntityId: ClimateEntityId;
   isHeating: boolean;
 }
@@ -103,7 +103,7 @@ export interface RoomTrvModes {
 
 export interface RoomTrvStatuses {
   roomName: string;
-  trvStatuses: TrvStatus[];
+  trvStatuses: ClimateEntityStatus[];
 }
 
 export interface RoomStatus {

@@ -1,9 +1,9 @@
-import { TrvStatus } from '@home-automation/deep-heating-types';
+import { ClimateEntityStatus } from '@home-automation/deep-heating-types';
 import { Observable } from 'rxjs';
 import { distinctUntilChanged, map, scan, shareReplay } from 'rxjs/operators';
 
 export const getTrvsHeating = (
-  trvStatuses$: Observable<TrvStatus>
+  trvStatuses$: Observable<ClimateEntityStatus>
 ): Observable<Set<string>> =>
   trvStatuses$.pipe(
     scan((heatingTrvs, { isHeating, climateEntityId }) => {

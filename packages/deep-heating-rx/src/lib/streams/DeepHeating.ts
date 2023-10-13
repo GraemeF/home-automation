@@ -9,6 +9,7 @@ import {
 import {
   ButtonPressEventEntity,
   ClimateEntityId,
+  ClimateEntityStatus,
   ClimateTargetTemperature,
   ClimateTemperatureReading,
   getHeatingActions,
@@ -36,7 +37,6 @@ import {
   TrvControlState,
   TrvMode,
   TrvScheduledTargetTemperature,
-  TrvStatus,
   TrvWeekHeatingSchedule,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
@@ -96,9 +96,9 @@ export class DeepHeating {
   readonly roomSensors$: Observable<Observable<RoomSensors>>;
   readonly roomTemperatures$: Observable<RoomTemperature>;
   readonly trvControlStates$: Observable<TrvControlState>;
-  readonly trvStatuses$: Observable<TrvStatus>;
+  readonly trvStatuses$: Observable<ClimateEntityStatus>;
   readonly heatingStatuses$: Observable<HeatingStatus>;
-  readonly trvReportedStatuses$: Observable<TrvStatus>;
+  readonly trvReportedStatuses$: Observable<ClimateEntityStatus>;
   readonly heatingReportedStatuses$: Observable<HeatingStatus>;
   readonly trvHiveHeatingSchedules$: Observable<TrvWeekHeatingSchedule>;
   readonly roomTrvs$: Observable<RoomClimateEntities>;
@@ -119,7 +119,7 @@ export class DeepHeating {
   readonly trvDecisionPoints$: Observable<TrvDecisionPoint>;
   readonly trvScheduledTargetTemperatures$: Observable<TrvScheduledTargetTemperature>;
   readonly appliedTrvActions$: Observable<TrvControlState>;
-  readonly trvSynthesisedStatuses: Observable<TrvStatus>;
+  readonly trvSynthesisedStatuses: Observable<ClimateEntityStatus>;
   readonly trvActions$: Observable<TrvAction>;
   readonly trvIds$: Observable<ClimateEntityId[]>;
   readonly appliedHeatingActions$: Observable<HeatingStatus>;
@@ -135,8 +135,8 @@ export class DeepHeating {
 
   private readonly trvControlStateSubject: Subject<TrvControlState> =
     new Subject<TrvControlState>();
-  private readonly trvStatusSubject: Subject<TrvStatus> =
-    new Subject<TrvStatus>();
+  private readonly trvStatusSubject: Subject<ClimateEntityStatus> =
+    new Subject<ClimateEntityStatus>();
   private readonly heatingStatusSubject: Subject<HeatingStatus> =
     new Subject<HeatingStatus>();
 
@@ -426,7 +426,7 @@ export class DeepHeating {
     this.trvControlStateSubject.next(newState);
   }
 
-  publishTrvStatus(newStatus: TrvStatus): void {
+  publishTrvStatus(newStatus: ClimateEntityStatus): void {
     this.trvStatusSubject.next(newStatus);
   }
 

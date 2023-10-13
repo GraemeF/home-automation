@@ -1,21 +1,24 @@
 import {
+  ClimateEntityStatus,
   RoomClimateEntities,
   RoomTrvStatuses,
-  TrvStatus,
 } from '@home-automation/deep-heating-types';
 import { Observable, combineLatest } from 'rxjs';
 import { filter, map, mergeMap } from 'rxjs/operators';
 
 export function getRoomTrvStatuses(
   roomTrvs$: Observable<RoomClimateEntities>,
-  trvStatus$: Observable<TrvStatus>
+  climateEntityStatus$: Observable<ClimateEntityStatus>
 ): Observable<RoomTrvStatuses> {
   return roomTrvs$.pipe(
     mergeMap((roomTrvs) =>
       combineLatest(
         roomTrvs.climateEntityIds.map((trvId) =>
-          trvStatus$.pipe(
-            filter((trvStatus) => trvStatus.climateEntityId === trvId)
+          climateEntityStatus$.pipe(
+            filter(
+              (climateEntityStatus) =>
+                climateEntityStatus.climateEntityId === trvId
+            )
           )
         )
       ).pipe(
