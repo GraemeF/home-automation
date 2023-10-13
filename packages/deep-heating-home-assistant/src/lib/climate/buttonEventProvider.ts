@@ -1,11 +1,10 @@
 import { Schema } from '@effect/schema';
 import {
   ButtonPressEventEntity,
-  EventEntityId,
   Home,
   HomeAssistantEntity,
 } from '@home-automation/deep-heating-types';
-import { shareReplayLatestByKey } from '@home-automation/rxx';
+import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import { Observable } from 'rxjs';
 import { filter } from 'rxjs/operators';
 
@@ -18,10 +17,10 @@ export const createHomeAssistantButtonEventProvider: (
 ) => ({
   buttonPressEvents$: entityUpdates$.pipe(
     filter(Schema.is(ButtonPressEventEntity)),
-    filter(
-      (entity) =>
-        entity.entity_id === Schema.parseSync(EventEntityId)(home.sleepSwitchId)
-    ),
-    shareReplayLatestByKey((x) => x.entity_id)
+    filter((entity) => entity.entity_id === home.sleepSwitchId),
+    shareReplayLatestDistinctByKey(
+      (x) => x.entity_id,
+      (a, b) => a.state === b.state
+    )
   ),
 });
