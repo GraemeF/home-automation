@@ -4,6 +4,5 @@ export * from './lib/heatingActions';
 export * from './lib/heatingProvider';
 export * from './lib/home-assistant';
 export * from './lib/schedule-types';
-export * from './lib/sensorProvider';
 export * from './lib/temperature';
 export * from './lib/weekSchedule';

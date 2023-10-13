@@ -125,24 +125,6 @@ export interface RoomTrvTemperatures {
   trvTemperatures: ClimateTemperatureReading[];
 }
 
-export interface SensorUpdate<TState extends SensorState = SensorState> {
-  uniqueid: string;
-  state: TState;
-  type: string;
-}
-
-export interface TemperatureSensorState extends SensorState {
-  temperature: Temperature;
-}
-
-export interface SwitchSensorState extends SensorState {
-  buttonevent: number | null;
-}
-
-export interface TemperatureSensorUpdate extends SensorUpdate {
-  state: TemperatureSensorState;
-}
-
 export interface RadiatorState {
   isHeating?: boolean;
   name?: string;
