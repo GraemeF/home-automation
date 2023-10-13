@@ -48,10 +48,11 @@ const RoomClimateEntities = Schema.struct({
 });
 export type RoomClimateEntities = Schema.Schema.To<typeof RoomClimateEntities>;
 
-export interface ClimateEntityStatus {
-  climateEntityId: ClimateEntityId;
-  isHeating: boolean;
-}
+const ClimateEntityStatus = Schema.struct({
+  climateEntityId: ClimateEntityId,
+  isHeating: Schema.boolean,
+});
+export type ClimateEntityStatus = Schema.Schema.To<typeof ClimateEntityStatus>;
 
 export interface HeatingStatus {
   heatingId: string;
