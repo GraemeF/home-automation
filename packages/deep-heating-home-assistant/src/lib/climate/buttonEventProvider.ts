@@ -20,7 +20,7 @@ export const createHomeAssistantButtonEventProvider: (
     filter((entity) => entity.entity_id === home.sleepSwitchId),
     shareReplayLatestDistinctByKey(
       (x) => x.entity_id,
-      (a, b) => a.state === b.state
+      (a, b) => a.state.getTime() === b.state.getTime()
     )
   ),
 });
