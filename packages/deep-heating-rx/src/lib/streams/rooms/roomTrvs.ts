@@ -1,11 +1,14 @@
-import { RoomDefinition, RoomTrvs } from '@home-automation/deep-heating-types';
+import {
+  RoomClimateEntities,
+  RoomDefinition,
+} from '@home-automation/deep-heating-types';
 import { Predicate } from 'effect';
 import { GroupedObservable, Observable } from 'rxjs';
 import { map, mergeMap } from 'rxjs/operators';
 
-export function getRoomTrvs(
+export function getRoomClimateEntities(
   rooms$: Observable<GroupedObservable<string, RoomDefinition>>
-): Observable<RoomTrvs> {
+): Observable<RoomClimateEntities> {
   return rooms$.pipe(
     mergeMap((room$) =>
       room$.pipe(

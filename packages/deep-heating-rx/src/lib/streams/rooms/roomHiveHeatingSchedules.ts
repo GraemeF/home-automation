@@ -1,12 +1,12 @@
 import {
-  RoomTrvs,
+  RoomClimateEntities,
   RoomWeekHeatingSchedule,
   TrvWeekHeatingSchedule,
 } from '@home-automation/deep-heating-types';
 import { Observable, combineLatest } from 'rxjs';
 import { filter, groupBy, map, mergeMap } from 'rxjs/operators';
 
-function trvScheduleRooms(roomTrvs$: Observable<RoomTrvs>) {
+function trvScheduleRooms(roomTrvs$: Observable<RoomClimateEntities>) {
   return roomTrvs$.pipe(
     map((x) => ({
       roomName: x.roomName,
@@ -19,7 +19,7 @@ function trvScheduleRooms(roomTrvs$: Observable<RoomTrvs>) {
 }
 
 export function getRoomHiveHeatingSchedules(
-  roomTrvs$: Observable<RoomTrvs>,
+  roomTrvs$: Observable<RoomClimateEntities>,
   trvSchedules: Observable<TrvWeekHeatingSchedule>
 ): Observable<RoomWeekHeatingSchedule> {
   return trvScheduleRooms(roomTrvs$).pipe(

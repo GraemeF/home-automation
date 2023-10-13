@@ -42,11 +42,11 @@ const RoomDefinition = Schema.struct({
 });
 export type RoomDefinition = Schema.Schema.To<typeof RoomDefinition>;
 
-const RoomTrvs = Schema.struct({
+const RoomClimateEntities = Schema.struct({
   roomName: Schema.string,
   climateEntityIds: Schema.array(ClimateEntityId),
 });
-export type RoomTrvs = Schema.Schema.To<typeof RoomTrvs>;
+export type RoomClimateEntities = Schema.Schema.To<typeof RoomClimateEntities>;
 
 export interface TrvStatus {
   climateEntityId: ClimateEntityId;

@@ -17,6 +17,7 @@ import {
   Home,
   HouseModeValue,
   RoomAdjustment,
+  RoomClimateEntities,
   RoomClimateTargetTemperatures,
   RoomDecisionPoint,
   RoomDefinition,
@@ -27,7 +28,6 @@ import {
   RoomTargetTemperature,
   RoomTemperature,
   RoomTrvModes,
-  RoomTrvs,
   RoomTrvStatuses,
   RoomTrvTemperatures,
   RoomWeekHeatingSchedule,
@@ -67,7 +67,7 @@ import { getRoomStatuses } from './rooms/roomStatuses';
 import { getRoomTargetTemperatures } from './rooms/roomTargetTemperatures';
 import { getRoomTemperatures } from './rooms/roomTemperatures';
 import { getRoomTrvModes } from './rooms/roomTrvModes';
-import { getRoomTrvs } from './rooms/roomTrvs';
+import { getRoomClimateEntities } from './rooms/roomTrvs';
 import { getRoomTrvStatuses } from './rooms/roomTrvStatuses';
 import { getRoomTrvTargetTemperatures } from './rooms/roomTrvTargetTemperatures';
 import { getRoomTrvTemperatures } from './rooms/roomTrvTemperatures';
@@ -101,7 +101,7 @@ export class DeepHeating {
   readonly trvReportedStatuses$: Observable<TrvStatus>;
   readonly heatingReportedStatuses$: Observable<HeatingStatus>;
   readonly trvHiveHeatingSchedules$: Observable<TrvWeekHeatingSchedule>;
-  readonly roomTrvs$: Observable<RoomTrvs>;
+  readonly roomTrvs$: Observable<RoomClimateEntities>;
   readonly roomHiveHeatingSchedules$: Observable<RoomWeekHeatingSchedule>;
   readonly roomSchedules$: Observable<RoomSchedule>;
   readonly roomTargetTemperatures$: Observable<RoomTargetTemperature>;
@@ -264,7 +264,7 @@ export class DeepHeating {
       heatingProvider.trvApiUpdates$
     );
 
-    this.roomTrvs$ = getRoomTrvs(this.rooms$);
+    this.roomTrvs$ = getRoomClimateEntities(this.rooms$);
 
     this.roomHiveHeatingSchedules$ = getRoomHiveHeatingSchedules(
       this.roomTrvs$,

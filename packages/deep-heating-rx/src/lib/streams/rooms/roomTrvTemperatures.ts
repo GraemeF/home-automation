@@ -1,13 +1,13 @@
 import {
   ClimateTemperatureReading,
+  RoomClimateEntities,
   RoomTrvTemperatures,
-  RoomTrvs,
 } from '@home-automation/deep-heating-types';
 import { Observable, combineLatest } from 'rxjs';
 import { filter, map, mergeMap } from 'rxjs/operators';
 
 export function getRoomTrvTemperatures(
-  roomTrvs$: Observable<RoomTrvs>,
+  roomTrvs$: Observable<RoomClimateEntities>,
   trvTemperatures: Observable<ClimateTemperatureReading>
 ): Observable<RoomTrvTemperatures> {
   return roomTrvs$.pipe(
