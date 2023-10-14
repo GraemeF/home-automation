@@ -134,7 +134,7 @@ export const getEntities = pipe(
   )
 );
 
-const refreshIntervalMilliseconds = 20 * 1000;
+const refreshIntervalMilliseconds = 60 * 1000;
 
 export const getEntityUpdates = (
   runtime: Runtime.Runtime<HomeAssistantApi>
