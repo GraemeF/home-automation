@@ -1,18 +1,21 @@
+import { RoomDecisionPoint } from '@home-automation/deep-heating-types';
+import { HashSet, pipe } from 'effect';
 import { Observable } from 'rxjs';
 import { scan, shareReplay } from 'rxjs/operators';
-import { RoomDecisionPoint } from '@home-automation/deep-heating-types';
 
 export const getRoomsHeating = (
   roomStatuses$: Observable<RoomDecisionPoint>
-): Observable<Set<string>> =>
+): Observable<HashSet.HashSet<string>> =>
   roomStatuses$.pipe(
-    scan((heatingRooms, { roomName, targetTemperature, temperature }) => {
-      if (targetTemperature > temperature) {
-        return heatingRooms.add(roomName);
-      } else {
-        heatingRooms.delete(roomName);
-        return heatingRooms;
-      }
-    }, new Set<string>()),
+    scan(
+      (heatingRooms, { roomName, targetTemperature, temperature }) =>
+        pipe(
+          heatingRooms,
+          targetTemperature > temperature
+            ? HashSet.add(roomName)
+            : HashSet.remove(roomName)
+        ),
+      HashSet.empty<string>()
+    ),
     shareReplay(1)
   );

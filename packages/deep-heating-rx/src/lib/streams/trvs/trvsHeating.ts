@@ -1,27 +1,34 @@
-import { ClimateEntityStatus } from '@home-automation/deep-heating-types';
+import {
+  ClimateEntityId,
+  ClimateEntityStatus,
+} from '@home-automation/deep-heating-types';
+import { HashSet, pipe } from 'effect';
 import { Observable } from 'rxjs';
 import { distinctUntilChanged, map, scan, shareReplay } from 'rxjs/operators';
 
 export const getTrvsHeating = (
   trvStatuses$: Observable<ClimateEntityStatus>
-): Observable<Set<string>> =>
+): Observable<HashSet.HashSet<ClimateEntityId>> =>
   trvStatuses$.pipe(
-    scan((heatingTrvs, { isHeating, climateEntityId }) => {
-      if (isHeating) {
-        return heatingTrvs.add(climateEntityId);
-      } else {
-        heatingTrvs.delete(climateEntityId);
-        return heatingTrvs;
-      }
-    }, new Set<string>()),
+    scan(
+      (heatingTrvs, { isHeating, climateEntityId }) =>
+        pipe(
+          heatingTrvs,
+          isHeating
+            ? HashSet.add(climateEntityId)
+            : HashSet.remove(climateEntityId)
+        ),
+      HashSet.empty<ClimateEntityId>()
+    ),
     shareReplay(1)
   );
 
-export const getAnyHeating = (
-  heatingThings: Observable<Set<string>>
+export const getAnyHeating = <T>(
+  heatingThings: Observable<HashSet.HashSet<T>>
 ): Observable<boolean> =>
   heatingThings.pipe(
-    map((heatingThings) => heatingThings.size > 0),
+    map(HashSet.size),
+    map((size) => size > 0),
     distinctUntilChanged((a, b) => a === b),
     shareReplay(1)
   );

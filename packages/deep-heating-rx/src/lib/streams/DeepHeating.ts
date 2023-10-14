@@ -41,7 +41,7 @@ import {
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import debug from 'debug';
-import { Effect, Layer, pipe, Predicate } from 'effect';
+import { Effect, HashSet, Layer, pipe, Predicate } from 'effect';
 import { from, GroupedObservable, Observable, Subject } from 'rxjs';
 import {
   distinctUntilChanged,
@@ -130,8 +130,8 @@ export class DeepHeating {
   readonly houseModes$: Observable<HouseModeValue>;
   readonly trvsAnyHeating$: Observable<boolean>;
   readonly roomsAnyHeating$: Observable<boolean>;
-  readonly trvsHeating$: Observable<Set<string>>;
-  readonly roomsHeating$: Observable<Set<string>>;
+  readonly trvsHeating$: Observable<HashSet.HashSet<ClimateEntityId>>;
+  readonly roomsHeating$: Observable<HashSet.HashSet<string>>;
 
   private readonly trvControlStateSubject: Subject<TrvControlState> =
     new Subject<TrvControlState>();
