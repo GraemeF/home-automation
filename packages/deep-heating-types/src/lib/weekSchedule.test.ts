@@ -1,8 +1,7 @@
 import { Schema } from '@effect/schema';
 import { DateTime } from 'luxon';
 import { SimpleWeekSchedule } from './schedule-types';
-import { Temperature } from './temperature';
-import { simpleToWeekSchedule, toHeatingSchedule } from './weekSchedule';
+import { toHeatingSchedule } from './weekSchedule';
 
 const exampleSchedule = Schema.decodeSync(SimpleWeekSchedule)({
   monday: { '09:24': 20, '10:00:00.000': 22 },
@@ -33,40 +32,6 @@ describe('Weekly schedule', () => {
       const laterSlot = slots[2];
       expect(laterSlot.start).toEqual(DateTime.local(2023, 10, 17, 9, 25));
       expect(laterSlot.targetTemperature).toEqual(21);
-    });
-  });
-
-  describe('converting simple to weekly schedule', () => {
-    it('should work out minutes', () => {
-      expect(simpleToWeekSchedule(exampleSchedule)).toEqual({
-        monday: [
-          {
-            start: 564,
-            value: {
-              target: Schema.parseSync(Temperature)(20),
-            },
-          },
-          {
-            start: 600,
-            value: {
-              target: Schema.parseSync(Temperature)(22),
-            },
-          },
-        ],
-        tuesday: [
-          {
-            start: 565,
-            value: {
-              target: Schema.parseSync(Temperature)(21),
-            },
-          },
-        ],
-        wednesday: [],
-        thursday: [],
-        friday: [],
-        saturday: [],
-        sunday: [],
-      });
     });
   });
 });

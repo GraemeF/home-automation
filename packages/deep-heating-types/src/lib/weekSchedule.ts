@@ -1,7 +1,7 @@
 import { ReadonlyArray, ReadonlyRecord, pipe } from 'effect';
 import { DateTime, Duration } from 'luxon';
 import { HeatingSchedule, HeatingScheduleEntry } from './deep-heating-types';
-import { SimpleWeekSchedule, WeekHeatingSchedule } from './schedule-types';
+import { SimpleWeekSchedule } from './schedule-types';
 
 function toStartOfDay(
   day: string,
@@ -53,19 +53,3 @@ export const toHeatingSchedule = (
     ...futureSlots,
   ];
 };
-
-export const simpleToWeekSchedule = (
-  simpleSchedule: SimpleWeekSchedule
-): WeekHeatingSchedule =>
-  pipe(
-    simpleSchedule,
-    ReadonlyRecord.map((daySchedule) =>
-      pipe(
-        daySchedule,
-        ReadonlyRecord.collect((time, temperature) => ({
-          start: Duration.fromISOTime(time).as('minutes'),
-          value: { target: temperature },
-        }))
-      )
-    )
-  );
