@@ -34,11 +34,11 @@ function getNextTrvControlState(
 
   function getTargetTemperature() {
     switch (mode) {
-      case 'OFF':
+      case 'off':
         return Schema.parseSync(Temperature)(7);
-      case 'MANUAL':
+      case 'heat':
         return action.targetTemperature ?? latest.targetTemperature;
-      case 'SCHEDULE':
+      case 'auto':
         return scheduledTargetTemperature.scheduledTargetTemperature;
     }
   }

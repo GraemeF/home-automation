@@ -1,6 +1,7 @@
 import { Schema } from '@effect/schema';
 import { DateTime } from 'luxon';
 import { ClimateEntityId, EventEntityId, SensorEntityId } from './entities';
+import { HassState } from './home-assistant';
 import { WeekSchedule } from './schedule-types';
 import { Temperature } from './temperature';
 
@@ -78,19 +79,16 @@ export interface RoomTargetTemperature {
   targetTemperature: Temperature;
 }
 
-export const TrvModeValue = Schema.literal('OFF', 'MANUAL', 'SCHEDULE');
-export type TrvModeValue = Schema.Schema.To<typeof TrvModeValue>;
-
 export const TrvMode = Schema.struct({
   climateEntityId: ClimateEntityId,
-  mode: TrvModeValue,
+  mode: HassState,
   source: Schema.string,
 });
 export type TrvMode = Schema.Schema.To<typeof TrvMode>;
 
 export interface TrvAction {
   climateEntityId: ClimateEntityId;
-  mode: TrvModeValue;
+  mode: HassState;
   targetTemperature?: Temperature;
 }
 
@@ -189,7 +187,7 @@ export type UpdateSource = Schema.Schema.To<typeof UpdateSource>;
 export const TrvControlState = Schema.struct({
   climateEntityId: ClimateEntityId,
   targetTemperature: Temperature,
-  mode: TrvModeValue,
+  mode: HassState,
   source: UpdateSource,
 });
 export type TrvControlState = Schema.Schema.To<typeof TrvControlState>;
@@ -198,7 +196,7 @@ export const TrvUpdate = Schema.struct({
   state: Schema.struct({
     temperature: TemperatureReading,
     target: Temperature,
-    mode: TrvModeValue,
+    mode: HassState,
     isHeating: Schema.boolean,
     schedule: WeekSchedule,
   }),
@@ -222,7 +220,7 @@ export type HeatingUpdate = Schema.Schema.To<typeof HeatingUpdate>;
 
 export const HeatingAction = Schema.struct({
   heatingId: ClimateEntityId,
-  mode: Schema.literal('MANUAL', 'SCHEDULE', 'OFF'),
+  mode: HassState,
   targetTemperature: Temperature,
 });
 export type HeatingAction = Schema.Schema.To<typeof HeatingAction>;

@@ -1,10 +1,10 @@
 import {
   ClimateEntityId,
   ClimateTemperatureReading,
+  HassState,
   Temperature,
   TrvAction,
   TrvControlState,
-  TrvModeValue,
   TrvScheduledTargetTemperature,
 } from '@home-automation/deep-heating-types';
 import { Predicate } from 'effect';
@@ -21,10 +21,10 @@ import { isDeepStrictEqual } from 'util';
 import { TrvDesiredTargetTemperature } from './trvDesiredTargetTemperatures';
 
 function getTrvAction(new_target: Temperature): {
-  mode: TrvModeValue;
+  mode: HassState;
   targetTemperature?: Temperature;
 } {
-  return { mode: 'MANUAL', targetTemperature: new_target };
+  return { mode: 'heat', targetTemperature: new_target };
 }
 
 export function determineAction(
@@ -43,7 +43,7 @@ export function determineAction(
   )
     throw Error('mismatched climateEntityIds');
 
-  if (trvControlState.mode === 'OFF') return null;
+  if (trvControlState.mode === 'off') return null;
 
   const possibleAction = getTrvAction(
     trvDesiredTargetTemperature.targetTemperature
@@ -95,7 +95,7 @@ export function getTrvActions(
               TrvScheduledTargetTemperature
             ]
           >(isDeepStrictEqual),
-          filter(([, x]) => x.mode !== 'OFF')
+          filter(([, x]) => x.mode !== 'off')
         )
       )
     ),

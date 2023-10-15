@@ -1,5 +1,7 @@
+import { Schema } from '@effect/schema';
 import {
   ClimateEntityId,
+  HassState,
   RoomDecisionPoint,
   Temperature,
 } from '@home-automation/deep-heating-types';
@@ -7,10 +9,10 @@ import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import { Observable } from 'rxjs';
 import { mergeMap, share } from 'rxjs/operators';
 
-export function getTrvDecisionPoints(
+export const getTrvDecisionPoints = (
   roomDecisionPoints$: Observable<RoomDecisionPoint>
-): Observable<TrvDecisionPoint> {
-  return roomDecisionPoints$.pipe(
+): Observable<TrvDecisionPoint> =>
+  roomDecisionPoints$.pipe(
     mergeMap((roomDecisionPoint) =>
       roomDecisionPoint.trvTargetTemperatures
         .map((y) => y.climateEntityId)
@@ -25,18 +27,18 @@ export function getTrvDecisionPoints(
           trvMode:
             roomDecisionPoint.trvModes.find(
               (trvMode) => trvMode.climateEntityId === trvId
-            )?.mode ?? 'OFF',
+            )?.mode ?? 'off',
         }))
     ),
     shareReplayLatestDistinctByKey((x) => x.climateEntityId),
     share()
   );
-}
 
-export interface TrvDecisionPoint {
-  climateEntityId: ClimateEntityId;
-  trvTemperature: Temperature;
-  roomTemperature: Temperature;
-  roomTargetTemperature: Temperature;
-  trvMode: string;
-}
+export const TrvDecisionPoint = Schema.struct({
+  climateEntityId: ClimateEntityId,
+  trvTemperature: Temperature,
+  roomTemperature: Temperature,
+  roomTargetTemperature: Temperature,
+  trvMode: HassState,
+});
+export type TrvDecisionPoint = Schema.Schema.To<typeof TrvDecisionPoint>;

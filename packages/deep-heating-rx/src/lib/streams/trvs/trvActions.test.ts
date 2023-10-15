@@ -10,7 +10,7 @@ describe('TRV action', () => {
   const daytime: DateTime = DateTime.fromISO('2020-01-01T12:00Z');
   const trvId = Schema.parseSync(ClimateEntityId)('climate.the_trv');
 
-  it('OFF', () => {
+  it('off', () => {
     const action = determineAction(
       {
         climateEntityId: trvId,
@@ -18,7 +18,7 @@ describe('TRV action', () => {
       },
       {
         climateEntityId: trvId,
-        mode: 'OFF',
+        mode: 'off',
         source: 'Device',
         targetTemperature: Schema.parseSync(Temperature)(7),
       },
@@ -46,7 +46,7 @@ describe('TRV action', () => {
       },
       {
         climateEntityId: trvId,
-        mode: 'MANUAL',
+        mode: 'heat',
         targetTemperature: Schema.parseSync(Temperature)(18.5),
         source: 'Device',
       },
@@ -64,13 +64,13 @@ describe('TRV action', () => {
     );
 
     expect(action).toStrictEqual({
-      mode: 'MANUAL',
+      mode: 'heat',
       targetTemperature: 23,
       climateEntityId: trvId,
     });
   });
 
-  it('should not change from MANUAL to SCHEDULE', () => {
+  it('should not change from heat to auto', () => {
     const action = determineAction(
       {
         targetTemperature: Schema.parseSync(Temperature)(23),
@@ -78,7 +78,7 @@ describe('TRV action', () => {
       },
       {
         climateEntityId: trvId,
-        mode: 'MANUAL',
+        mode: 'heat',
         targetTemperature: Schema.parseSync(Temperature)(18.5),
         source: 'Device',
       },
@@ -96,13 +96,13 @@ describe('TRV action', () => {
     );
 
     expect(action).toStrictEqual({
-      mode: 'MANUAL',
+      mode: 'heat',
       targetTemperature: 23,
       climateEntityId: trvId,
     });
   });
 
-  it('should change from SCHEDULE to MANUAL', () => {
+  it('should change from auto to heat', () => {
     const action = determineAction(
       {
         targetTemperature: Schema.parseSync(Temperature)(18.5),
@@ -110,7 +110,7 @@ describe('TRV action', () => {
       },
       {
         climateEntityId: trvId,
-        mode: 'SCHEDULE',
+        mode: 'auto',
         targetTemperature: Schema.parseSync(Temperature)(23),
         source: 'Device',
       },
@@ -128,13 +128,13 @@ describe('TRV action', () => {
     );
 
     expect(action).toStrictEqual({
-      mode: 'MANUAL',
+      mode: 'heat',
       targetTemperature: 18.5,
       climateEntityId: trvId,
     });
   });
 
-  it('should change MANUAL target temperature', () => {
+  it('should change heat target temperature', () => {
     const action = determineAction(
       {
         targetTemperature: Schema.parseSync(Temperature)(18.5),
@@ -142,7 +142,7 @@ describe('TRV action', () => {
       },
       {
         climateEntityId: trvId,
-        mode: 'MANUAL',
+        mode: 'heat',
         targetTemperature: Schema.parseSync(Temperature)(23),
         source: 'Device',
       },
@@ -160,7 +160,7 @@ describe('TRV action', () => {
     );
 
     expect(action).toStrictEqual({
-      mode: 'MANUAL',
+      mode: 'heat',
       targetTemperature: 18.5,
       climateEntityId: trvId,
     });

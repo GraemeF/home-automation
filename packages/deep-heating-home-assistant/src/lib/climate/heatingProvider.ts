@@ -7,7 +7,6 @@ import {
   HomeAssistantEntity,
   Temperature,
   TrvAction,
-  TrvModeValue,
 } from '@home-automation/deep-heating-types';
 import debug from 'debug';
 import { Effect, Option, Runtime, pipe } from 'effect';
@@ -23,17 +22,6 @@ import {
 } from './climate';
 
 const log = debug('home-assistant');
-
-const hiveModeValueToHassState: (mode: TrvModeValue) => HassState = (mode) => {
-  switch (mode) {
-    case 'SCHEDULE':
-      return 'auto';
-    case 'MANUAL':
-      return 'heat';
-    case 'OFF':
-      return 'off';
-  }
-};
 
 export const createHomeAssistantHeatingProvider = (
   home: Home,
@@ -79,7 +67,7 @@ export const createHomeAssistantHeatingProvider = (
           from(
             setClimate(
               Schema.decodeSync(ClimateEntityId)(action.heatingId),
-              hiveModeValueToHassState(action.mode),
+              action.mode,
               pipe(
                 action.targetTemperature,
                 Option.fromNullable,
@@ -116,7 +104,7 @@ export const createHomeAssistantHeatingProvider = (
           from(
             setClimate(
               Schema.decodeSync(ClimateEntityId)(action.climateEntityId),
-              hiveModeValueToHassState(action.mode),
+              action.mode,
               pipe(
                 action.targetTemperature,
                 Option.fromNullable,

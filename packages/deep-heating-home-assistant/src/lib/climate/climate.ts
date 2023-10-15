@@ -8,7 +8,6 @@ import {
   Home,
   HomeAssistantEntity,
   Temperature,
-  TrvModeValue,
   TrvUpdate,
   WeekSchedule,
 } from '@home-automation/deep-heating-types';
@@ -19,17 +18,6 @@ import { filter, map } from 'rxjs/operators';
 import { HomeAssistantApi } from '../home-assistant-api';
 
 const heatingEntityId = Schema.decodeSync(ClimateEntityId)('climate.main');
-
-const hassStateToTrvModeValue: (state: HassState) => TrvModeValue = (state) => {
-  switch (state) {
-    case 'auto':
-      return 'SCHEDULE';
-    case 'heat':
-      return 'MANUAL';
-    case 'off':
-      return 'OFF';
-  }
-};
 
 const defaultDaySchedule = Schema.decodeSync(DaySchedule)({ '00:00': 7 });
 const defaultSchedule: WeekSchedule = Schema.decodeSync(WeekSchedule)({
@@ -59,7 +47,7 @@ export const getTrvApiUpdates =
               time: response.last_updated,
             },
             target: response.attributes.temperature,
-            mode: hassStateToTrvModeValue(response.state),
+            mode: response.state,
             isHeating: response.attributes.hvac_action === 'heating',
             schedule: pipe(
               home.rooms.find((room) =>
@@ -90,7 +78,7 @@ export const getHeatingApiUpdates = (
           time: response.last_updated,
         },
         target: response.attributes.temperature,
-        mode: hassStateToTrvModeValue(response.state),
+        mode: response.state,
         isHeating: response.attributes.hvac_action === 'heating',
       },
     })),

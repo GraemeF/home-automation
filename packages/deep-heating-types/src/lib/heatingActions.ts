@@ -15,10 +15,10 @@ export function getHeatingActions(
         needsHeating
           ? {
               heatingId,
-              mode: 'MANUAL',
+              mode: 'heat',
               targetTemperature: 32,
             }
-          : { heatingId, mode: 'MANUAL', targetTemperature: 7 }
+          : { heatingId, mode: 'heat', targetTemperature: 7 }
       )
     ),
     shareReplay(1)
