@@ -22,7 +22,7 @@ import { TrvDesiredTargetTemperature } from './trvDesiredTargetTemperatures';
 
 function getTrvAction(new_target: Temperature): {
   mode: ClimateMode;
-  targetTemperature?: Temperature;
+  targetTemperature: Temperature;
 } {
   return { mode: 'heat', targetTemperature: new_target };
 }
