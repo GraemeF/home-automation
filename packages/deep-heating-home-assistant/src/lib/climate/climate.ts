@@ -2,15 +2,15 @@ import * as Schema from '@effect/schema/Schema';
 import {
   ClimateEntity,
   ClimateEntityId,
+  DaySchedule,
   HassState,
   HeatingUpdate,
   Home,
   HomeAssistantEntity,
-  SimpleDaySchedule,
-  SimpleWeekSchedule,
   Temperature,
   TrvModeValue,
   TrvUpdate,
+  WeekSchedule,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestByKey } from '@home-automation/rxx';
 import { Effect, Option, pipe } from 'effect';
@@ -31,10 +31,8 @@ const hassStateToTrvModeValue: (state: HassState) => TrvModeValue = (state) => {
   }
 };
 
-const defaultDaySchedule = Schema.decodeSync(SimpleDaySchedule)({ '00:00': 7 });
-const defaultSchedule: SimpleWeekSchedule = Schema.decodeSync(
-  SimpleWeekSchedule
-)({
+const defaultDaySchedule = Schema.decodeSync(DaySchedule)({ '00:00': 7 });
+const defaultSchedule: WeekSchedule = Schema.decodeSync(WeekSchedule)({
   monday: defaultDaySchedule,
   tuesday: defaultDaySchedule,
   wednesday: defaultDaySchedule,

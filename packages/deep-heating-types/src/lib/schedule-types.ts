@@ -15,18 +15,18 @@ const Day = Schema.literal(
 const TimeOfDay = Schema.string;
 export type TimeOfDay = Schema.Schema.To<typeof TimeOfDay>;
 
-export const SimpleHeatingSlot = Schema.tuple(TimeOfDay, Temperature);
-export type SimpleHeatingSlot = Schema.Schema.To<typeof SimpleHeatingSlot>;
+export const ScheduleSlot = Schema.tuple(TimeOfDay, Temperature);
+export type ScheduleSlot = Schema.Schema.To<typeof ScheduleSlot>;
 
-export const SimpleDaySchedule = Schema.record(TimeOfDay, Temperature);
-export type SimpleDaySchedule = Schema.Schema.To<typeof SimpleDaySchedule>;
+export const DaySchedule = Schema.record(TimeOfDay, Temperature);
+export type DaySchedule = Schema.Schema.To<typeof DaySchedule>;
 
-export const SimpleWeekSchedule = Schema.record(Day, SimpleDaySchedule);
-export type SimpleWeekSchedule = Schema.Schema.To<typeof SimpleWeekSchedule>;
+export const WeekSchedule = Schema.record(Day, DaySchedule);
+export type WeekSchedule = Schema.Schema.To<typeof WeekSchedule>;
 
 export const TrvWeekHeatingSchedule = Schema.struct({
   climateEntityId: ClimateEntityId,
-  schedule: SimpleWeekSchedule,
+  schedule: WeekSchedule,
 });
 export type TrvWeekHeatingSchedule = Schema.Schema.To<
   typeof TrvWeekHeatingSchedule
@@ -34,7 +34,7 @@ export type TrvWeekHeatingSchedule = Schema.Schema.To<
 
 export const RoomWeekHeatingSchedule = Schema.struct({
   roomName: Schema.string,
-  schedule: SimpleWeekSchedule,
+  schedule: WeekSchedule,
 });
 export type RoomWeekHeatingSchedule = Schema.Schema.To<
   typeof RoomWeekHeatingSchedule

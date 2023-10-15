@@ -1,9 +1,9 @@
 import { Schema } from '@effect/schema';
 import { DateTime } from 'luxon';
-import { SimpleWeekSchedule } from './schedule-types';
+import { WeekSchedule } from './schedule-types';
 import { toHeatingSchedule } from './weekSchedule';
 
-const exampleSchedule = Schema.decodeSync(SimpleWeekSchedule)({
+const exampleSchedule = Schema.decodeSync(WeekSchedule)({
   monday: { '09:24': 20, '10:00:00.000': 22 },
   tuesday: { '09:25': 21 },
   wednesday: {},

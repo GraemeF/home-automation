@@ -1,7 +1,7 @@
 import { ReadonlyArray, ReadonlyRecord, pipe } from 'effect';
 import { DateTime, Duration } from 'luxon';
 import { HeatingSchedule, HeatingScheduleEntry } from './deep-heating-types';
-import { SimpleWeekSchedule } from './schedule-types';
+import { WeekSchedule } from './schedule-types';
 
 function toStartOfDay(
   day: string,
@@ -23,7 +23,7 @@ const byStart = (a: HeatingScheduleEntry, b: HeatingScheduleEntry) =>
     : 0;
 
 export const toHeatingSchedule = (
-  schedule: SimpleWeekSchedule,
+  schedule: WeekSchedule,
   now: DateTime
 ): HeatingSchedule => {
   const today = now.startOf('day');

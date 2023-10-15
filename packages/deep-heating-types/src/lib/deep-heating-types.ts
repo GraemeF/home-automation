@@ -1,7 +1,7 @@
 import { Schema } from '@effect/schema';
 import { DateTime } from 'luxon';
 import { ClimateEntityId, EventEntityId, SensorEntityId } from './entities';
-import { SimpleWeekSchedule } from './schedule-types';
+import { WeekSchedule } from './schedule-types';
 import { Temperature } from './temperature';
 
 export const ClimateTargetTemperature = Schema.struct({
@@ -38,7 +38,7 @@ const RoomDefinition = Schema.struct({
   name: Schema.string,
   temperatureSensorEntityId: Schema.optionFromNullable(SensorEntityId),
   climateEntityIds: Schema.array(ClimateEntityId),
-  schedule: Schema.optionFromNullable(SimpleWeekSchedule),
+  schedule: Schema.optionFromNullable(WeekSchedule),
 });
 export type RoomDefinition = Schema.Schema.To<typeof RoomDefinition>;
 
@@ -200,7 +200,7 @@ export const TrvUpdate = Schema.struct({
     target: Temperature,
     mode: TrvModeValue,
     isHeating: Schema.boolean,
-    schedule: SimpleWeekSchedule,
+    schedule: WeekSchedule,
   }),
   climateEntityId: ClimateEntityId,
   deviceType: Schema.string,
