@@ -3,63 +3,52 @@ import {
   ClimateEntity,
   ClimateEntityId,
   ClimateMode,
-  DaySchedule,
   HeatingUpdate,
   Home,
   HomeAssistantEntity,
   Temperature,
   TrvUpdate,
-  WeekSchedule,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestByKey } from '@home-automation/rxx';
 import { Effect, Option, pipe } from 'effect';
+import { isNotNull } from 'effect/Predicate';
 import { Observable } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 import { HomeAssistantApi } from '../home-assistant-api';
 
 const heatingEntityId = Schema.decodeSync(ClimateEntityId)('climate.main');
 
-const defaultDaySchedule = Schema.decodeSync(DaySchedule)({ '00:00': 7 });
-const defaultSchedule: WeekSchedule = Schema.decodeSync(WeekSchedule)({
-  monday: defaultDaySchedule,
-  tuesday: defaultDaySchedule,
-  wednesday: defaultDaySchedule,
-  thursday: defaultDaySchedule,
-  friday: defaultDaySchedule,
-  saturday: defaultDaySchedule,
-  sunday: defaultDaySchedule,
-});
-
 export const getTrvApiUpdates =
   (home: Home) =>
   (p$: Observable<ClimateEntity>): Observable<TrvUpdate> =>
     p$.pipe(
-      filter((entity) => entity.entity_id !== heatingEntityId),
-      map((response) => {
-        return {
-          climateEntityId: response.entity_id,
-          name: response.attributes.friendly_name,
-          deviceType: 'trv',
-
-          state: {
-            temperature: {
-              temperature: response.attributes.current_temperature,
-              time: response.last_updated,
+      filter((entity) => entity.entity_id !== home.heatingId),
+      map((response) =>
+        pipe(
+          home.rooms.find((room) =>
+            room.climateEntityIds.includes(response.entity_id)
+          ),
+          Option.fromNullable,
+          Option.flatMap((room) => room.schedule),
+          Option.map((schedule) => ({
+            climateEntityId: response.entity_id,
+            name: response.attributes.friendly_name,
+            deviceType: 'trv',
+            state: {
+              temperature: {
+                temperature: response.attributes.current_temperature,
+                time: response.last_updated,
+              },
+              target: response.attributes.temperature,
+              mode: response.state,
+              isHeating: response.attributes.hvac_action === 'heating',
+              schedule,
             },
-            target: response.attributes.temperature,
-            mode: response.state,
-            isHeating: response.attributes.hvac_action === 'heating',
-            schedule: pipe(
-              home.rooms.find((room) =>
-                room.climateEntityIds.includes(response.entity_id)
-              ),
-              Option.fromNullable,
-              Option.flatMap((room) => room.schedule),
-              Option.getOrElse(() => defaultSchedule)
-            ),
-          },
-        };
-      }),
+          })),
+          Option.getOrNull
+        )
+      ),
+      filter(isNotNull),
       shareReplayLatestByKey((x) => x.climateEntityId)
     );
 
