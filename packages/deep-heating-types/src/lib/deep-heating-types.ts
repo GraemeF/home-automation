@@ -1,7 +1,7 @@
 import { Schema } from '@effect/schema';
 import { DateTime } from 'luxon';
 import { ClimateEntityId, EventEntityId, SensorEntityId } from './entities';
-import { SimpleWeekSchedule, WeekHeatingSchedule } from './schedule-types';
+import { SimpleWeekSchedule } from './schedule-types';
 import { Temperature } from './temperature';
 
 export const ClimateTargetTemperature = Schema.struct({
@@ -194,18 +194,19 @@ export const TrvControlState = Schema.struct({
 });
 export type TrvControlState = Schema.Schema.To<typeof TrvControlState>;
 
-export interface TrvUpdate {
-  state: {
-    temperature: TemperatureReading;
-    target: Temperature;
-    mode: TrvModeValue;
-    isHeating: boolean;
-    schedule: WeekHeatingSchedule;
-  };
-  climateEntityId: ClimateEntityId;
-  deviceType: string;
-  name: string;
-}
+export const TrvUpdate = Schema.struct({
+  state: Schema.struct({
+    temperature: TemperatureReading,
+    target: Temperature,
+    mode: TrvModeValue,
+    isHeating: Schema.boolean,
+    schedule: SimpleWeekSchedule,
+  }),
+  climateEntityId: ClimateEntityId,
+  deviceType: Schema.string,
+  name: Schema.string,
+});
+export type TrvUpdate = Schema.Schema.To<typeof TrvUpdate>;
 
 export const HeatingUpdate = Schema.struct({
   state: Schema.struct({

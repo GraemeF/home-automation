@@ -1,17 +1,7 @@
-import { ReadonlyRecord, pipe } from 'effect';
+import { ReadonlyArray, ReadonlyRecord, pipe } from 'effect';
 import { DateTime, Duration } from 'luxon';
 import { HeatingSchedule, HeatingScheduleEntry } from './deep-heating-types';
-import {
-  HeatingScheduleSlot,
-  SimpleWeekSchedule,
-  WeekHeatingSchedule,
-} from './schedule-types';
-
-function getDaySchedules(
-  heatingSchedule: WeekHeatingSchedule
-): [string, HeatingScheduleSlot[]][] {
-  return Object.entries(heatingSchedule).map(([day, value]) => [day, value]);
-}
+import { SimpleWeekSchedule, WeekHeatingSchedule } from './schedule-types';
 
 function toStartOfDay(
   day: string,
@@ -25,26 +15,32 @@ function toStartOfDay(
     : startOfDay.startOf('day');
 }
 
-function byStart(a: HeatingScheduleEntry, b: HeatingScheduleEntry) {
-  return a.start < b.start ? -1 : a.start > b.start ? 1 : 0;
-}
+const byStart = (a: HeatingScheduleEntry, b: HeatingScheduleEntry) =>
+  a.start.toMillis() < b.start.toMillis()
+    ? -1
+    : a.start.toMillis() > b.start.toMillis()
+    ? 1
+    : 0;
 
 export const toHeatingSchedule = (
-  schedule: WeekHeatingSchedule,
+  schedule: SimpleWeekSchedule,
   now: DateTime
 ): HeatingSchedule => {
   const today = now.startOf('day');
-  const futureSlots = getDaySchedules(schedule)
+  const futureSlots = ReadonlyRecord.toArray(schedule)
     .flatMap(([dayName, slots]) =>
-      slots.map((slot) => ({
-        start: toStartOfDay(
-          dayName,
-          today,
-          Duration.fromObject({ minutes: slot.start }),
-          now
-        ).plus({ minutes: slot.start }),
-        targetTemperature: slot.value.target,
-      }))
+      pipe(
+        slots,
+        ReadonlyRecord.toArray,
+        ReadonlyArray.map(([start, target]) => ({
+          start: Duration.fromISOTime(start),
+          target,
+        })),
+        ReadonlyArray.map(({ start, target }) => ({
+          start: toStartOfDay(dayName, today, start, now).plus(start),
+          targetTemperature: target,
+        }))
+      )
     )
     .sort(byStart);
 

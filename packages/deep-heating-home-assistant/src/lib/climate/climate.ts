@@ -11,7 +11,6 @@ import {
   Temperature,
   TrvModeValue,
   TrvUpdate,
-  simpleToWeekSchedule,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestByKey } from '@home-automation/rxx';
 import { Effect, Option, pipe } from 'effect';
@@ -64,15 +63,13 @@ export const getTrvApiUpdates =
             target: response.attributes.temperature,
             mode: hassStateToTrvModeValue(response.state),
             isHeating: response.attributes.hvac_action === 'heating',
-            schedule: simpleToWeekSchedule(
-              pipe(
-                home.rooms.find((room) =>
-                  room.climateEntityIds.includes(response.entity_id)
-                ),
-                Option.fromNullable,
-                Option.flatMap((room) => room.schedule),
-                Option.getOrElse(() => defaultSchedule)
-              )
+            schedule: pipe(
+              home.rooms.find((room) =>
+                room.climateEntityIds.includes(response.entity_id)
+              ),
+              Option.fromNullable,
+              Option.flatMap((room) => room.schedule),
+              Option.getOrElse(() => defaultSchedule)
             ),
           },
         };
