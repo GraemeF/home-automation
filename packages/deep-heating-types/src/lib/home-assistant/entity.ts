@@ -59,8 +59,8 @@ export type TemperatureSensorEntity = Schema.Schema.To<
   typeof TemperatureSensorEntity
 >;
 
-export const HassState = Schema.literal('auto', 'heat', 'off');
-export type HassState = Schema.Schema.To<typeof HassState>;
+export const ClimateMode = Schema.literal('auto', 'heat', 'off');
+export type ClimateMode = Schema.Schema.To<typeof ClimateMode>;
 
 export const HassHvacAction = Schema.literal('idle', 'heating');
 export type HassHvacAction = Schema.Schema.To<typeof HassHvacAction>;
@@ -70,7 +70,7 @@ export const ClimateEntity = pipe(
   Schema.extend(
     Schema.struct({
       entity_id: ClimateEntityId,
-      state: HassState,
+      state: ClimateMode,
       attributes: Schema.struct({
         hvac_modes: Schema.array(Schema.string),
         min_temp: Temperature,

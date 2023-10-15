@@ -2,8 +2,8 @@ import * as Schema from '@effect/schema/Schema';
 import {
   ClimateEntity,
   ClimateEntityId,
+  ClimateMode,
   DaySchedule,
-  HassState,
   HeatingUpdate,
   Home,
   HomeAssistantEntity,
@@ -112,7 +112,7 @@ export const setClimateEntityTemperature = (
 
 export const setClimateEntityMode = (
   entityId: ClimateEntityId,
-  mode: HassState
+  mode: ClimateMode
 ) =>
   pipe(
     HomeAssistantApi,

@@ -1,7 +1,7 @@
 import {
   ClimateEntityId,
+  ClimateMode,
   ClimateTemperatureReading,
-  HassState,
   Temperature,
   TrvAction,
   TrvControlState,
@@ -21,7 +21,7 @@ import { isDeepStrictEqual } from 'util';
 import { TrvDesiredTargetTemperature } from './trvDesiredTargetTemperatures';
 
 function getTrvAction(new_target: Temperature): {
-  mode: HassState;
+  mode: ClimateMode;
   targetTemperature?: Temperature;
 } {
   return { mode: 'heat', targetTemperature: new_target };

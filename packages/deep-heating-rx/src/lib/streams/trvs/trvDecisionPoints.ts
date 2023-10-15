@@ -1,7 +1,7 @@
 import { Schema } from '@effect/schema';
 import {
   ClimateEntityId,
-  HassState,
+  ClimateMode,
   RoomDecisionPoint,
   Temperature,
 } from '@home-automation/deep-heating-types';
@@ -39,6 +39,6 @@ export const TrvDecisionPoint = Schema.struct({
   trvTemperature: Temperature,
   roomTemperature: Temperature,
   roomTargetTemperature: Temperature,
-  trvMode: HassState,
+  trvMode: ClimateMode,
 });
 export type TrvDecisionPoint = Schema.Schema.To<typeof TrvDecisionPoint>;

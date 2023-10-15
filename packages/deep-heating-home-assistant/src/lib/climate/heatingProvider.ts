@@ -1,7 +1,7 @@
 import { Schema } from '@effect/schema';
 import {
   ClimateEntityId,
-  HassState,
+  ClimateMode,
   HeatingAction,
   Home,
   HomeAssistantEntity,
@@ -35,7 +35,7 @@ export const createHomeAssistantHeatingProvider = (
     (runtime: Runtime.Runtime<HomeAssistantApi>) =>
     (
       entityId: ClimateEntityId,
-      mode: HassState,
+      mode: ClimateMode,
       temperature: Option.Option<Temperature>
     ) =>
       pipe(

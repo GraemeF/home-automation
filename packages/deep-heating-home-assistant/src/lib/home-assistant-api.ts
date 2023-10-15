@@ -4,7 +4,7 @@ import { ParseError } from '@effect/schema/ParseResult';
 import * as Schema from '@effect/schema/Schema';
 import {
   ClimateEntityId,
-  HassState,
+  ClimateMode,
   HomeAssistantEntity,
   Temperature,
 } from '@home-automation/deep-heating-types';
@@ -41,7 +41,7 @@ export interface HomeAssistantApi {
   ) => Effect.Effect<never, HttpClientError, { readonly ok: boolean }>;
   setHvacMode: (
     entityId: ClimateEntityId,
-    mode: HassState
+    mode: ClimateMode
   ) => Effect.Effect<never, HttpClientError, { readonly ok: boolean }>;
 }
 
@@ -88,7 +88,7 @@ export const HomeAssistantApiLive = Layer.effect(
               onFailure: () => ({ ok: false }),
             })
           ),
-        setHvacMode: (entityId: ClimateEntityId, mode: HassState) =>
+        setHvacMode: (entityId: ClimateEntityId, mode: ClimateMode) =>
           pipe(
             url + '/api/services/climate/set_hvac_mode',
             (url) => HttpClient.request.post(url),
