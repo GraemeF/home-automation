@@ -31,7 +31,15 @@ interest :)
 
 ## Configuration
 
-_TODO: document environment variables_
+### Environment variables
+
+| variable name         | description                                                                                                                               |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `HOMEASSISTANT_URL`   | The URL of your Home Assistant instance, e.g. `http://homeassistant.lan:8123`                                                             |
+| `HOMEASSISTANT_TOKEN` | A [long-lived access token](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token) for your Home Assistant instance |
+| `HOME_CONFIG_PATH`    | The path to your home configuration file, e.g. `/config/home.json`                                                                        |
+
+### Home
 
 A single JSON file configures your home:
 
@@ -43,10 +51,10 @@ A single JSON file configures your home:
 }
 ```
 
-| property        | description                                                  |
-| --------------- | ------------------------------------------------------------ |
-| `heatingId`     | The Hive id of the main heating thermostat                   |
-| `sleepSwitchId` | The Hue id of a button that turns the heating off at bedtime |
+| property        | description                                                                            |
+| --------------- | -------------------------------------------------------------------------------------- |
+| `heatingId`     | The climate entity id of the main heating thermostat                                   |
+| `sleepSwitchId` | The event entity of an event (e.g. button press) that turns the heating off at bedtime |
 
 Add an object in `rooms` for each room with a temperature sensor:
 
@@ -54,15 +62,41 @@ Add an object in `rooms` for each room with a temperature sensor:
 {
   "name": "...",
   "temperatureSensorId": "...",
-  "trvControlIds": ["...", "..."]
+  "climateEntityIds": ["...", "..."],
+  "schedule": {
+    "monday": {},
+    "tuesday": {},
+    "wednesday": {},
+    "thursday": {},
+    "friday": {},
+    "saturday": {},
+    "sunday": {}
+  }
 }
 ```
 
-| property              | description                                                             |
-| --------------------- | ----------------------------------------------------------------------- |
-| `name`                | The name of the room, as you would like it displayed in the app         |
-| `temperatureSensorId` | The Hue id of the temperature sensor to use to measure room temperature |
-| `trvControlIds`       | Array of Hive ids of the TRV Control devices in the room                |
+| property              | description                                                                |
+| --------------------- | -------------------------------------------------------------------------- |
+| `name`                | The name of the room, as you would like it displayed in the app            |
+| `temperatureSensorId` | The entity id of the temperature sensor to use to measure room temperature |
+| `climateEntityIds`    | Array of entity ids of the climate control devices in the room             |
+| `schedule`            | The schedule of target temperatures for the room                           |
+
+#### Schedule
+
+A schedule defines the target temperatures for a room, for each day of the week. Here's an example:
+
+```json
+{
+  "monday": { "07:00": 18, "17:00": 21, "23:45": 15 },
+  "tuesday": { "07:00": 18, "17:00": 21, "23:45": 15 },
+  "wednesday": { "07:00": 18, "17:00": 21, "23:45": 15 },
+  "thursday": { "07:00": 18, "17:00": 21, "23:45": 15 },
+  "friday": { "07:00": 18, "17:00": 21, "23:45": 15 },
+  "saturday": { "07:00": 18, "17:00": 21, "23:45": 15 },
+  "sunday": { "07:00": 18, "17:00": 21, "23:45": 15 }
+}
+```
 
 ## Security
 
