@@ -8,12 +8,12 @@ import {
 } from '@home-automation/deep-heating-home-assistant';
 import {
   ButtonPressEventEntity,
+  ClimateAction,
   ClimateEntityId,
   ClimateEntityStatus,
   ClimateTargetTemperature,
   ClimateTemperatureReading,
   getHeatingActions,
-  HeatingAction,
   HeatingStatus,
   Home,
   HouseModeValue,
@@ -33,7 +33,6 @@ import {
   RoomTrvTemperatures,
   RoomWeekHeatingSchedule,
   TemperatureSensorEntity,
-  TrvAction,
   TrvControlState,
   TrvMode,
   TrvScheduledTargetTemperature,
@@ -120,10 +119,10 @@ export class DeepHeating {
   readonly trvScheduledTargetTemperatures$: Observable<TrvScheduledTargetTemperature>;
   readonly appliedTrvActions$: Observable<TrvControlState>;
   readonly trvSynthesisedStatuses: Observable<ClimateEntityStatus>;
-  readonly trvActions$: Observable<TrvAction>;
+  readonly trvActions$: Observable<ClimateAction>;
   readonly trvIds$: Observable<ClimateEntityId[]>;
   readonly appliedHeatingActions$: Observable<HeatingStatus>;
-  readonly heatingActions$: Observable<HeatingAction>;
+  readonly heatingActions$: Observable<ClimateAction>;
   readonly roomAdjustments$: Observable<RoomAdjustment>;
   readonly roomScheduledTargetTemperatures$: Observable<RoomTargetTemperature>;
   readonly buttonEvents$: Observable<ButtonPressEventEntity>;
@@ -388,7 +387,7 @@ export class DeepHeating {
     this.heatingActions$.subscribe((x) =>
       log(
         'Heating',
-        x.heatingId,
+        x.climateEntityId,
         'should change to',
         x.mode,
         x.targetTemperature
@@ -413,11 +412,11 @@ export class DeepHeating {
 
     this.appliedTrvActions$.subscribe((x) => this.publishTrvControlState(x));
 
-    function publishTrvAction(newAction: TrvAction): void {
+    function publishTrvAction(newAction: ClimateAction): void {
       heatingProvider.trvActions.next(newAction);
     }
 
-    function publishHeatingAction(newAction: HeatingAction): void {
+    function publishHeatingAction(newAction: ClimateAction): void {
       heatingProvider.heatingActions.next(newAction);
     }
   }

@@ -1,9 +1,8 @@
 import { Schema } from '@effect/schema';
 import {
-  HeatingAction,
+  ClimateAction,
   HeatingStatus,
   Temperature,
-  TrvAction,
   TrvControlState,
   TrvScheduledTargetTemperature,
 } from '@home-automation/deep-heating-types';
@@ -20,14 +19,14 @@ import {
 } from 'rxjs/operators';
 
 export function getTrvActionsByTrvId(
-  trvActions: Observable<TrvAction>
-): Observable<GroupedObservable<string, TrvAction>> {
+  trvActions: Observable<ClimateAction>
+): Observable<GroupedObservable<string, ClimateAction>> {
   return trvActions.pipe(groupBy((x) => x.climateEntityId));
 }
 
 function getNextTrvControlState(
   latest: TrvControlState,
-  action: TrvAction,
+  action: ClimateAction,
   scheduledTargetTemperature: TrvScheduledTargetTemperature
 ): TrvControlState {
   const mode = action.mode ?? latest.mode;
@@ -51,9 +50,9 @@ function getNextTrvControlState(
   };
 }
 
-function getNextHeatingStatus(action: HeatingAction): HeatingStatus {
+function getNextHeatingStatus(action: ClimateAction): HeatingStatus {
   return {
-    heatingId: action.heatingId,
+    heatingId: action.climateEntityId,
     isHeating: action.targetTemperature > 20,
     source: 'Synthesised',
   };
@@ -61,10 +60,10 @@ function getNextHeatingStatus(action: HeatingAction): HeatingStatus {
 
 export function applyTrvActions(
   trvIds$: Observable<string[]>,
-  trvActions: Observable<TrvAction>,
+  trvActions: Observable<ClimateAction>,
   trvControlStates$: Observable<TrvControlState>,
   trvScheduledTargetTemperatures$: Observable<TrvScheduledTargetTemperature>,
-  publishHiveTrvAction: (action: TrvAction) => void
+  publishHiveTrvAction: (action: ClimateAction) => void
 ): Observable<TrvControlState> {
   return trvIds$.pipe(
     mergeMap((trvIds) =>
@@ -90,8 +89,8 @@ export function applyTrvActions(
 }
 
 export function applyHeatingActions(
-  heatingActions$: Observable<HeatingAction>,
-  publishHiveHeatingAction: (action: HeatingAction) => void
+  heatingActions$: Observable<ClimateAction>,
+  publishHiveHeatingAction: (action: ClimateAction) => void
 ): Observable<HeatingStatus> {
   return heatingActions$.pipe(
     tap((action) => publishHiveHeatingAction(action)),

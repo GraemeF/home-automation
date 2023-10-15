@@ -1,14 +1,10 @@
 import {
-  ClimateEntityId,
-  ClimateMode,
-  HeatingAction,
+  ClimateAction,
   Home,
   HomeAssistantEntity,
-  Temperature,
-  TrvAction,
 } from '@home-automation/deep-heating-types';
 import { Effect, Runtime, pipe } from 'effect';
-import { Observable, Subject } from 'rxjs';
+import { Observable, Subject, merge } from 'rxjs';
 import { debounceTime, groupBy, mergeMap } from 'rxjs/operators';
 import { HomeAssistantApi } from '../home-assistant-api';
 import {
@@ -24,57 +20,35 @@ export const createHomeAssistantHeatingProvider = (
   entityUpdates$: Observable<HomeAssistantEntity>,
   runtime: Runtime.Runtime<HomeAssistantApi>
 ) => {
-  const heatingActions = new Subject<HeatingAction>();
-  const trvActions = new Subject<TrvAction>();
+  const heatingActions = new Subject<ClimateAction>();
+  const trvActions = new Subject<ClimateAction>();
 
-  const setClimate = (
-    entityId: ClimateEntityId,
-    mode: ClimateMode,
-    temperature: Temperature
-  ) =>
+  merge(
+    trvActions.pipe(
+      groupBy((x) => x.climateEntityId),
+      mergeMap((x) => x.pipe(debounceTime(5000)))
+    ),
+    heatingActions.pipe(debounceTime(5000))
+  ).subscribe((action) =>
     pipe(
-      Effect.all([
-        setClimateEntityMode(entityId, mode),
-        setClimateEntityTemperature(entityId, temperature),
-      ])
-    );
-
-  heatingActions.pipe(debounceTime(5000)).subscribe((action) =>
-    pipe(
-      setClimate(action.heatingId, action.mode, action.targetTemperature),
+      [
+        setClimateEntityMode(action.climateEntityId, action.mode),
+        setClimateEntityTemperature(
+          action.climateEntityId,
+          action.targetTemperature
+        ),
+      ],
+      Effect.all,
       Effect.tap(() =>
         Effect.log(
-          `${action.heatingId} has been changed to ${
-            (action.mode ?? '', action.targetTemperature ?? '')
+          `${action.climateEntityId} has been changed to ${
+            (action.mode ?? '', action.targetTemperature)
           }`
         )
       ),
       Runtime.runPromise(runtime)
     )
   );
-
-  trvActions
-    .pipe(
-      groupBy((x) => x.climateEntityId),
-      mergeMap((x) => x.pipe(debounceTime(5000)))
-    )
-    .subscribe((action) =>
-      pipe(
-        setClimate(
-          action.climateEntityId,
-          action.mode,
-          action.targetTemperature
-        ),
-        Effect.tap(() =>
-          Effect.log(
-            `${action.climateEntityId} has been changed to ${
-              (action.mode ?? '', action.targetTemperature)
-            }`
-          )
-        ),
-        Runtime.runPromise(runtime)
-      )
-    );
 
   const climateEntityUpdates$ = getClimateEntityUpdates(entityUpdates$);
   return {

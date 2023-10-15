@@ -1,9 +1,9 @@
 import {
+  ClimateAction,
   ClimateEntityId,
   ClimateMode,
   ClimateTemperatureReading,
   Temperature,
-  TrvAction,
   TrvControlState,
   TrvScheduledTargetTemperature,
 } from '@home-automation/deep-heating-types';
@@ -32,7 +32,7 @@ export function determineAction(
   trvControlState: TrvControlState,
   trvTemperature: ClimateTemperatureReading,
   trvScheduledTargetTemperature: TrvScheduledTargetTemperature
-): TrvAction | null {
+): ClimateAction | null {
   if (
     trvControlState.climateEntityId !==
       trvDesiredTargetTemperature.climateEntityId ||
@@ -73,7 +73,7 @@ export function getTrvActions(
   trvControlStates: Observable<TrvControlState>,
   trvTemperatures: Observable<ClimateTemperatureReading>,
   trvScheduledTargetTemperatures: Observable<TrvScheduledTargetTemperature>
-): Observable<TrvAction> {
+): Observable<ClimateAction> {
   return trvIds$.pipe(
     mergeMap((trvIds) =>
       trvIds.map((trvId) =>

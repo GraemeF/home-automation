@@ -86,12 +86,12 @@ export const TrvMode = Schema.struct({
 });
 export type TrvMode = Schema.Schema.To<typeof TrvMode>;
 
-export const TrvAction = Schema.struct({
+export const ClimateAction = Schema.struct({
   climateEntityId: ClimateEntityId,
   mode: ClimateMode,
   targetTemperature: Temperature,
 });
-export type TrvAction = Schema.Schema.To<typeof TrvAction>;
+export type ClimateAction = Schema.Schema.To<typeof ClimateAction>;
 
 export interface RoomTrvModes {
   roomName: string;
@@ -218,10 +218,3 @@ export const HeatingUpdate = Schema.struct({
   name: Schema.string,
 });
 export type HeatingUpdate = Schema.Schema.To<typeof HeatingUpdate>;
-
-export const HeatingAction = Schema.struct({
-  heatingId: ClimateEntityId,
-  mode: ClimateMode,
-  targetTemperature: Temperature,
-});
-export type HeatingAction = Schema.Schema.To<typeof HeatingAction>;
