@@ -220,7 +220,7 @@ const exampleSchedule: WeekHeatingSchedule = {
   ],
 };
 
-describe('Hive schedule', () => {
+describe('Weekly schedule', () => {
   describe('on Friday morning', () => {
     it('should have correct slots', () => {
       const slots = toHeatingSchedule(
@@ -238,7 +238,7 @@ describe('Hive schedule', () => {
     });
   });
 
-  describe('converting simple to Hive schedule', () => {
+  describe('converting simple to weekly schedule', () => {
     it('should work out minutes', async () => {
       expect(
         await pipe(
