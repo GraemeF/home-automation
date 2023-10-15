@@ -1,5 +1,4 @@
 import { Schema } from '@effect/schema';
-import { DateTime } from 'luxon';
 import { ClimateEntityId, EventEntityId, SensorEntityId } from './entities';
 import { ClimateMode } from './home-assistant';
 import { WeekSchedule } from './schedule-types';
@@ -62,22 +61,30 @@ const HeatingStatus = Schema.struct({
 });
 export type HeatingStatus = Schema.Schema.To<typeof HeatingStatus>;
 
-export interface HeatingScheduleEntry {
-  start: DateTime;
-  targetTemperature: Temperature;
-}
+const HeatingScheduleEntry = Schema.struct({
+  start: Schema.Date,
+  targetTemperature: Temperature,
+});
+export type HeatingScheduleEntry = Schema.Schema.To<
+  typeof HeatingScheduleEntry
+>;
 
-export type HeatingSchedule = HeatingScheduleEntry[];
+const HeatingSchedule = Schema.array(HeatingScheduleEntry);
+export type HeatingSchedule = Schema.Schema.To<typeof HeatingSchedule>;
 
-export interface RoomSchedule {
-  roomName: string;
-  schedule: HeatingSchedule;
-}
+const RoomSchedule = Schema.struct({
+  roomName: Schema.string,
+  schedule: HeatingSchedule,
+});
+export type RoomSchedule = Schema.Schema.To<typeof RoomSchedule>;
 
-export interface RoomTargetTemperature {
-  roomName: string;
-  targetTemperature: Temperature;
-}
+const RoomTargetTemperature = Schema.struct({
+  roomName: Schema.string,
+  targetTemperature: Temperature,
+});
+export type RoomTargetTemperature = Schema.Schema.To<
+  typeof RoomTargetTemperature
+>;
 
 export const TrvMode = Schema.struct({
   climateEntityId: ClimateEntityId,
@@ -93,23 +100,29 @@ export const ClimateAction = Schema.struct({
 });
 export type ClimateAction = Schema.Schema.To<typeof ClimateAction>;
 
-export interface RoomTrvModes {
-  roomName: string;
-  trvModes: TrvMode[];
-}
+const RoomTrvModes = Schema.struct({
+  roomName: Schema.string,
+  trvModes: Schema.array(TrvMode),
+});
+export type RoomTrvModes = Schema.Schema.To<typeof RoomTrvModes>;
 
-export interface RoomTrvStatuses {
-  roomName: string;
-  trvStatuses: ClimateEntityStatus[];
-}
+const RoomTrvStatuses = Schema.struct({
+  roomName: Schema.string,
+  trvStatuses: Schema.array(ClimateEntityStatus),
+});
+export type RoomTrvStatuses = Schema.Schema.To<typeof RoomTrvStatuses>;
 
-export interface RoomStatus {
-  roomName: string;
-  isHeating: boolean;
-}
+const RoomStatus = Schema.struct({
+  roomName: Schema.string,
+  isHeating: Schema.boolean,
+});
+export type RoomStatus = Schema.Schema.To<typeof RoomStatus>;
 
-export type HouseModeValue = 'Auto' | 'Sleeping';
-export type RoomModeValue = 'Off' | 'Auto' | 'Sleeping';
+export const HouseModeValue = Schema.literal('Auto', 'Sleeping');
+export type HouseModeValue = Schema.Schema.To<typeof HouseModeValue>;
+
+export const RoomModeValue = Schema.literal('Off', 'Auto', 'Sleeping');
+export type RoomModeValue = Schema.Schema.To<typeof RoomModeValue>;
 
 export interface RoomMode {
   roomName: string;

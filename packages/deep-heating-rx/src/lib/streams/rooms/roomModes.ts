@@ -7,22 +7,21 @@ import {
   TrvMode,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
-import { combineLatest, GroupedObservable, Observable } from 'rxjs';
+import { GroupedObservable, Observable, combineLatest } from 'rxjs';
 import { filter, map, mergeMap } from 'rxjs/operators';
 
-function getRoomMode(
-  trvModes: TrvMode[],
+const getRoomMode = (
+  trvModes: readonly TrvMode[],
   houseMode: HouseModeValue
-): RoomModeValue {
-  return trvModes.some((x) => x.mode === 'off') ? 'Off' : houseMode;
-}
+): RoomModeValue =>
+  trvModes.some((x) => x.mode === 'off') ? 'Off' : houseMode;
 
-export function getRoomModes(
+export const getRoomModes = (
   rooms$: Observable<GroupedObservable<string, RoomDefinition>>,
   houseModes$: Observable<HouseModeValue>,
   roomTrvModes$: Observable<RoomTrvModes>
-): Observable<RoomMode> {
-  return rooms$.pipe(
+): Observable<RoomMode> =>
+  rooms$.pipe(
     mergeMap((roomDefinition$) =>
       combineLatest([
         houseModes$,
@@ -36,4 +35,3 @@ export function getRoomModes(
     ),
     shareReplayLatestDistinctByKey((x) => x.roomName)
   );
-}

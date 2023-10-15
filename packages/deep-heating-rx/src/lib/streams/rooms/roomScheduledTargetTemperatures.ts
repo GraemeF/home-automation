@@ -16,28 +16,31 @@ import { filter, map, mergeMap, shareReplay } from 'rxjs/operators';
 
 const refreshIntervalSeconds = 60;
 
-function getScheduledTargetTemperature(
+const getScheduledTargetTemperature = (
   schedule: HeatingSchedule,
   time: DateTime
-) {
-  return Schema.parseSync(Temperature)(
+) =>
+  Schema.parseSync(Temperature)(
     Math.max(
       ...schedule.map(
         (entry) =>
           Math.round(
             (entry.targetTemperature -
-              0.5 * Math.max(0.0, entry.start.diff(time).as('hours'))) *
+              0.5 *
+                Math.max(
+                  0.0,
+                  DateTime.fromJSDate(entry.start).diff(time).as('hours')
+                )) *
               10
           ) / 10
       )
     )
   );
-}
 
-export function getRoomScheduledTargetTemperatures(
+export const getRoomScheduledTargetTemperatures = (
   rooms$: Observable<GroupedObservable<string, RoomDefinition>>,
   roomSchedules$: Observable<RoomSchedule>
-): Observable<RoomTargetTemperature> {
+): Observable<RoomTargetTemperature> => {
   const time = timer(0, refreshIntervalSeconds * 1000).pipe(
     map(() => DateTime.local()),
     shareReplay(1)
@@ -59,4 +62,4 @@ export function getRoomScheduledTargetTemperatures(
     })),
     shareReplayLatestDistinctByKey((x) => x.roomName)
   );
-}
+};

@@ -16,9 +16,9 @@ function toStartOfDay(
 }
 
 const byStart = (a: HeatingScheduleEntry, b: HeatingScheduleEntry) =>
-  a.start.toMillis() < b.start.toMillis()
+  a.start.getTime() < b.start.getTime()
     ? -1
-    : a.start.toMillis() > b.start.toMillis()
+    : a.start.getTime() > b.start.getTime()
     ? 1
     : 0;
 
@@ -37,7 +37,9 @@ export const toHeatingSchedule = (
           target,
         })),
         ReadonlyArray.map(({ start, target }) => ({
-          start: toStartOfDay(dayName, today, start, now).plus(start),
+          start: toStartOfDay(dayName, today, start, now)
+            .plus(start)
+            .toJSDate(),
           targetTemperature: target,
         }))
       )
@@ -47,7 +49,9 @@ export const toHeatingSchedule = (
   const currentSlot = futureSlots[futureSlots.length - 1];
   return [
     {
-      start: currentSlot.start.minus({ weeks: 1 }),
+      start: DateTime.fromJSDate(currentSlot.start)
+        .minus({ weeks: 1 })
+        .toJSDate(),
       targetTemperature: currentSlot.targetTemperature,
     },
     ...futureSlots,

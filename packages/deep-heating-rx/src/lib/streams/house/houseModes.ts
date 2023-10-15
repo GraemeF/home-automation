@@ -16,17 +16,17 @@ import {
 
 const refreshIntervalSeconds = 63;
 
-export function getHouseMode(
-  time: DateTime,
+export const getHouseMode = (
+  now: DateTime,
   lastButtonTime?: DateTime
-): HouseModeValue {
-  if (lastButtonTime) {
-    if (lastButtonTime.startOf('day').equals(time.startOf('day'))) {
-      if (lastButtonTime.hour > 20) return 'Sleeping';
-    }
-  }
-  return time.hour < 3 ? 'Sleeping' : 'Auto';
-}
+): HouseModeValue =>
+  lastButtonTime &&
+  lastButtonTime.startOf('day').equals(now.startOf('day')) &&
+  lastButtonTime.hour > 20
+    ? 'Sleeping'
+    : now.hour < 3
+    ? 'Sleeping'
+    : 'Auto';
 
 export function getHouseModes(
   buttonEvents$: Observable<ButtonPressEventEntity>,

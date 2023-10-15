@@ -1,12 +1,13 @@
-import { combineLatest, Observable, timer } from 'rxjs';
-import { DateTime } from 'luxon';
-import { filter, map, mergeMap, shareReplay } from 'rxjs/operators';
 import {
   RoomDefinition,
   RoomSchedule,
   RoomWeekHeatingSchedule,
   toHeatingSchedule,
 } from '@home-automation/deep-heating-types';
+import { ReadonlyArray, pipe } from 'effect';
+import { DateTime } from 'luxon';
+import { Observable, combineLatest, timer } from 'rxjs';
+import { filter, map, mergeMap, shareReplay } from 'rxjs/operators';
 
 const refreshIntervalSeconds = 60;
 
@@ -25,15 +26,13 @@ export function getRoomSchedules(
         time,
         roomHiveHeatingSchedules.pipe(filter((x) => x.roomName === room.name)),
       ]).pipe(
-        map(([time, roomSchedule]) => {
-          return {
-            roomName: roomSchedule.roomName,
-            schedule: toHeatingSchedule(roomSchedule.schedule, time).splice(
-              0,
-              3
-            ),
-          };
-        })
+        map(([time, roomSchedule]) => ({
+          roomName: roomSchedule.roomName,
+          schedule: pipe(
+            toHeatingSchedule(roomSchedule.schedule, time),
+            ReadonlyArray.take(3)
+          ),
+        }))
       )
     )
   );
