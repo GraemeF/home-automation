@@ -31,33 +31,24 @@ export const createHomeAssistantHeatingProvider = (
   const heatingActions = new Subject<HeatingAction>();
   const trvActions = new Subject<TrvAction>();
 
-  const setClimateEntity =
-    (runtime: Runtime.Runtime<HomeAssistantApi>) =>
-    (
-      entityId: ClimateEntityId,
-      mode: ClimateMode,
-      temperature: Option.Option<Temperature>
-    ) =>
-      pipe(
-        Effect.all([
-          setClimateEntityMode(entityId, mode),
-          pipe(
-            temperature,
-            Option.match({
-              onSome: (temperature) =>
-                pipe(setClimateEntityTemperature(entityId, temperature)),
-              onNone: () => Effect.unit,
-            })
-          ),
-        ]),
-        Effect.match({
-          onSuccess: () => ({ ok: true }),
-          onFailure: () => ({ ok: false }),
-        }),
-        Runtime.runPromise(runtime)
-      );
-
-  const setClimate = setClimateEntity(runtime);
+  const setClimate = (
+    entityId: ClimateEntityId,
+    mode: ClimateMode,
+    temperature: Option.Option<Temperature>
+  ) =>
+    pipe(
+      Effect.all([
+        setClimateEntityMode(entityId, mode),
+        pipe(
+          temperature,
+          Option.match({
+            onSome: (temperature) =>
+              pipe(setClimateEntityTemperature(entityId, temperature)),
+            onNone: () => Effect.unit,
+          })
+        ),
+      ])
+    );
 
   heatingActions
     .pipe(
@@ -65,14 +56,13 @@ export const createHomeAssistantHeatingProvider = (
       mergeMap((action) =>
         pipe(
           from(
-            setClimate(
-              Schema.decodeSync(ClimateEntityId)(action.heatingId),
-              action.mode,
-              pipe(
-                action.targetTemperature,
-                Option.fromNullable,
-                Option.map(Schema.decodeSync(Temperature))
-              )
+            pipe(
+              setClimate(
+                action.heatingId,
+                action.mode,
+                pipe(action.targetTemperature, Option.fromNullable)
+              ),
+              Runtime.runPromise(runtime)
             )
           ),
           map((result) => ({
@@ -88,8 +78,7 @@ export const createHomeAssistantHeatingProvider = (
       log(
         'Heating',
         x.entityId,
-        x.result.ok ? 'has' : 'has not',
-        'been changed to',
+        'has been changed to',
         x.mode ?? '',
         x.targetTemperature ?? ''
       )
@@ -102,14 +91,17 @@ export const createHomeAssistantHeatingProvider = (
       mergeMap((action) =>
         pipe(
           from(
-            setClimate(
-              Schema.decodeSync(ClimateEntityId)(action.climateEntityId),
-              action.mode,
-              pipe(
-                action.targetTemperature,
-                Option.fromNullable,
-                Option.map(Schema.decodeSync(Temperature))
-              )
+            pipe(
+              setClimate(
+                Schema.decodeSync(ClimateEntityId)(action.climateEntityId),
+                action.mode,
+                pipe(
+                  action.targetTemperature,
+                  Option.fromNullable,
+                  Option.map(Schema.decodeSync(Temperature))
+                )
+              ),
+              Runtime.runPromise(runtime)
             )
           ),
           map((result) => ({
@@ -125,8 +117,7 @@ export const createHomeAssistantHeatingProvider = (
       log(
         'TRV',
         x.entityId,
-        x.result.ok ? 'has' : 'has not',
-        'been changed to',
+        'has been changed to',
         x.mode ?? '',
         x.targetTemperature ?? ''
       )

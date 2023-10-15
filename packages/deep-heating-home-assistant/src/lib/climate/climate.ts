@@ -91,23 +91,11 @@ export const getClimateEntityUpdates = (
 
 export const setClimateEntityTemperature = (
   entityId: ClimateEntityId,
-  temperature: Temperature
+  targetTemperature: Temperature
 ) =>
   pipe(
     HomeAssistantApi,
-    Effect.flatMap((api) => api.setTemperature(entityId, temperature)),
-    Effect.match({
-      onFailure: () => ({
-        result: { ok: false },
-        entityId,
-        targetTemperature: temperature,
-      }),
-      onSuccess: () => ({
-        result: { ok: true },
-        entityId,
-        targetTemperature: temperature,
-      }),
-    })
+    Effect.flatMap((api) => api.setTemperature(entityId, targetTemperature))
   );
 
 export const setClimateEntityMode = (
@@ -116,17 +104,5 @@ export const setClimateEntityMode = (
 ) =>
   pipe(
     HomeAssistantApi,
-    Effect.flatMap((api) => api.setHvacMode(entityId, mode)),
-    Effect.match({
-      onFailure: () => ({
-        result: { ok: false },
-        entityId,
-        mode,
-      }),
-      onSuccess: () => ({
-        result: { ok: true },
-        entityId,
-        mode,
-      }),
-    })
+    Effect.flatMap((api) => api.setHvacMode(entityId, mode))
   );

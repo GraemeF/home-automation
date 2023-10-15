@@ -1,3 +1,4 @@
+import { BodyError } from '@effect/platform/Http/Body';
 import { HttpClientError } from '@effect/platform/Http/ClientError';
 import * as HttpClient from '@effect/platform/HttpClient';
 import { ParseError } from '@effect/schema/ParseResult';
@@ -37,12 +38,20 @@ export interface HomeAssistantApi {
   getStates: () => Effect.Effect<never, HttpClientError | ParseError, unknown>;
   setTemperature: (
     entityId: ClimateEntityId,
-    temperature: Temperature
-  ) => Effect.Effect<never, HttpClientError, { readonly ok: boolean }>;
+    targetTemperature: Temperature
+  ) => Effect.Effect<
+    never,
+    HttpClientError | BodyError,
+    { entityId: ClimateEntityId; targetTemperature: Temperature }
+  >;
   setHvacMode: (
     entityId: ClimateEntityId,
     mode: ClimateMode
-  ) => Effect.Effect<never, HttpClientError, { readonly ok: boolean }>;
+  ) => Effect.Effect<
+    never,
+    HttpClientError | BodyError,
+    { entityId: ClimateEntityId; mode: ClimateMode }
+  >;
 }
 
 export const HomeAssistantApi = Tag<HomeAssistantApi>();
@@ -83,10 +92,7 @@ export const HomeAssistantApiLive = Layer.effect(
               pipe(request, HttpClient.client.fetchOk())
             ),
             Effect.withSpan('set_temperature'),
-            Effect.match({
-              onSuccess: () => ({ ok: true }),
-              onFailure: () => ({ ok: false }),
-            })
+            Effect.map(() => ({ entityId, targetTemperature: temperature }))
           ),
         setHvacMode: (entityId: ClimateEntityId, mode: ClimateMode) =>
           pipe(
@@ -101,10 +107,7 @@ export const HomeAssistantApiLive = Layer.effect(
               pipe(request, HttpClient.client.fetchOk())
             ),
             Effect.withSpan('set_hvac_mode'),
-            Effect.match({
-              onSuccess: () => ({ ok: true }),
-              onFailure: () => ({ ok: false }),
-            })
+            Effect.map(() => ({ entityId, mode }))
           ),
       })
     )
@@ -118,8 +121,10 @@ export const HomeAssistantApiTest = (
     HomeAssistantApi,
     Effect.succeed({
       getStates: () => states,
-      setTemperature: () => Effect.succeed({ ok: true }),
-      setHvacMode: () => Effect.succeed({ ok: true }),
+      setTemperature: (entityId: ClimateEntityId, temperature: Temperature) =>
+        Effect.succeed({ entityId, targetTemperature: temperature }),
+      setHvacMode: (entityId: ClimateEntityId, mode: ClimateMode) =>
+        Effect.succeed({ entityId, mode }),
     })
   );
 
