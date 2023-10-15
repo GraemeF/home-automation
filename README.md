@@ -17,11 +17,11 @@ to control and tweak the desired temperature of each room in your home.
 
 ### How do I use it?
 
-For each room, set up your Hive schedule as normal to define the temperatures you would like throughout the week. Deep Heating will use these schedules for your target temperatures.
+For each room, set up your schedule to define the temperatures you would like throughout the week. Deep Heating will use these schedules for your target temperatures.
 
-- Your radiators will be turned off and on as needed to get your Hue sensors to read the scheduled target temperature in each room.
+- Your radiators will be turned off and on as needed to get your temperature sensors to read the scheduled target temperature in each room.
 - Radiators will turn on before the sheduled time if necessary, to get the room up to temperature by the time your schedule kicks in. (This is rather crude at the moment, but works for me).
-- One of your Hue buttons can be used to switch the heating off at night. Your heating won't turn on again until needed, but never before 7am (because my heating is noisy).
+- One of your buttons can be used to switch the heating off at night. Your heating won't turn on again until needed, but never before 7am (because my heating is noisy).
 
 ### Why isn't everything configurable?
 
