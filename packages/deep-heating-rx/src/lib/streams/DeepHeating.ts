@@ -51,7 +51,6 @@ import {
   share,
   shareReplay,
 } from 'rxjs/operators';
-import { isDeepStrictEqual } from 'util';
 import { applyHeatingActions, applyTrvActions } from './actions';
 import { getHouseModes } from './house/houseModes';
 import { getRoomAdjustments } from './rooms/roomAdjustments';
@@ -189,7 +188,10 @@ export class DeepHeating {
       groupBy((trvControlState) => trvControlState.climateEntityId),
       mergeMap((trvControlState) =>
         trvControlState.pipe(
-          distinctUntilChanged<TrvControlState>(isDeepStrictEqual),
+          distinctUntilChanged<TrvControlState>(
+            (a, b) =>
+              a.mode === b.mode && a.targetTemperature === b.targetTemperature
+          ),
           shareReplay(1)
         )
       ),
