@@ -11,6 +11,11 @@
 
   export let room: RoomState;
 
+  const isHeating = pipe(
+    room.isHeating,
+    Option.getOrElse(() => false)
+  );
+
   const adjust: (adjustment: RoomAdjustment) => RoomAdjustment = (
     adjustment: RoomAdjustment
   ) => {
@@ -21,15 +26,15 @@
 
 <div
   class="card card-compact text-primary-content w-44"
-  class:bg-heating={room.isHeating}
-  class:bg-cooling={!room.isHeating}
+  class:bg-heating={isHeating}
+  class:bg-cooling={!isHeating}
 >
   <div class="card-body">
     <a href="/rooms/{room.name}">
       <div class="card-title">
         {room.name}
         <div class="card-actions">
-          {#if room.isHeating}
+          {#if isHeating}
             <Fire />
           {/if}
         </div>
