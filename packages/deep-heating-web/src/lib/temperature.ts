@@ -8,10 +8,16 @@ const formatter = new Intl.NumberFormat('en-GB', {
 });
 
 export const formatTemperature = (
-  temperature?: Temperature,
+  temperature: Option.Option<Temperature>,
   showUnits = true
 ): string =>
-  temperature ? formatter.format(temperature) + (showUnits ? 'ºC' : '') : '–';
+  pipe(
+    temperature,
+    Option.match({
+      onSome: (t) => formatter.format(t) + (showUnits ? 'ºC' : ''),
+      onNone: () => '–',
+    })
+  );
 
 const VeryHot = Schema.parse(Temperature)(60);
 

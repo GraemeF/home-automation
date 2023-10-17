@@ -37,11 +37,13 @@
 {/if}
 <div class="grid justify-items-center">
   <p>
-    {pipe(room.targetTemperature, Option.getOrUndefined, formatTemperature)}
+    {pipe(room.targetTemperature, formatTemperature)}
   </p>
   {#if adjustment}
     <p class="stat-desc">
-      {`(${formatTemperature(Schema.parseSync(Temperature)(adjustment))})`}
+      {`(${formatTemperature(
+        Option.some(Schema.parseSync(Temperature)(adjustment))
+      )})`}
     </p>
   {/if}
 </div>

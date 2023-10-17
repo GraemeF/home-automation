@@ -43,8 +43,7 @@
         {formatTemperature(
           pipe(
             room.temperature,
-            Option.map((t) => t.temperature),
-            Option.getOrUndefined
+            Option.map((t) => t.temperature)
           )
         )}
       </div>
