@@ -25,29 +25,28 @@
 </script>
 
 <div
-  class="card card-compact text-primary-content w-44"
+  class="card card-compact w-44"
   class:bg-heating={isHeating}
   class:bg-cooling={!isHeating}
+  style="color: white;"
 >
   <div class="card-body">
-    <a href="/rooms/{room.name}">
-      <div class="card-title">
-        {room.name}
-        <div class="card-actions">
-          {#if isHeating}
-            <Fire />
-          {/if}
-        </div>
+    <div class="card-title">
+      {room.name}
+      <div class="card-actions">
+        {#if isHeating}
+          <Fire />
+        {/if}
       </div>
-      <div class="stat-value text-right">
-        {formatTemperature(
-          pipe(
-            room.temperature,
-            Option.map((t) => t.temperature)
-          )
-        )}
-      </div>
-    </a>
+    </div>
+    <div class="stat-value text-right">
+      {formatTemperature(
+        pipe(
+          room.temperature,
+          Option.map((t) => t.temperature)
+        )
+      )}
+    </div>
     {#if Option.isSome(room.targetTemperature)}
       <div class="card-actions justify-center items-center">
         <RoomControls
