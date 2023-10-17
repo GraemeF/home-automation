@@ -124,33 +124,37 @@ export type HouseModeValue = Schema.Schema.To<typeof HouseModeValue>;
 export const RoomModeValue = Schema.literal('Off', 'Auto', 'Sleeping');
 export type RoomModeValue = Schema.Schema.To<typeof RoomModeValue>;
 
-export interface RoomMode {
-  roomName: string;
-  mode: RoomModeValue;
-}
+const RoomMode = Schema.struct({
+  roomName: Schema.string,
+  mode: RoomModeValue,
+});
+export type RoomMode = Schema.Schema.To<typeof RoomMode>;
 
-export interface RoomTrvTemperatures {
-  roomName: string;
-  trvTemperatures: ClimateTemperatureReading[];
-}
+const RoomTrvTemperatures = Schema.struct({
+  roomName: Schema.string,
+  trvTemperatures: Schema.array(ClimateTemperatureReading),
+});
+export type RoomTrvTemperatures = Schema.Schema.To<typeof RoomTrvTemperatures>;
 
-export interface RadiatorState {
-  isHeating?: boolean;
-  name?: string;
-  temperature?: TemperatureReading;
-  targetTemperature?: TemperatureReading;
-  desiredTargetTemperature?: TemperatureReading;
-}
+const RadiatorState = Schema.struct({
+  isHeating: Schema.option(Schema.boolean),
+  name: Schema.string,
+  temperature: Schema.option(TemperatureReading),
+  targetTemperature: Schema.option(TemperatureReading),
+  desiredTargetTemperature: Schema.option(TemperatureReading),
+});
+export type RadiatorState = Schema.Schema.To<typeof RadiatorState>;
 
-export interface RoomState {
-  name: string;
-  temperature?: TemperatureReading;
-  targetTemperature?: Temperature;
-  radiators: RadiatorState[];
-  mode?: RoomModeValue;
-  isHeating?: boolean;
-  adjustment: number;
-}
+export const RoomState = Schema.struct({
+  name: Schema.string,
+  temperature: Schema.option(TemperatureReading),
+  targetTemperature: Schema.option(Temperature),
+  radiators: Schema.array(RadiatorState),
+  mode: Schema.option(RoomModeValue),
+  isHeating: Schema.option(Schema.boolean),
+  adjustment: Schema.number,
+});
+export type RoomState = Schema.Schema.To<typeof RoomState>;
 
 export interface RoomTemperature {
   roomName: string;
@@ -178,10 +182,11 @@ export interface RoomAdjustment {
   adjustment: number;
 }
 
-export interface DeepHeatingState {
-  rooms: RoomState[];
-  isHeating?: boolean;
-}
+export const DeepHeatingState = Schema.struct({
+  rooms: Schema.array(RoomState),
+  isHeating: Schema.option(Schema.boolean),
+});
+export type DeepHeatingState = Schema.Schema.To<typeof DeepHeatingState>;
 
 export const Home = Schema.struct({
   rooms: Schema.array(RoomDefinition),

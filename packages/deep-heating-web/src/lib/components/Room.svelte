@@ -1,10 +1,13 @@
 <script lang="ts">
-  import type { RoomState } from '@home-automation/deep-heating-types';
-  import Fire from '$packages/svelte-material-icons/Fire.svelte';
-  import { formatTemperature } from '$lib/temperature';
-  import RoomControls from './RoomControls.svelte';
-  import type { RoomAdjustment } from '@home-automation/deep-heating-types';
   import { apiClientStore } from '$lib/stores/apiClient';
+  import { formatTemperature } from '$lib/temperature';
+  import Fire from '$packages/svelte-material-icons/Fire.svelte';
+  import type {
+    RoomAdjustment,
+    RoomState,
+  } from '@home-automation/deep-heating-types';
+  import { Option, pipe } from 'effect';
+  import RoomControls from './RoomControls.svelte';
 
   export let room: RoomState;
 
@@ -32,10 +35,16 @@
         </div>
       </div>
       <div class="stat-value text-right">
-        {formatTemperature(room.temperature?.temperature)}
+        {formatTemperature(
+          pipe(
+            room.temperature,
+            Option.map((t) => t.temperature),
+            Option.getOrUndefined
+          )
+        )}
       </div>
     </a>
-    {#if room.targetTemperature}
+    {#if Option.isSome(room.targetTemperature)}
       <div class="card-actions justify-center items-center">
         <RoomControls
           {room}

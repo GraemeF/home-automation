@@ -1,13 +1,15 @@
-import { derived, writable, get } from 'svelte/store';
-import type { Readable } from 'svelte/store';
-import { apiClientStore } from './apiClient';
+import { Schema } from '@effect/schema';
+import { DeepHeatingState } from '@home-automation/deep-heating-types';
+import { Option } from 'effect';
 import type { Socket } from 'socket.io-client';
 import type { DefaultEventsMap } from 'socket.io/dist/typed-events';
-import type { DeepHeatingState } from '@home-automation/deep-heating-types';
+import type { Readable } from 'svelte/store';
+import { derived, get, writable } from 'svelte/store';
+import { apiClientStore } from './apiClient';
 
 interface Home {
   connected: boolean;
-  state: DeepHeatingState | null;
+  state: Option.Option<DeepHeatingState>;
 }
 
 export const homeStore = derived<
@@ -18,7 +20,7 @@ export const homeStore = derived<
   ($apiClient, set) => {
     const home = writable<Home>({
       connected: false,
-      state: null,
+      state: Option.none(),
     });
 
     if ($apiClient)
@@ -32,9 +34,12 @@ export const homeStore = derived<
           set(get(home));
         })
         .on('State', (state) => {
-          home.update((home) => ({ ...home, state }));
+          home.update((home) => ({
+            ...home,
+            state: Option.some(Schema.parseSync(DeepHeatingState)(state)),
+          }));
           set(get(home));
         });
   },
-  { connected: false, state: null }
+  { connected: false, state: Option.none() }
 );

@@ -1,3 +1,4 @@
+import { Schema } from '@effect/schema';
 import { DeepHeating } from '@home-automation/deep-heating-rx';
 import { maintainState } from '@home-automation/deep-heating-state';
 import {
@@ -79,7 +80,7 @@ export class SocketServer {
     this.connection$
       .pipe(withLatestFrom(this.state$))
       .subscribe(([{ client }, state]) => {
-        client.emit('State', state);
+        client.emit('State', Schema.encodeSync(DeepHeatingState)(state));
       });
 
     this.subscription = combineLatest([this.state$, this.io$]).subscribe(

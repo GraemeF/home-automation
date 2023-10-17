@@ -5,32 +5,43 @@ import {
   RoomDefinition,
   RoomState,
 } from '@home-automation/deep-heating-types';
+import { Option, ReadonlyArray, pipe } from 'effect';
 import { Observable } from 'rxjs';
 import { multiScan } from 'rxjs-multi-scan';
 import { filter, mergeAll, mergeMap, startWith } from 'rxjs/operators';
 
-export const addOrReplace = function <T>(a: T[], o: T, k: keyof T): T[] {
-  const fi = a.findIndex((f) => f[k] === o[k]);
-  if (fi !== -1) {
-    a.splice(fi, 1, o);
-  } else {
-    a.push(o);
-  }
-  return a;
-};
+export const addOrReplace = <T>(
+  array: ReadonlyArray<T>,
+  element: T,
+  idKey: keyof T
+): ReadonlyArray<T> =>
+  pipe(
+    array,
+    ReadonlyArray.findFirstIndex((f) => f[idKey] === element[idKey]),
+    Option.match({
+      onSome: (index) => ReadonlyArray.replace(index, element)(array),
+      onNone: () => ReadonlyArray.append(element)(array),
+    })
+  );
 
 function maintainTrvState(
   deepHeating: DeepHeating,
   trvId: string
 ): Observable<RadiatorState> {
-  const initialState: RadiatorState = { name: trvId };
+  const initialState: RadiatorState = {
+    name: trvId,
+    desiredTargetTemperature: Option.none(),
+    isHeating: Option.none(),
+    targetTemperature: Option.none(),
+    temperature: Option.none(),
+  };
   return multiScan(
     deepHeating.trvTemperatures$.pipe(
       filter((x) => x.climateEntityId === trvId)
     ),
     (state, update) => ({
       ...state,
-      temperature: update.temperatureReading,
+      temperature: Option.some(update.temperatureReading),
     }),
 
     deepHeating.trvTargetTemperatures$.pipe(
@@ -38,16 +49,16 @@ function maintainTrvState(
     ),
     (state, update) => ({
       ...state,
-      targetTemperature: {
+      targetTemperature: Option.some({
         temperature: update.targetTemperature,
         time: new Date(),
-      },
+      }),
     }),
 
     deepHeating.trvStatuses$.pipe(filter((x) => x.climateEntityId === trvId)),
     (state, update) => ({
       ...state,
-      isHeating: update.isHeating,
+      isHeating: Option.some(update.isHeating),
     }),
 
     deepHeating.trvDesiredTargetTemperatures$.pipe(
@@ -55,10 +66,10 @@ function maintainTrvState(
     ),
     (state, desired) => ({
       ...state,
-      desiredTargetTemperature: {
+      desiredTargetTemperature: Option.some({
         temperature: desired.targetTemperature,
         time: new Date(),
-      },
+      }),
     }),
 
     initialState
@@ -70,15 +81,19 @@ function maintainRoomState(
   room: RoomDefinition
 ): Observable<RoomState> {
   const initialRoomState: RoomState = {
-    radiators: [],
+    radiators: ReadonlyArray.empty<RadiatorState>(),
     name: room.name,
     adjustment: 0,
+    isHeating: Option.none(),
+    mode: Option.none(),
+    targetTemperature: Option.none(),
+    temperature: Option.none(),
   };
   return multiScan(
     deepHeating.roomTemperatures$.pipe(filter((x) => x.roomName === room.name)),
     (state, update) => ({
       ...state,
-      temperature: update.temperatureReading,
+      temperature: Option.some(update.temperatureReading),
     }),
 
     deepHeating.roomTargetTemperatures$.pipe(
@@ -86,19 +101,19 @@ function maintainRoomState(
     ),
     (state, update) => ({
       ...state,
-      targetTemperature: update.targetTemperature,
+      targetTemperature: Option.some(update.targetTemperature),
     }),
 
     deepHeating.roomModes$.pipe(filter((x) => x.roomName === room.name)),
     (state, update) => ({
       ...state,
-      mode: update.mode,
+      mode: Option.some(update.mode),
     }),
 
     deepHeating.roomStatuses$.pipe(filter((x) => x.roomName === room.name)),
     (state, update) => ({
       ...state,
-      isHeating: update.isHeating,
+      isHeating: Option.some(update.isHeating),
     }),
 
     deepHeating.roomAdjustments$.pipe(filter((x) => x.roomName === room.name)),
@@ -123,7 +138,10 @@ function maintainRoomState(
   ).pipe(startWith<RoomState>(initialRoomState));
 }
 
-const emptyState: DeepHeatingState = { rooms: [] };
+const emptyState: DeepHeatingState = {
+  rooms: ReadonlyArray.empty<RoomState>(),
+  isHeating: Option.none(),
+};
 
 export function maintainState(
   deepHeating: DeepHeating
@@ -146,7 +164,7 @@ export function maintainState(
     deepHeating.heatingStatuses$,
     (state, heatingStatus) => ({
       ...state,
-      isHeating: heatingStatus.isHeating,
+      isHeating: Option.some(heatingStatus.isHeating),
     }),
 
     emptyState
