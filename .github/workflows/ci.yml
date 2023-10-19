@@ -31,12 +31,19 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
+
+      - name: Cache asdf
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.asdf
+          key: ${{ runner.os }}-asdf-${{ hashFiles('**/.tool-versions') }}
+      - name: Install asdf & tools
+        uses: asdf-vm/actions/install@v3
+        timeout-minutes: 2
+
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v4
-      - uses: actions/setup-node@v3
-        with:
-          cache: 'npm'
-          node-version-file: '.tool-versions'
       - run: npm ci
       - run: npx nx format:check
       - run: npx nx run-many --target=build
