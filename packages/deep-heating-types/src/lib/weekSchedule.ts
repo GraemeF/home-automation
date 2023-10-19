@@ -27,11 +27,11 @@ export const toHeatingSchedule = (
   now: DateTime
 ): HeatingSchedule => {
   const today = now.startOf('day');
-  const futureSlots = ReadonlyRecord.toArray(schedule)
+  const futureSlots = ReadonlyRecord.toEntries(schedule)
     .flatMap(([dayName, slots]) =>
       pipe(
         slots,
-        ReadonlyRecord.toArray,
+        ReadonlyRecord.toEntries,
         ReadonlyArray.map(([start, target]) => ({
           start: Duration.fromISOTime(start),
           target,
