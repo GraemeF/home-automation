@@ -8,7 +8,6 @@
     "@nx/eslint-plugin": "17.0.0",
     "@nx/jest": "17.0.0",
     "@nx/js": "17.0.0",
-    "@nx/linter": "17.0.0",
     "@nx/node": "17.0.0",
     "@nx/webpack": "17.0.0",
     "@nx/workspace": "17.0.0",
@@ -45,7 +44,8 @@
     "typescript": "5.2.2",
     "vite-plugin-checker": "0.6.2",
     "vitest": "0.34.6",
-    "webpack-merge": "5.10.0"
+    "webpack-merge": "5.10.0",
+    "@nx/eslint": "17.0.0"
   },
   "dependencies": {
     "@effect/platform": "0.24.0",
@@ -67,4 +67,3 @@
     "tslib": "2.6.2"
   }
 }
-

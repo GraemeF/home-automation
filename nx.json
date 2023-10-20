@@ -8,20 +8,8 @@
       "analyzeSourceFiles": true
     }
   },
-  "npmScope": "home-automation",
   "affected": {
     "defaultBase": "main"
-  },
-  "cli": {
-    "defaultCollection": "@nx/node"
-  },
-  "tasksRunnerOptions": {
-    "default": {
-      "runner": "nx/tasks-runners/default",
-      "options": {
-        "cacheableOperations": ["build", "lint", "test", "e2e"]
-      }
-    }
   },
   "defaultProject": "deep-heating-socketio",
   "namedInputs": {
@@ -38,13 +26,19 @@
   },
   "targetDefaults": {
     "build": {
-      "inputs": ["production", "^production"]
+      "inputs": ["production", "^production"],
+      "cache": true
     },
     "test": {
-      "inputs": ["default", "^production", "{workspaceRoot}/jest.preset.js"]
+      "inputs": ["default", "^production", "{workspaceRoot}/jest.preset.js"],
+      "cache": true
     },
     "lint": {
-      "inputs": ["default", "{workspaceRoot}/.eslintrc.json"]
+      "inputs": ["default", "{workspaceRoot}/.eslintrc.json"],
+      "cache": true
+    },
+    "e2e": {
+      "cache": true
     }
   }
 }

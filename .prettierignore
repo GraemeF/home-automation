@@ -4,3 +4,5 @@
 /coverage
 /renovate.json
 .svelte-kit/
+
+/.nx/cache
