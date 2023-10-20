@@ -45,3 +45,5 @@ Thumbs.db
 /migrations.json
 /packages/*/.env
 .env.local
+
+.nx/cache
