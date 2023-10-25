@@ -3,56 +3,16 @@
   "branchConcurrentLimit": 20,
   "packageRules": [
     {
-      "matchPackagePatterns": ["*"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "all non-major dependencies",
-      "groupSlug": "all-minor-patch",
-      "automerge": true,
-      "labels": ["dependencies"]
-    },
-    {
-      "matchPackagePatterns": ["*"],
-      "matchUpdateTypes": ["major"],
-      "labels": ["dependencies", "breaking"]
-    },
-    {
-      "matchSourceUrlPrefixes": [
-        "https://github.com/nrwl/",
-        "https://github.com/nxext/"
-      ],
-      "groupName": "NX",
-      "automerge": false,
-      "labels": ["dependencies"]
-    },
-    {
-      "matchPackagePrefixes": ["@opentelemetry/"],
-      "groupName": "opentelemetry",
-      "automerge": false,
-      "labels": ["dependencies"]
-    },
-    {
-      "matchPackagePrefixes": ["jest", "jest-", "@types/jest"],
-      "groupName": "jest",
-      "automerge": true,
-      "labels": ["dependencies"]
-    },
-    {
       "matchPackagePrefixes": ["effect", "@effect/"],
-      "groupName": "effect",
-      "automerge": true,
-      "labels": ["dependencies"]
+      "groupName": "effect"
     },
     {
       "matchPackagePatterns": ["@nx-tools/*"],
-      "groupName": "nx-tools",
-      "automerge": true,
-      "labels": ["dependencies"]
+      "groupName": "nx-tools"
     },
     {
       "matchPackageNames": ["node.js", "node"],
-      "groupName": "node.js",
-      "automerge": false,
-      "labels": ["dependencies"]
+      "groupName": "node.js"
     }
   ]
 }
