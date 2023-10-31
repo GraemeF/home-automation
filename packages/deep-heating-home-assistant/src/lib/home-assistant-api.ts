@@ -146,7 +146,7 @@ export const getEntityUpdates = (
 ): Observable<HomeAssistantEntity> =>
   timer(0, refreshIntervalMilliseconds).pipe(
     throttleTime(refreshIntervalMilliseconds),
-    switchMap(() => from(pipe(Runtime.runPromise(runtime)(getEntities)))),
+    switchMap(() => from(pipe(getEntities, Runtime.runPromise(runtime)))),
     mergeAll(),
     shareReplay(1)
   );

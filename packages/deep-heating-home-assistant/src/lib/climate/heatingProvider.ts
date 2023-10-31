@@ -39,13 +39,23 @@ export const createHomeAssistantHeatingProvider = (
         ),
       ],
       Effect.all,
-      Effect.tap(() =>
-        Effect.log(
-          `${action.climateEntityId} has been changed to ${
-            (action.mode ?? '', action.targetTemperature)
-          }`
-        )
-      ),
+      Effect.tapBoth({
+        onSuccess: () =>
+          Effect.log(
+            `${action.climateEntityId} has been changed to ${
+              (action.mode ?? '', action.targetTemperature)
+            }`
+          ),
+        onFailure: () =>
+          Effect.logError(
+            `Failed to change ${action.climateEntityId} to ${
+              (action.mode ?? '', action.targetTemperature)
+            }`
+          ),
+      }),
+      Effect.sandbox,
+      Effect.catchAll(Effect.logError),
+      Effect.as('done'),
       Runtime.runPromise(runtime)
     )
   );
