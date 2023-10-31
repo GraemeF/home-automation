@@ -7,10 +7,10 @@ import { isNotNull } from 'effect/Predicate';
 import { GroupedObservable, Observable } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 
-export function getRoomSensors(
+export const getRoomSensors = (
   rooms$: Observable<GroupedObservable<string, RoomDefinition>>
-): Observable<Observable<RoomSensors>> {
-  return rooms$.pipe(
+): Observable<Observable<RoomSensors>> =>
+  rooms$.pipe(
     map((room$) =>
       room$.pipe(
         map((roomDefinition) =>
@@ -27,4 +27,3 @@ export function getRoomSensors(
       )
     )
   );
-}

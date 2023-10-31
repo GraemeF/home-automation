@@ -6,10 +6,10 @@ import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-export function getTrvTargetTemperatures(
+export const getTrvTargetTemperatures = (
   trvControlStates$: Observable<TrvControlState>
-): Observable<ClimateTargetTemperature> {
-  return trvControlStates$.pipe(
+): Observable<ClimateTargetTemperature> =>
+  trvControlStates$.pipe(
     map((x) => ({
       climateEntityId: x.climateEntityId,
       targetTemperature: x.targetTemperature,
@@ -19,4 +19,3 @@ export function getTrvTargetTemperatures(
       (a, b) => a.targetTemperature === b.targetTemperature
     )
   );
-}

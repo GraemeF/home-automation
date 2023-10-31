@@ -8,15 +8,16 @@ import { Observable, combineLatest, timer } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
 const refreshIntervalSeconds = 60;
 
-export function getTrvScheduledTargetTemperatures(
+export const getTrvScheduledTargetTemperatures = (
   trvHiveHeatingSchedule$: Observable<TrvWeekHeatingSchedule>
-): Observable<TrvScheduledTargetTemperature> {
-  const time = timer(0, refreshIntervalSeconds * 1000).pipe(
-    map(() => DateTime.local()),
-    shareReplay(1)
-  );
-
-  return combineLatest([trvHiveHeatingSchedule$, time]).pipe(
+): Observable<TrvScheduledTargetTemperature> =>
+  combineLatest([
+    trvHiveHeatingSchedule$,
+    timer(0, refreshIntervalSeconds * 1000).pipe(
+      map(() => DateTime.local()),
+      shareReplay(1)
+    ),
+  ]).pipe(
     map(([trvSchedule, now]) => ({
       climateEntityId: trvSchedule.climateEntityId,
       scheduledTargetTemperature: toHeatingSchedule(
@@ -25,4 +26,3 @@ export function getTrvScheduledTargetTemperatures(
       )[0].targetTemperature,
     }))
   );
-}

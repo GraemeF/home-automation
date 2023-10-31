@@ -6,10 +6,10 @@ import { Predicate } from 'effect';
 import { GroupedObservable, Observable } from 'rxjs';
 import { map, mergeMap } from 'rxjs/operators';
 
-export function getRoomClimateEntities(
+export const getRoomClimateEntities = (
   rooms$: Observable<GroupedObservable<string, RoomDefinition>>
-): Observable<RoomClimateEntities> {
-  return rooms$.pipe(
+): Observable<RoomClimateEntities> =>
+  rooms$.pipe(
     mergeMap((room$) =>
       room$.pipe(
         map((roomDefinition) =>
@@ -22,4 +22,3 @@ export function getRoomClimateEntities(
       )
     )
   );
-}

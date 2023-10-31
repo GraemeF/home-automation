@@ -6,8 +6,8 @@ import {
 import { Observable, combineLatest } from 'rxjs';
 import { filter, groupBy, map, mergeMap } from 'rxjs/operators';
 
-function trvScheduleRooms(roomTrvs$: Observable<RoomClimateEntities>) {
-  return roomTrvs$.pipe(
+const trvScheduleRooms = (roomTrvs$: Observable<RoomClimateEntities>) =>
+  roomTrvs$.pipe(
     map((x) => ({
       roomName: x.roomName,
       scheduleTrvId:
@@ -16,13 +16,12 @@ function trvScheduleRooms(roomTrvs$: Observable<RoomClimateEntities>) {
     filter((x) => x.scheduleTrvId !== null),
     groupBy((x) => x.scheduleTrvId)
   );
-}
 
-export function getRoomHiveHeatingSchedules(
+export const getRoomHiveHeatingSchedules = (
   roomTrvs$: Observable<RoomClimateEntities>,
   trvSchedules: Observable<TrvWeekHeatingSchedule>
-): Observable<RoomWeekHeatingSchedule> {
-  return trvScheduleRooms(roomTrvs$).pipe(
+): Observable<RoomWeekHeatingSchedule> =>
+  trvScheduleRooms(roomTrvs$).pipe(
     mergeMap((groupedTrvScheduleRooms) =>
       combineLatest([
         groupedTrvScheduleRooms,
@@ -32,4 +31,3 @@ export function getRoomHiveHeatingSchedules(
       ]).pipe(map(([{ roomName }, { schedule }]) => ({ roomName, schedule })))
     )
   );
-}

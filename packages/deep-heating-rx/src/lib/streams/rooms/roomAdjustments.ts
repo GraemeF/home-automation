@@ -1,3 +1,7 @@
+import {
+  RoomAdjustment,
+  RoomDefinition,
+} from '@home-automation/deep-heating-types';
 import { GroupedObservable, Observable } from 'rxjs';
 import {
   distinctUntilChanged,
@@ -7,17 +11,13 @@ import {
   startWith,
 } from 'rxjs/operators';
 import { isDeepStrictEqual } from 'util';
-import {
-  RoomAdjustment,
-  RoomDefinition,
-} from '@home-automation/deep-heating-types';
 
-export function getRoomAdjustments(
+export const getRoomAdjustments = (
   initialRoomAdjustments: RoomAdjustment[],
   rooms$: Observable<GroupedObservable<string, RoomDefinition>>,
   roomAdjustmentCommands$: Observable<RoomAdjustment>
-): Observable<RoomAdjustment> {
-  return rooms$.pipe(
+): Observable<RoomAdjustment> =>
+  rooms$.pipe(
     mergeMap((room$) =>
       roomAdjustmentCommands$.pipe(
         filter((roomAdjustment) => roomAdjustment.roomName === room$.key),
@@ -32,4 +32,3 @@ export function getRoomAdjustments(
       )
     )
   );
-}

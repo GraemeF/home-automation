@@ -8,12 +8,12 @@ import { shareReplayLatestDistinct } from '@home-automation/rxx';
 import { Observable, combineLatest } from 'rxjs';
 import { filter, map, mergeAll, mergeMap } from 'rxjs/operators';
 
-export function getTrvSynthesisedStatuses(
+export const getTrvSynthesisedStatuses = (
   trvIds$: Observable<ClimateEntityId[]>,
   trvTemperatures$: Observable<ClimateTemperatureReading>,
   trvControlStates$: Observable<TrvControlState>
-): Observable<ClimateEntityStatus> {
-  return trvIds$.pipe(
+): Observable<ClimateEntityStatus> =>
+  trvIds$.pipe(
     mergeMap((trvIds) =>
       trvIds.map((trvId) =>
         combineLatest([
@@ -32,4 +32,3 @@ export function getTrvSynthesisedStatuses(
     ),
     mergeAll()
   );
-}

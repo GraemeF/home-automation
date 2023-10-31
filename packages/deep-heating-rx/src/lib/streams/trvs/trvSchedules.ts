@@ -6,14 +6,13 @@ import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-export function getTrvWeekHeatingSchedules(
+export const getTrvWeekHeatingSchedules = (
   trvUpdates$: Observable<TrvUpdate>
-): Observable<TrvWeekHeatingSchedule> {
-  return trvUpdates$.pipe(
+): Observable<TrvWeekHeatingSchedule> =>
+  trvUpdates$.pipe(
     map((x) => ({
       climateEntityId: x.climateEntityId,
       schedule: x.state.schedule,
     })),
     shareReplayLatestDistinctByKey((x) => x.climateEntityId)
   );
-}

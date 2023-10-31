@@ -4,7 +4,6 @@ import {
   Temperature,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
-import { DateTime } from 'luxon';
 import { Observable, combineLatest, timer } from 'rxjs';
 import { map, share } from 'rxjs/operators';
 import { TrvDecisionPoint } from './trvDecisionPoints';
@@ -41,14 +40,13 @@ function getTrvDesiredTargetTemperature({
   };
 }
 
-export function getTrvDesiredTargetTemperatures(
+export const getTrvDesiredTargetTemperatures = (
   trvDecisionPoints: Observable<TrvDecisionPoint>
-): Observable<TrvDesiredTargetTemperature> {
-  const time = timer(0, refreshIntervalSeconds * 1000).pipe(
-    map(() => DateTime.local())
-  );
-
-  return combineLatest([trvDecisionPoints, time]).pipe(
+): Observable<TrvDesiredTargetTemperature> =>
+  combineLatest([
+    trvDecisionPoints,
+    timer(0, refreshIntervalSeconds * 1000),
+  ]).pipe(
     map(([decisionPoint]) => getTrvDesiredTargetTemperature(decisionPoint)),
     shareReplayLatestDistinctByKey(
       (trvDesiredTargetTemperature) =>
@@ -56,4 +54,3 @@ export function getTrvDesiredTargetTemperatures(
     ),
     share()
   );
-}

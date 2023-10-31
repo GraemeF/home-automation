@@ -67,14 +67,14 @@ export function determineAction(
   return null;
 }
 
-export function getTrvActions(
+export const getTrvActions = (
   trvIds$: Observable<ClimateEntityId[]>,
   trvDesiredTargetTemperatures: Observable<TrvDesiredTargetTemperature>,
   trvControlStates: Observable<TrvControlState>,
   trvTemperatures: Observable<ClimateTemperatureReading>,
   trvScheduledTargetTemperatures: Observable<TrvScheduledTargetTemperature>
-): Observable<ClimateAction> {
-  return trvIds$.pipe(
+): Observable<ClimateAction> =>
+  trvIds$.pipe(
     mergeMap((trvIds) =>
       trvIds.map((trvId) =>
         combineLatest([
@@ -121,4 +121,3 @@ export function getTrvActions(
     ),
     share()
   );
-}

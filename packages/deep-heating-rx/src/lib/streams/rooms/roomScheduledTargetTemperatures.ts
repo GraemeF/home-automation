@@ -40,15 +40,14 @@ const getScheduledTargetTemperature = (
 export const getRoomScheduledTargetTemperatures = (
   rooms$: Observable<GroupedObservable<string, RoomDefinition>>,
   roomSchedules$: Observable<RoomSchedule>
-): Observable<RoomTargetTemperature> => {
-  const time = timer(0, refreshIntervalSeconds * 1000).pipe(
-    map(() => DateTime.local()),
-    shareReplay(1)
-  );
-  return rooms$.pipe(
+): Observable<RoomTargetTemperature> =>
+  rooms$.pipe(
     mergeMap((room) =>
       combineLatest([
-        time,
+        timer(0, refreshIntervalSeconds * 1000).pipe(
+          map(() => DateTime.local()),
+          shareReplay(1)
+        ),
         room,
         roomSchedules$.pipe(filter((x) => x.roomName === room.key)),
       ]).pipe(shareReplayLatestDistinct())
@@ -62,4 +61,3 @@ export const getRoomScheduledTargetTemperatures = (
     })),
     shareReplayLatestDistinctByKey((x) => x.roomName)
   );
-};

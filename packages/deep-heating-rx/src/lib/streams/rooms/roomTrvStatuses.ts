@@ -6,11 +6,11 @@ import {
 import { Observable, combineLatest } from 'rxjs';
 import { filter, map, mergeMap } from 'rxjs/operators';
 
-export function getRoomTrvStatuses(
+export const getRoomTrvStatuses = (
   roomTrvs$: Observable<RoomClimateEntities>,
   climateEntityStatus$: Observable<ClimateEntityStatus>
-): Observable<RoomTrvStatuses> {
-  return roomTrvs$.pipe(
+): Observable<RoomTrvStatuses> =>
+  roomTrvs$.pipe(
     mergeMap((roomTrvs) =>
       combineLatest(
         roomTrvs.climateEntityIds.map((trvId) =>
@@ -29,4 +29,3 @@ export function getRoomTrvStatuses(
       )
     )
   );
-}

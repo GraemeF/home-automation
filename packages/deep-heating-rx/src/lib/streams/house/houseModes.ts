@@ -28,28 +28,29 @@ export const getHouseMode = (
     ? 'Sleeping'
     : 'Auto';
 
-export function getHouseModes(
+export const getHouseModes = (
   buttonEvents$: Observable<ButtonPressEventEntity>,
   sleepSwitchId: EventEntityId
-): Observable<HouseModeValue> {
-  const time$ = timer(0, refreshIntervalSeconds * 1000).pipe(
-    map(() => DateTime.local()),
-    shareReplay(1)
-  );
-
-  return time$.pipe(
-    withLatestFrom(
-      buttonEvents$.pipe(
-        filter((x) => x.entity_id === sleepSwitchId),
-        startWith(undefined)
-      )
-    ),
-    map(([time, lastButtonEvent]) =>
-      getHouseMode(
-        time,
-        lastButtonEvent ? DateTime.fromJSDate(lastButtonEvent.state) : undefined
-      )
-    ),
-    shareReplayLatestDistinct()
-  );
-}
+): Observable<HouseModeValue> =>
+  timer(0, refreshIntervalSeconds * 1000)
+    .pipe(
+      map(() => DateTime.local()),
+      shareReplay(1)
+    )
+    .pipe(
+      withLatestFrom(
+        buttonEvents$.pipe(
+          filter((x) => x.entity_id === sleepSwitchId),
+          startWith(undefined)
+        )
+      ),
+      map(([time, lastButtonEvent]) =>
+        getHouseMode(
+          time,
+          lastButtonEvent
+            ? DateTime.fromJSDate(lastButtonEvent.state)
+            : undefined
+        )
+      ),
+      shareReplayLatestDistinct()
+    );

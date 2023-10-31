@@ -7,11 +7,11 @@ import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import { Observable, combineLatest } from 'rxjs';
 import { filter, map, mergeMap } from 'rxjs/operators';
 
-export function getRoomTrvTargetTemperatures(
+export const getRoomTrvTargetTemperatures = (
   roomTrvs$: Observable<RoomClimateEntities>,
   trvTargetTemperatures$: Observable<ClimateTargetTemperature>
-): Observable<RoomClimateTargetTemperatures> {
-  return roomTrvs$.pipe(
+): Observable<RoomClimateTargetTemperatures> =>
+  roomTrvs$.pipe(
     mergeMap((roomTrvs) => {
       return combineLatest(
         roomTrvs.climateEntityIds.map((trvId) =>
@@ -31,4 +31,3 @@ export function getRoomTrvTargetTemperatures(
       );
     })
   );
-}

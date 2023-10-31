@@ -13,11 +13,11 @@ import {
 import { GroupedObservable, Observable, combineLatest } from 'rxjs';
 import { filter, map, mergeMap } from 'rxjs/operators';
 
-function getTargetTemperature(
+const getTargetTemperature = (
   roomScheduledTargetTemperature: RoomTargetTemperature,
   roomMode: RoomMode,
   roomAdjustment: RoomAdjustment
-) {
+) => {
   if (roomAdjustment.roomName !== roomScheduledTargetTemperature.roomName)
     throw Error('Mismatched rooms');
 
@@ -31,15 +31,15 @@ function getTargetTemperature(
           roomAdjustment.adjustment
       );
   }
-}
+};
 
-export function getRoomTargetTemperatures(
+export const getRoomTargetTemperatures = (
   rooms$: Observable<GroupedObservable<string, RoomDefinition>>,
   roomModes$: Observable<RoomMode>,
   roomScheduledTargetTemperatures$: Observable<RoomTargetTemperature>,
   roomAdjustments$: Observable<RoomAdjustment>
-): Observable<RoomTargetTemperature> {
-  return rooms$.pipe(
+): Observable<RoomTargetTemperature> =>
+  rooms$.pipe(
     mergeMap((room) =>
       combineLatest([
         room,
@@ -60,4 +60,3 @@ export function getRoomTargetTemperatures(
     })),
     shareReplayLatestDistinctByKey((x) => x.roomName)
   );
-}

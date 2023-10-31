@@ -3,10 +3,10 @@ import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-export function getTrvModes(
+export const getTrvModes = (
   trvControlStates: Observable<TrvControlState>
-): Observable<TrvMode> {
-  return trvControlStates.pipe(
+): Observable<TrvMode> =>
+  trvControlStates.pipe(
     map((x) => ({
       climateEntityId: x.climateEntityId,
       mode: x.mode,
@@ -17,4 +17,3 @@ export function getTrvModes(
       (a, b) => a.mode === b.mode
     )
   );
-}
