@@ -23,8 +23,10 @@ function getTrvDesiredTargetTemperature({
   trvTemperature,
 }: TrvDecisionPoint): TrvDesiredTargetTemperature {
   const heatingRequired = roomTemperature < roomTargetTemperature;
-  const trvTargetTemperature =
-    roomTargetTemperature + trvTemperature - roomTemperature;
+  const trvTargetTemperature = Math.min(
+    32,
+    Math.max(7, roomTargetTemperature + trvTemperature - roomTemperature)
+  );
 
   const roundedTargetTemperature = Schema.parseSync(Temperature)(
     0.5 *
