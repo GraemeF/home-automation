@@ -3,6 +3,7 @@ import {
   ButtonPressEventEntity,
   ClimateEntity,
   HomeAssistantEntity,
+  InputButtonEntity,
   OtherEntity,
   SensorEntity,
   TemperatureSensorEntity,
@@ -141,6 +142,22 @@ const exampleStates = [
     },
   },
   {
+    entity_id: 'input_button.goodnight',
+    state: '2023-11-06T15:55:43.780707+00:00',
+    attributes: {
+      editable: true,
+      icon: 'mdi:sleep',
+      friendly_name: 'Goodnight',
+    },
+    last_changed: '2023-11-06T15:55:43.781002+00:00',
+    last_updated: '2023-11-06T15:55:43.781002+00:00',
+    context: {
+      id: '01HEJNHMRZJF9R8V0M6FE9CKJ8',
+      parent_id: null,
+      user_id: 'fc1789cda34e4ca1927b07140b90a16f',
+    },
+  },
+  {
     entity_id: 'climate.main',
     state: 'off',
     attributes: {
@@ -212,7 +229,7 @@ describe('home-assistant-api', () => {
       );
     });
     it('parses all entities', async () => {
-      expect(entities).toHaveLength(9);
+      expect(entities).toHaveLength(10);
     });
 
     it('parses climate entities', async () => {
@@ -240,6 +257,12 @@ describe('home-assistant-api', () => {
         entities
           .filter(Schema.is(ButtonPressEventEntity))
           .map((e) => e.entity_id)
+      ).toHaveLength(1);
+    });
+
+    it('parses input button entities', async () => {
+      expect(
+        entities.filter(Schema.is(InputButtonEntity)).map((e) => e.entity_id)
       ).toHaveLength(1);
     });
 

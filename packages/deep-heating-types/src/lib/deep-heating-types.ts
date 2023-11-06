@@ -1,5 +1,5 @@
 import { Schema } from '@effect/schema';
-import { ClimateEntityId, EventEntityId, SensorEntityId } from './entities';
+import { ClimateEntityId, GoodnightEntityId, SensorEntityId } from './entities';
 import { ClimateMode } from './home-assistant';
 import { WeekSchedule } from './schedule-types';
 import { Temperature } from './temperature';
@@ -190,7 +190,7 @@ export type DeepHeatingState = Schema.Schema.To<typeof DeepHeatingState>;
 
 export const Home = Schema.struct({
   rooms: Schema.array(RoomDefinition),
-  sleepSwitchId: EventEntityId,
+  sleepSwitchId: GoodnightEntityId,
   heatingId: ClimateEntityId,
 });
 export type Home = Schema.Schema.To<typeof Home>;

@@ -7,13 +7,13 @@ import {
   HomeAssistantConfigLive,
 } from '@home-automation/deep-heating-home-assistant';
 import {
-  ButtonPressEventEntity,
   ClimateAction,
   ClimateEntityId,
   ClimateEntityStatus,
   ClimateTargetTemperature,
   ClimateTemperatureReading,
   getHeatingActions,
+  GoodnightEventEntity,
   HeatingStatus,
   Home,
   HouseModeValue,
@@ -124,7 +124,7 @@ export class DeepHeating {
   readonly heatingActions$: Observable<ClimateAction>;
   readonly roomAdjustments$: Observable<RoomAdjustment>;
   readonly roomScheduledTargetTemperatures$: Observable<RoomTargetTemperature>;
-  readonly buttonEvents$: Observable<ButtonPressEventEntity>;
+  readonly buttonEvents$: Observable<GoodnightEventEntity>;
   readonly houseModes$: Observable<HouseModeValue>;
   readonly trvsAnyHeating$: Observable<boolean>;
   readonly roomsAnyHeating$: Observable<boolean>;
@@ -165,14 +165,7 @@ export class DeepHeating {
       entityUpdates$
     ).buttonPressEvents$;
     this.buttonEvents$.subscribe((x) =>
-      log(
-        'Button',
-        x.entity_id,
-        x.attributes.friendly_name,
-        'event',
-        x.attributes.event_type,
-        x.state
-      )
+      log(x.entity_id, x.attributes.friendly_name, 'last happened at', x.state)
     );
     this.houseModes$ = getHouseModes(this.buttonEvents$, home.sleepSwitchId);
     this.houseModes$.subscribe((x) => log('House is', x));

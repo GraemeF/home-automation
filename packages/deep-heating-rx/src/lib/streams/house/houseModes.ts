@@ -1,6 +1,6 @@
 import {
-  ButtonPressEventEntity,
-  EventEntityId,
+  GoodnightEntityId,
+  GoodnightEventEntity,
   HouseModeValue,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinct } from '@home-automation/rxx';
@@ -29,8 +29,8 @@ export const getHouseMode = (
     : 'Auto';
 
 export const getHouseModes = (
-  buttonEvents$: Observable<ButtonPressEventEntity>,
-  sleepSwitchId: EventEntityId
+  buttonEvents$: Observable<GoodnightEventEntity>,
+  sleepSwitchId: GoodnightEntityId
 ): Observable<HouseModeValue> =>
   timer(0, refreshIntervalSeconds * 1000)
     .pipe(

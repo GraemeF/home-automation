@@ -28,3 +28,16 @@ export const EventEntityId = pipe(
   Schema.brand('EventEntityId')
 );
 export type EventEntityId = Schema.Schema.To<typeof EventEntityId>;
+
+export const InputButtonEntityId = pipe(
+  EntityId,
+  Schema.startsWith('input_button.'),
+  Schema.brand('InputButtonEntityId')
+);
+export type InputButtonEntityId = Schema.Schema.To<typeof InputButtonEntityId>;
+
+export const GoodnightEntityId = Schema.union(
+  EventEntityId,
+  InputButtonEntityId
+);
+export type GoodnightEntityId = Schema.Schema.To<typeof GoodnightEntityId>;

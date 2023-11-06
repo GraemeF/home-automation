@@ -4,6 +4,7 @@ import {
   ClimateEntityId,
   EntityId,
   EventEntityId,
+  InputButtonEntityId,
   SensorEntityId,
 } from '../entities';
 import { Temperature } from '../temperature';
@@ -95,8 +96,6 @@ export const ButtonPressEventEntity = pipe(
       entity_id: EventEntityId,
       state: pipe(Schema.string, Schema.dateFromString),
       attributes: Schema.struct({
-        event_type: Schema.string,
-        device_class: Schema.optional(Schema.literal('button')),
         friendly_name: Schema.string,
       }),
     })
@@ -106,9 +105,31 @@ export type ButtonPressEventEntity = Schema.Schema.To<
   typeof ButtonPressEventEntity
 >;
 
+export const InputButtonEntity = pipe(
+  BaseEntity,
+  Schema.extend(
+    Schema.struct({
+      entity_id: InputButtonEntityId,
+      state: pipe(Schema.string, Schema.dateFromString),
+      attributes: Schema.struct({
+        friendly_name: Schema.string,
+      }),
+    })
+  )
+);
+export type InputButtonEntity = Schema.Schema.To<typeof InputButtonEntity>;
+
+export const GoodnightEventEntity = Schema.union(
+  InputButtonEntity,
+  ButtonPressEventEntity
+);
+export type GoodnightEventEntity = Schema.Schema.To<
+  typeof GoodnightEventEntity
+>;
+
 export const HomeAssistantEntity = Schema.union(
   TemperatureSensorEntity,
-  ButtonPressEventEntity,
+  GoodnightEventEntity,
   ClimateEntity,
   OtherEntity
 );

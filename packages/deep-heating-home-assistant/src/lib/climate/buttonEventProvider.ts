@@ -1,6 +1,6 @@
 import { Schema } from '@effect/schema';
 import {
-  ButtonPressEventEntity,
+  GoodnightEventEntity,
   Home,
   HomeAssistantEntity,
 } from '@home-automation/deep-heating-types';
@@ -11,12 +11,12 @@ import { filter } from 'rxjs/operators';
 export const createHomeAssistantButtonEventProvider: (
   home: Home,
   entityUpdates$: Observable<HomeAssistantEntity>
-) => { buttonPressEvents$: Observable<ButtonPressEventEntity> } = (
+) => { buttonPressEvents$: Observable<GoodnightEventEntity> } = (
   home: Home,
   entityUpdates$: Observable<HomeAssistantEntity>
 ) => ({
   buttonPressEvents$: entityUpdates$.pipe(
-    filter(Schema.is(ButtonPressEventEntity)),
+    filter(Schema.is(GoodnightEventEntity)),
     filter((entity) => entity.entity_id === home.sleepSwitchId),
     shareReplayLatestDistinctByKey(
       (x) => x.entity_id,
