@@ -11,7 +11,7 @@
     "@nx/node": "17.0.3",
     "@nx/webpack": "17.0.3",
     "@nx/workspace": "17.0.3",
-    "@sveltejs/vite-plugin-svelte": "2.4.6",
+    "@sveltejs/vite-plugin-svelte": "2.5.0",
     "@testing-library/svelte": "4.0.5",
     "@tsconfig/svelte": "5.0.2",
     "@types/debug": "4.1.12",
