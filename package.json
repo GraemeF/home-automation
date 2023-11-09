@@ -14,7 +14,7 @@
     "@sveltejs/vite-plugin-svelte": "2.4.6",
     "@testing-library/svelte": "4.0.5",
     "@tsconfig/svelte": "5.0.2",
-    "@types/debug": "4.1.11",
+    "@types/debug": "4.1.12",
     "@types/jest": "29.5.8",
     "@types/jsonwebtoken": "9.0.5",
     "@types/luxon": "3.3.4",
