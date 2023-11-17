@@ -9,14 +9,14 @@ const formatter = new Intl.NumberFormat('en-GB', {
 
 export const formatTemperature = (
   temperature: Option.Option<Temperature>,
-  showUnits = true
+  showUnits = true,
 ): string =>
   pipe(
     temperature,
     Option.match({
       onSome: (t) => formatter.format(t) + (showUnits ? 'ºC' : ''),
       onNone: () => '–',
-    })
+    }),
   );
 
 const VeryHot = Schema.parse(Temperature)(60);
@@ -26,15 +26,15 @@ const getTemperatureFromRoom = (room: {
 }) =>
   pipe(
     room.temperature,
-    Option.getOrElse(() => VeryHot)
+    Option.getOrElse(() => VeryHot),
   );
 
 export const compareByRoomTemperature = (
   a: { temperature: Option.Option<{ temperature: Temperature }> },
-  b: { temperature: Option.Option<{ temperature: Temperature }> }
+  b: { temperature: Option.Option<{ temperature: Temperature }> },
 ) =>
   getTemperatureFromRoom(a) > getTemperatureFromRoom(b)
     ? 1
     : getTemperatureFromRoom(a) < getTemperatureFromRoom(b)
-    ? -1
-    : 0;
+      ? -1
+      : 0;
