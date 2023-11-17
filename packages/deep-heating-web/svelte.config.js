@@ -14,7 +14,7 @@ const config = {
     adapter: adapter({ out: '../../dist/packages/deep-heating-web' }),
     alias: {
       '@home-automation/deep-heating-types': path.resolve(
-        '../deep-heating-types/src/index.ts'
+        '../deep-heating-types/src/index.ts',
       ),
       $packages: path.resolve('../../node_modules'),
     },

@@ -41,5 +41,5 @@ export const homeStore = derived<
           set(get(home));
         });
   },
-  { connected: false, state: Option.none() }
+  { connected: false, state: Option.none() },
 );
