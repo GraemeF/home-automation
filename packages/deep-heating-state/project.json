@@ -15,8 +15,7 @@
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/packages/deep-heating-state"],
       "options": {
-        "jestConfig": "packages/deep-heating-state/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "packages/deep-heating-state/jest.config.ts"
       }
     }
   },

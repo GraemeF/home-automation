@@ -17,8 +17,7 @@
         "{workspaceRoot}/coverage/packages/deep-heating-home-assistant"
       ],
       "options": {
-        "jestConfig": "packages/deep-heating-home-assistant/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "packages/deep-heating-home-assistant/jest.config.ts"
       }
     }
   },

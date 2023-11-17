@@ -15,8 +15,7 @@
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/packages/dictionary"],
       "options": {
-        "jestConfig": "packages/dictionary/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "packages/dictionary/jest.config.ts"
       }
     }
   },

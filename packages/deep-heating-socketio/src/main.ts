@@ -44,7 +44,7 @@ pipe(
   FileSystem.FileSystem,
   Effect.flatMap((fs) => readDataFromFile(fs)),
   Effect.map((data) => {
-    const socketServer = new SocketServer(
+    new SocketServer(
       httpServer,
       data,
       JSON.parse(initialRoomAdjustments),
