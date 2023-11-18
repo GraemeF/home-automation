@@ -50,7 +50,7 @@
   },
   "dependencies": {
     "@effect/platform": "0.30.5",
-    "@effect/platform-node": "0.31.5",
+    "@effect/platform-node": "0.31.7",
     "@nx-tools/container-metadata": "5.1.0",
     "@nx-tools/nx-container": "5.1.0",
     "@sveltejs/adapter-node": "1.3.1",
