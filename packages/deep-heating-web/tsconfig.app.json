@@ -5,7 +5,7 @@
     "composite": true,
     "outDir": "../../dist/out-tsc"
   },
-
+  "files": [],
   "include": ["src/**/*"],
   "exclude": ["**/*.spec.ts", "**/*_spec.ts", "public/*"]
 }

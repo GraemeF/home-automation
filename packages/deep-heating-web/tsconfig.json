@@ -55,7 +55,6 @@
       ]
     }
   },
-  "files": ["./vitest.config.ts"],
   "include": [],
   "references": [
     {
