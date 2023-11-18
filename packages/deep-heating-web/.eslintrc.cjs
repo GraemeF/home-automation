@@ -1,30 +1,61 @@
 module.exports = {
+  root: true,
   parser: '@typescript-eslint/parser',
-  plugins: ['svelte3', '@typescript-eslint'],
-  extends: ['../../.eslintrc.json'],
-  ignorePatterns: ['!**/*', '.svelte-kit/**/*', 'node_modules/**/*'],
+  parserOptions: {
+    project: ['packages/deep-heating-web/tsconfig.*?.json'],
+    extraFileExtensions: ['.svelte'],
+    sourceType: 'module',
+    ecmaVersion: 2020,
+  },
+  extends: [
+    'plugin:svelte/recommended',
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+    // 'plugin:@typescript-eslint/recommended-type-checked',
+    // 'plugin:@typescript-eslint/stylistic-type-checked',
+    'prettier',
+    'plugin:compat/recommended',
+  ],
+  plugins: [
+    '@typescript-eslint',
+    '@nx',
+    'jest',
+    'unused-imports',
+    'functional',
+    'testing-library',
+    'compat',
+  ],
+  ignorePatterns: ['*.cjs', '**/generated/**', '*.config.ts', '*.d.ts'],
   overrides: [
     {
-      files: ['*.ts', '*.js', '*.svelte'],
-      parserOptions: {
-        project: ['packages/deep-heating-web/tsconfig.*?.json'],
-      },
-      rules: {},
-    },
-    {
-      files: ['*.ts', '*.tsx'],
-      rules: {},
-    },
-    {
-      files: ['*.js', '*.jsx'],
-      rules: {},
-    },
-    {
       files: ['*.svelte'],
-      processor: 'svelte3/svelte3',
+      parser: 'svelte-eslint-parser',
+      parserOptions: {
+        parser: '@typescript-eslint/parser',
+      },
+    },
+    {
+      files: ['*.stories.ts'],
+      extends: ['plugin:@nx/typescript', 'plugin:functional/recommended'],
+      rules: {
+        'functional/prefer-immutable-types': 'warn',
+        'functional/functional-parameters': 'off',
+        'functional/immutable-data': 'warn',
+        'functional/no-throw-statements': 'warn',
+        'functional/no-conditional-statements': 'warn',
+        'functional/no-expression-statements': 'off',
+        'functional/no-classes': 'warn',
+        'functional/no-let': 'off',
+        'functional/no-loop-statements': 'warn',
+        'functional/no-try-statements': 'warn',
+        'functional/no-this-expressions': 'warn',
+        'functional/no-return-void': 'off',
+      },
     },
   ],
-  settings: {
-    'svelte3/typescript': require('typescript'),
+  env: {
+    browser: true,
+    es2017: true,
+    node: true,
   },
 };
