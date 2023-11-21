@@ -10,7 +10,7 @@ import { Observable } from 'rxjs';
 import { mergeMap, share } from 'rxjs/operators';
 
 export const getTrvDecisionPoints = (
-  roomDecisionPoints$: Observable<RoomDecisionPoint>
+  roomDecisionPoints$: Observable<RoomDecisionPoint>,
 ): Observable<TrvDecisionPoint> =>
   roomDecisionPoints$.pipe(
     mergeMap((roomDecisionPoint) =>
@@ -21,18 +21,22 @@ export const getTrvDecisionPoints = (
           roomTemperature: roomDecisionPoint.temperature,
           trvTemperature:
             roomDecisionPoint.trvTemperatures.find(
-              (trvTemperature) => trvTemperature.climateEntityId === trvId
+              (trvTemperature) => trvTemperature.climateEntityId === trvId,
             )?.temperatureReading.temperature ?? roomDecisionPoint.temperature,
           climateEntityId: trvId,
           trvMode:
             roomDecisionPoint.trvModes.find(
-              (trvMode) => trvMode.climateEntityId === trvId
+              (trvMode) => trvMode.climateEntityId === trvId,
             )?.mode ?? 'off',
-        }))
+        })),
     ),
     shareReplayLatestDistinctByKey((x) => x.climateEntityId),
-    share()
+    share(),
   );
+
+export const MinimumRoomTargetTemperature = Schema.parseSync(Temperature)(15);
+export const MinimumTrvTargetTemperature = Schema.parseSync(Temperature)(7);
+export const MaximumTrvTargetTemperature = Schema.parseSync(Temperature)(32);
 
 export const TrvDecisionPoint = Schema.struct({
   climateEntityId: ClimateEntityId,

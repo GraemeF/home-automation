@@ -1,6 +1,6 @@
+import { HttpClient } from '@effect/platform';
 import { BodyError } from '@effect/platform/Http/Body';
 import { HttpClientError } from '@effect/platform/Http/ClientError';
-import * as HttpClient from '@effect/platform/HttpClient';
 import { ParseError } from '@effect/schema/ParseResult';
 import * as Schema from '@effect/schema/Schema';
 import {
@@ -28,17 +28,17 @@ export const HomeAssistantConfigLive = Layer.effect(
       Config.all([
         Config.string('HOMEASSISTANT_URL'),
         Config.string('HOMEASSISTANT_TOKEN'),
-      ])
+      ]),
     ),
-    Effect.map(([url, token]) => ({ url, token }))
-  )
+    Effect.map(([url, token]) => ({ url, token })),
+  ),
 );
 
 export interface HomeAssistantApi {
   getStates: () => Effect.Effect<never, HttpClientError | ParseError, unknown>;
   setTemperature: (
     entityId: ClimateEntityId,
-    targetTemperature: Temperature
+    targetTemperature: Temperature,
   ) => Effect.Effect<
     never,
     HttpClientError | BodyError,
@@ -46,7 +46,7 @@ export interface HomeAssistantApi {
   >;
   setHvacMode: (
     entityId: ClimateEntityId,
-    mode: ClimateMode
+    mode: ClimateMode,
   ) => Effect.Effect<
     never,
     HttpClientError | BodyError,
@@ -70,17 +70,19 @@ export const HomeAssistantApiLive = Layer.effect(
               Effect.map((url) =>
                 HttpClient.request.get(url, {
                   headers: { Authorization: `Bearer ${token}` },
-                })
+                }),
               ),
               Effect.flatMap((request) =>
                 pipe(
                   request,
                   HttpClient.client.fetchOk(),
-                  Effect.withSpan('fetch_states')
-                )
+                  Effect.withSpan('fetch_states'),
+                ),
               ),
-              Effect.flatMap(HttpClient.response.schemaBodyJson(Schema.unknown))
-            )
+              Effect.flatMap(
+                HttpClient.response.schemaBodyJson(Schema.unknown),
+              ),
+            ),
           ),
         setTemperature: (entityId: ClimateEntityId, temperature: Temperature) =>
           pipe(
@@ -89,10 +91,10 @@ export const HomeAssistantApiLive = Layer.effect(
             HttpClient.request.setHeader('Authorization', `Bearer ${token}`),
             HttpClient.request.jsonBody({ entity_id: entityId, temperature }),
             Effect.flatMap((request) =>
-              pipe(request, HttpClient.client.fetchOk())
+              pipe(request, HttpClient.client.fetchOk()),
             ),
             Effect.withSpan('set_temperature'),
-            Effect.map(() => ({ entityId, targetTemperature: temperature }))
+            Effect.map(() => ({ entityId, targetTemperature: temperature })),
           ),
         setHvacMode: (entityId: ClimateEntityId, mode: ClimateMode) =>
           pipe(
@@ -104,18 +106,18 @@ export const HomeAssistantApiLive = Layer.effect(
               hvac_mode: mode,
             }),
             Effect.flatMap((request) =>
-              pipe(request, HttpClient.client.fetchOk())
+              pipe(request, HttpClient.client.fetchOk()),
             ),
             Effect.withSpan('set_hvac_mode'),
-            Effect.map(() => ({ entityId, mode }))
+            Effect.map(() => ({ entityId, mode })),
           ),
-      })
-    )
-  )
+      }),
+    ),
+  ),
 );
 
 export const HomeAssistantApiTest = (
-  states: Effect.Effect<never, HttpClientError | ParseError, unknown>
+  states: Effect.Effect<never, HttpClientError | ParseError, unknown>,
 ) =>
   Layer.effect(
     HomeAssistantApi,
@@ -125,7 +127,7 @@ export const HomeAssistantApiTest = (
         Effect.succeed({ entityId, targetTemperature: temperature }),
       setHvacMode: (entityId: ClimateEntityId, mode: ClimateMode) =>
         Effect.succeed({ entityId, mode }),
-    })
+    }),
   );
 
 export const getEntities = pipe(
@@ -134,19 +136,19 @@ export const getEntities = pipe(
     pipe(
       api.getStates(),
       Effect.map(Schema.parseSync(Schema.array(HomeAssistantEntity))),
-      Effect.withLogSpan(`fetch_entities`)
-    )
-  )
+      Effect.withLogSpan(`fetch_entities`),
+    ),
+  ),
 );
 
 const refreshIntervalMilliseconds = 60 * 1000;
 
 export const getEntityUpdates = (
-  runtime: Runtime.Runtime<HomeAssistantApi>
+  runtime: Runtime.Runtime<HomeAssistantApi>,
 ): Observable<HomeAssistantEntity> =>
   timer(0, refreshIntervalMilliseconds).pipe(
     throttleTime(refreshIntervalMilliseconds),
     switchMap(() => from(pipe(getEntities, Runtime.runPromise(runtime)))),
     mergeAll(),
-    shareReplay(1)
+    shareReplay(1),
   );

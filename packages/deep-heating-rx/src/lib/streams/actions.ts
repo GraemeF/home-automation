@@ -1,8 +1,6 @@
-import { Schema } from '@effect/schema';
 import {
   ClimateAction,
   HeatingStatus,
-  Temperature,
   TrvControlState,
   TrvScheduledTargetTemperature,
 } from '@home-automation/deep-heating-types';
@@ -17,23 +15,24 @@ import {
   tap,
   withLatestFrom,
 } from 'rxjs/operators';
+import { MinimumTrvTargetTemperature } from './trvs/trvDecisionPoints';
 
 export const getTrvActionsByTrvId = (
-  trvActions: Observable<ClimateAction>
+  trvActions: Observable<ClimateAction>,
 ): Observable<GroupedObservable<string, ClimateAction>> =>
   trvActions.pipe(groupBy((x) => x.climateEntityId));
 
 const getNextTrvControlState = (
   latest: TrvControlState,
   action: ClimateAction,
-  scheduledTargetTemperature: TrvScheduledTargetTemperature
+  scheduledTargetTemperature: TrvScheduledTargetTemperature,
 ): TrvControlState => {
   const mode = action.mode ?? latest.mode;
 
   function getTargetTemperature() {
     switch (mode) {
       case 'off':
-        return Schema.parseSync(Temperature)(7);
+        return MinimumTrvTargetTemperature;
       case 'heat':
         return action.targetTemperature ?? latest.targetTemperature;
       case 'auto':
@@ -60,7 +59,7 @@ export const applyTrvActions = (
   trvActions: Observable<ClimateAction>,
   trvControlStates$: Observable<TrvControlState>,
   trvScheduledTargetTemperatures$: Observable<TrvScheduledTargetTemperature>,
-  publishHiveTrvAction: (action: ClimateAction) => void
+  publishHiveTrvAction: (action: ClimateAction) => void,
 ): Observable<TrvControlState> =>
   trvIds$.pipe(
     mergeMap((trvIds) =>
@@ -70,25 +69,25 @@ export const applyTrvActions = (
           withLatestFrom(
             trvControlStates$.pipe(filter((x) => x.climateEntityId === trvId)),
             trvScheduledTargetTemperatures$.pipe(
-              filter((x) => x.climateEntityId === trvId)
-            )
+              filter((x) => x.climateEntityId === trvId),
+            ),
           ),
           tap(([action]) => publishHiveTrvAction(action)),
           map(([action, latest, scheduledTargetTemperature]) =>
-            getNextTrvControlState(latest, action, scheduledTargetTemperature)
-          )
-        )
-      )
+            getNextTrvControlState(latest, action, scheduledTargetTemperature),
+          ),
+        ),
+      ),
     ),
     mergeAll(),
-    share()
+    share(),
   );
 
 export const applyHeatingActions = (
   heatingActions$: Observable<ClimateAction>,
-  publishHiveHeatingAction: (action: ClimateAction) => void
+  publishHiveHeatingAction: (action: ClimateAction) => void,
 ): Observable<HeatingStatus> =>
   heatingActions$.pipe(
     tap((action) => publishHiveHeatingAction(action)),
-    map((action) => getNextHeatingStatus(action))
+    map((action) => getNextHeatingStatus(action)),
   );

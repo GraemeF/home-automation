@@ -6,7 +6,11 @@ import {
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import { Observable, combineLatest, timer } from 'rxjs';
 import { map, share } from 'rxjs/operators';
-import { TrvDecisionPoint } from './trvDecisionPoints';
+import {
+  MaximumTrvTargetTemperature,
+  MinimumTrvTargetTemperature,
+  TrvDecisionPoint,
+} from './trvDecisionPoints';
 
 const refreshIntervalSeconds = 60;
 
@@ -23,15 +27,18 @@ function getTrvDesiredTargetTemperature({
 }: TrvDecisionPoint): TrvDesiredTargetTemperature {
   const heatingRequired = roomTemperature < roomTargetTemperature;
   const trvTargetTemperature = Math.min(
-    32,
-    Math.max(7, roomTargetTemperature + trvTemperature - roomTemperature)
+    MaximumTrvTargetTemperature,
+    Math.max(
+      MinimumTrvTargetTemperature,
+      roomTargetTemperature + trvTemperature - roomTemperature,
+    ),
   );
 
   const roundedTargetTemperature = Schema.parseSync(Temperature)(
     0.5 *
       (heatingRequired
         ? Math.ceil(trvTargetTemperature * 2.0)
-        : Math.floor(trvTargetTemperature * 2.0))
+        : Math.floor(trvTargetTemperature * 2.0)),
   );
 
   return {
@@ -41,7 +48,7 @@ function getTrvDesiredTargetTemperature({
 }
 
 export const getTrvDesiredTargetTemperatures = (
-  trvDecisionPoints: Observable<TrvDecisionPoint>
+  trvDecisionPoints: Observable<TrvDecisionPoint>,
 ): Observable<TrvDesiredTargetTemperature> =>
   combineLatest([
     trvDecisionPoints,
@@ -50,7 +57,7 @@ export const getTrvDesiredTargetTemperatures = (
     map(([decisionPoint]) => getTrvDesiredTargetTemperature(decisionPoint)),
     shareReplayLatestDistinctByKey(
       (trvDesiredTargetTemperature) =>
-        trvDesiredTargetTemperature.climateEntityId
+        trvDesiredTargetTemperature.climateEntityId,
     ),
-    share()
+    share(),
   );
