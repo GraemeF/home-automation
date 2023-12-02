@@ -25,7 +25,7 @@
     "c8": "8.0.1",
     "daisyui": "4.4.17",
     "eslint": "8.55.0",
-    "eslint-config-prettier": "9.0.0",
+    "eslint-config-prettier": "9.1.0",
     "eslint-plugin-compat": "4.2.0",
     "eslint-plugin-expect-type": "0.2.3",
     "eslint-plugin-functional": "6.0.0",
