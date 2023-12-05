@@ -141,13 +141,13 @@ export class DeepHeating {
   constructor(
     home: Home,
     initialRoomAdjustments: RoomAdjustment[],
-    roomAdjustmentCommands$: Observable<RoomAdjustment>
+    roomAdjustmentCommands$: Observable<RoomAdjustment>,
   ) {
     const runtime = pipe(
-      HomeAssistantApiLive.pipe(Layer.use(HomeAssistantConfigLive)),
+      HomeAssistantApiLive.pipe(Layer.provide(HomeAssistantConfigLive)),
       Layer.toRuntime,
       Effect.scoped,
-      Effect.runSync
+      Effect.runSync,
     );
 
     const entityUpdates$ = getEntityUpdates(runtime);
@@ -155,27 +155,27 @@ export class DeepHeating {
     const heatingProvider = createHomeAssistantHeatingProvider(
       home,
       entityUpdates$,
-      runtime
+      runtime,
     );
 
     this.temperatureSensorUpdate$ =
       createHomeAssistantSensorProvider(entityUpdates$).sensorUpdates$;
     this.buttonEvents$ = createHomeAssistantButtonEventProvider(
       home,
-      entityUpdates$
+      entityUpdates$,
     ).buttonPressEvents$;
     this.buttonEvents$.subscribe((x) =>
-      log(x.entity_id, x.attributes.friendly_name, 'last happened at', x.state)
+      log(x.entity_id, x.attributes.friendly_name, 'last happened at', x.state),
     );
     this.houseModes$ = getHouseModes(this.buttonEvents$, home.sleepSwitchId);
     this.houseModes$.subscribe((x) => log('House is', x));
     this.rooms$ = from(home.rooms).pipe(
-      groupBy((roomDefinition) => roomDefinition.name)
+      groupBy((roomDefinition) => roomDefinition.name),
     );
     this.roomSensors$ = getRoomSensors(this.rooms$);
     this.roomTemperatures$ = getRoomTemperatures(
       this.roomSensors$,
-      this.temperatureSensorUpdate$
+      this.temperatureSensorUpdate$,
     );
     this.trvControlStates$ = this.trvControlStateSubject.pipe(
       groupBy((trvControlState) => trvControlState.climateEntityId),
@@ -183,45 +183,44 @@ export class DeepHeating {
         trvControlState.pipe(
           distinctUntilChanged<TrvControlState>(
             (a, b) =>
-              a.mode === b.mode && a.targetTemperature === b.targetTemperature
+              a.mode === b.mode && a.targetTemperature === b.targetTemperature,
           ),
-          shareReplay(1)
-        )
+          shareReplay(1),
+        ),
       ),
-      share()
+      share(),
     );
     const trvDisplayName = (trvId: ClimateEntityId): string =>
-      `${
-        home.rooms.find((x) => x.climateEntityIds.includes(trvId))?.name
-      } (${trvId})`;
+      `${home.rooms.find((x) => x.climateEntityIds.includes(trvId))
+        ?.name} (${trvId})`;
     this.trvControlStates$.subscribe((x) =>
       log(
         'TRV',
         trvDisplayName(x.climateEntityId),
         x.source === 'Device' ? 'is set to' : 'will be changed to',
         x.mode,
-        x.targetTemperature
-      )
+        x.targetTemperature,
+      ),
     );
 
     this.trvStatuses$ = this.trvStatusSubject.pipe(
-      shareReplayLatestDistinctByKey((x) => x.climateEntityId)
+      shareReplayLatestDistinctByKey((x) => x.climateEntityId),
     );
 
     this.trvStatuses$.subscribe((x) =>
       log(
         'TRV',
         trvDisplayName(x.climateEntityId),
-        x.isHeating ? 'is heating' : 'is cooling'
-      )
+        x.isHeating ? 'is heating' : 'is cooling',
+      ),
     );
 
     this.heatingStatuses$ = this.heatingStatusSubject.pipe(
-      shareReplayLatestDistinctByKey((x) => x.heatingId)
+      shareReplayLatestDistinctByKey((x) => x.heatingId),
     );
 
     this.heatingStatuses$.subscribe((x) =>
-      log('Heating', x.heatingId, x.isHeating ? 'is heating' : 'is cooling')
+      log('Heating', x.heatingId, x.isHeating ? 'is heating' : 'is cooling'),
     );
 
     heatingProvider.trvApiUpdates$.subscribe((x) =>
@@ -230,14 +229,14 @@ export class DeepHeating {
         mode: x.state.mode,
         targetTemperature: x.state.target,
         source: 'Device',
-      })
+      }),
     );
 
     this.trvReportedStatuses$ = heatingProvider.trvApiUpdates$.pipe(
       map((x) => ({
         climateEntityId: x.climateEntityId,
         isHeating: x.state.isHeating,
-      }))
+      })),
     );
 
     this.trvReportedStatuses$.subscribe((x) => this.publishTrvStatus(x));
@@ -247,71 +246,71 @@ export class DeepHeating {
         heatingId: x.heatingId,
         isHeating: x.state.isHeating,
         source: 'Device',
-      }))
+      })),
     );
 
     this.heatingReportedStatuses$.subscribe((x) =>
-      this.publishHeatingStatus(x)
+      this.publishHeatingStatus(x),
     );
 
     this.trvHiveHeatingSchedules$ = getTrvWeekHeatingSchedules(
-      heatingProvider.trvApiUpdates$
+      heatingProvider.trvApiUpdates$,
     );
 
     this.roomTrvs$ = getRoomClimateEntities(this.rooms$);
 
     this.roomHiveHeatingSchedules$ = getRoomHiveHeatingSchedules(
       this.roomTrvs$,
-      this.trvHiveHeatingSchedules$
+      this.trvHiveHeatingSchedules$,
     );
 
     this.roomSchedules$ = getRoomSchedules(
       this.rooms$.pipe(mergeAll()),
-      this.roomHiveHeatingSchedules$
+      this.roomHiveHeatingSchedules$,
     );
     this.roomAdjustments$ = getRoomAdjustments(
       initialRoomAdjustments,
       this.rooms$,
-      roomAdjustmentCommands$
+      roomAdjustmentCommands$,
     );
     this.trvModes$ = getTrvModes(this.trvControlStates$);
     this.roomTrvModes$ = getRoomTrvModes(this.roomTrvs$, this.trvModes$);
     this.roomModes$ = getRoomModes(
       this.rooms$,
       this.houseModes$,
-      this.roomTrvModes$
+      this.roomTrvModes$,
     );
     this.roomModes$.subscribe((x) => log(x.roomName, 'is', x.mode));
     this.roomScheduledTargetTemperatures$ = getRoomScheduledTargetTemperatures(
       this.rooms$,
-      this.roomSchedules$
+      this.roomSchedules$,
     );
     this.roomTargetTemperatures$ = getRoomTargetTemperatures(
       this.rooms$,
       this.roomModes$,
       this.roomScheduledTargetTemperatures$,
-      this.roomAdjustments$
+      this.roomAdjustments$,
     );
 
     this.roomTargetTemperatures$.subscribe((x) =>
-      log(x.roomName, 'should be', x.targetTemperature)
+      log(x.roomName, 'should be', x.targetTemperature),
     );
 
     this.trvTargetTemperatures$ = getTrvTargetTemperatures(
-      this.trvControlStates$
+      this.trvControlStates$,
     );
     this.roomTrvTargetTemperatures$ = getRoomTrvTargetTemperatures(
       this.roomTrvs$,
-      this.trvTargetTemperatures$
+      this.trvTargetTemperatures$,
     );
     this.trvTemperatures$ = getTrvTemperatures(heatingProvider.trvApiUpdates$);
     this.roomTrvTemperatures$ = getRoomTrvTemperatures(
       this.roomTrvs$,
-      this.trvTemperatures$
+      this.trvTemperatures$,
     );
     this.roomTrvStatuses$ = getRoomTrvStatuses(
       this.roomTrvs$,
-      this.trvStatuses$
+      this.trvStatuses$,
     );
     this.roomDecisionPoints$ = getRoomDecisionPoints(
       this.rooms$,
@@ -319,35 +318,35 @@ export class DeepHeating {
       this.roomTemperatures$,
       this.roomTrvTargetTemperatures$,
       this.roomTrvTemperatures$,
-      this.roomTrvModes$
+      this.roomTrvModes$,
     );
     this.trvDecisionPoints$ = getTrvDecisionPoints(this.roomDecisionPoints$);
     this.trvDesiredTargetTemperatures$ = getTrvDesiredTargetTemperatures(
-      this.trvDecisionPoints$
+      this.trvDecisionPoints$,
     );
     this.trvScheduledTargetTemperatures$ = getTrvScheduledTargetTemperatures(
-      this.trvHiveHeatingSchedules$
+      this.trvHiveHeatingSchedules$,
     );
     this.trvIds$ = this.rooms$.pipe(
       mergeMap((roomDefinitions$) =>
         roomDefinitions$.pipe(
           map((roomDefinition) =>
-            roomDefinition.climateEntityIds.filter(Predicate.isNotNull)
-          )
-        )
-      )
+            roomDefinition.climateEntityIds.filter(Predicate.isNotNull),
+          ),
+        ),
+      ),
     );
     this.trvActions$ = getTrvActions(
       this.trvIds$,
       this.trvDesiredTargetTemperatures$,
       this.trvControlStates$,
       this.trvTemperatures$,
-      this.trvScheduledTargetTemperatures$
+      this.trvScheduledTargetTemperatures$,
     );
     this.trvSynthesisedStatuses = getTrvSynthesisedStatuses(
       this.trvIds$,
       this.trvTemperatures$,
-      this.trvControlStates$
+      this.trvControlStates$,
     );
     this.trvSynthesisedStatuses.subscribe((x) => this.publishTrvStatus(x));
     this.appliedTrvActions$ = applyTrvActions(
@@ -355,29 +354,29 @@ export class DeepHeating {
       this.trvActions$,
       this.trvControlStates$,
       this.trvScheduledTargetTemperatures$,
-      publishTrvAction
+      publishTrvAction,
     );
     this.trvsHeating$ = getTrvsHeating(this.trvStatuses$);
     this.trvsHeating$.subscribe((x) =>
-      log('TRVs', Array.from(x), 'are heating')
+      log('TRVs', Array.from(x), 'are heating'),
     );
 
     this.roomsHeating$ = getRoomsHeating(this.roomDecisionPoints$);
 
     this.trvsAnyHeating$ = getAnyHeating(this.trvsHeating$);
     this.trvsAnyHeating$.subscribe((x) =>
-      log(x ? 'Some TRVs are heating' : 'No TRVs are heating')
+      log(x ? 'Some TRVs are heating' : 'No TRVs are heating'),
     );
 
     this.roomsAnyHeating$ = getAnyHeating(this.roomsHeating$);
     this.roomsAnyHeating$.subscribe((x) =>
-      log(x ? 'Some rooms are heating' : 'No rooms are heating')
+      log(x ? 'Some rooms are heating' : 'No rooms are heating'),
     );
 
     this.heatingActions$ = getHeatingActions(
       home.heatingId,
       this.heatingStatuses$,
-      this.roomsAnyHeating$
+      this.roomsAnyHeating$,
     );
     this.heatingActions$.subscribe((x) =>
       log(
@@ -385,20 +384,20 @@ export class DeepHeating {
         x.climateEntityId,
         'should change to',
         x.mode,
-        x.targetTemperature
-      )
+        x.targetTemperature,
+      ),
     );
 
     this.appliedHeatingActions$ = applyHeatingActions(
       this.heatingActions$,
-      publishHeatingAction
+      publishHeatingAction,
     );
     this.appliedHeatingActions$.subscribe((x) => {
       log(
         'Heating',
         x.heatingId,
         'has been changed to',
-        x.isHeating ? 'heating' : 'cooling'
+        x.isHeating ? 'heating' : 'cooling',
       );
       this.publishHeatingStatus(x);
     });

@@ -225,7 +225,7 @@ describe('home-assistant-api', () => {
       entities = await pipe(
         getEntities,
         Effect.provide(HomeAssistantApiTest(Effect.succeed(exampleStates))),
-        Effect.runPromise
+        Effect.runPromise,
       );
     });
     it('parses all entities', async () => {
@@ -234,13 +234,13 @@ describe('home-assistant-api', () => {
 
     it('parses climate entities', async () => {
       expect(
-        entities.filter(Schema.is(ClimateEntity)).map((e) => e.entity_id)
+        entities.filter(Schema.is(ClimateEntity)).map((e) => e.entity_id),
       ).toHaveLength(3);
     });
 
     it('parses sensor entities', async () => {
       expect(
-        entities.filter(Schema.is(SensorEntity)).map((e) => e.entity_id)
+        entities.filter(Schema.is(SensorEntity)).map((e) => e.entity_id),
       ).toHaveLength(3);
     });
 
@@ -248,7 +248,7 @@ describe('home-assistant-api', () => {
       expect(
         entities
           .filter(Schema.is(TemperatureSensorEntity))
-          .map((e) => e.entity_id)
+          .map((e) => e.entity_id),
       ).toHaveLength(2);
     });
 
@@ -256,20 +256,20 @@ describe('home-assistant-api', () => {
       expect(
         entities
           .filter(Schema.is(ButtonPressEventEntity))
-          .map((e) => e.entity_id)
-      ).toHaveLength(1);
+          .map((e) => e.entity_id),
+      ).toHaveLength(2);
     });
 
     it('parses input button entities', async () => {
       expect(
-        entities.filter(Schema.is(InputButtonEntity)).map((e) => e.entity_id)
+        entities.filter(Schema.is(InputButtonEntity)).map((e) => e.entity_id),
       ).toHaveLength(1);
     });
 
     it('parses other entities', async () => {
       expect(
-        entities.filter(Schema.is(OtherEntity)).map((e) => e.entity_id)
-      ).toHaveLength(6);
+        entities.filter(Schema.is(OtherEntity)).map((e) => e.entity_id),
+      ).toHaveLength(5);
     });
   });
 });
