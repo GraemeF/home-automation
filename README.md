@@ -33,11 +33,11 @@ interest :)
 
 ### Environment variables
 
-| variable name         | description                                                                                                                               |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `HOMEASSISTANT_URL`   | The URL of your Home Assistant instance, e.g. `http://homeassistant.lan:8123`                                                             |
-| `HOMEASSISTANT_TOKEN` | A [long-lived access token](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token) for your Home Assistant instance |
-| `HOME_CONFIG_PATH`    | The path to your home configuration file, e.g. `/config/home.json`                                                                        |
+| variable name      | description                                                                                                                               |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `SUPERVISOR_URL`   | The URL of your Home Assistant instance, e.g. `http://homeassistant.lan:8123`                                                             |
+| `SUPERVISOR_TOKEN` | A [long-lived access token](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token) for your Home Assistant instance |
+| `HOME_CONFIG_PATH` | The path to your home configuration file, e.g. `/config/home.json`                                                                        |
 
 ### Home
 

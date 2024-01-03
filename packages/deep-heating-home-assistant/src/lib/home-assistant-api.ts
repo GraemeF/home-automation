@@ -26,8 +26,11 @@ export const HomeAssistantConfigLive = Layer.effect(
   pipe(
     Effect.config(
       Config.all([
-        Config.string('HOMEASSISTANT_URL'),
-        Config.string('HOMEASSISTANT_TOKEN'),
+        pipe(
+          Config.string('SUPERVISOR_URL'),
+          Config.withDefault('http://supervisor'),
+        ),
+        Config.string('SUPERVISOR_TOKEN'),
       ]),
     ),
     Effect.map(([url, token]) => ({ url, token })),
