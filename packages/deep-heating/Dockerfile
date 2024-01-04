@@ -14,7 +14,7 @@ COPY . .
 
 ENV NX_DAEMON=false
 ENV CI=true
-RUN npx nx run-many --projects deep-heating-socketio deep-heating-web --target build
+RUN npx nx run deep-heating:build
 
 RUN npm prune --omit=dev
 
@@ -29,8 +29,7 @@ COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/package.json .
 COPY --from=builder /usr/src/app/package-lock.json .
 
-COPY --from=builder /usr/src/app/dist/packages/deep-heating-socketio backend
-COPY --from=builder /usr/src/app/packages/deep-heating-web/package.json frontend/package.json
-COPY --from=builder /usr/src/app/dist/packages/deep-heating-web frontend
+COPY --from=builder /usr/src/app/dist/packages/deep-heating .
+COPY --from=builder /usr/src/app/packages/deep-heating/package.json .
 
 CMD ["node", "main.js"]
