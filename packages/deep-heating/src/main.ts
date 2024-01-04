@@ -1,7 +1,8 @@
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import { handler as backend } from '@home-automation/deep-heating-socketio';
 import express from 'express';
 import { createServer } from 'http';
 import { handler as frontend } from '../../../dist/packages/deep-heating-web/handler.js';
-import { handler as backend } from '../../deep-heating-socketio/src/server';
 
 const app = express();
 const server = createServer(app);

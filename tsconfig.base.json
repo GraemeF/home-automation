@@ -29,6 +29,9 @@
       "@home-automation/deep-heating-types": [
         "packages/deep-heating-types/src/index.ts"
       ],
+      "@home-automation/deep-heating-socketio": [
+        "packages/deep-heating-socketio/src/index.ts"
+      ],
       "@home-automation/dictionary": ["packages/dictionary/src/index.ts"],
       "@home-automation/rxx": ["packages/rxx/src/index.ts"]
     }

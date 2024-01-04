@@ -43,13 +43,6 @@
         "lintFilePatterns": ["packages/deep-heating/**/*.ts"]
       }
     },
-    "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/packages/deep-heating"],
-      "options": {
-        "jestConfig": "packages/deep-heating/jest.config.ts"
-      }
-    },
     "docker": {
       "executor": "@nx-tools/nx-container:build",
       "options": {
