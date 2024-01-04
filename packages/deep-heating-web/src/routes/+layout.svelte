@@ -1,8 +1,8 @@
 <script lang="ts">
-  import '../app.css';
-  import { appSettingsStore } from '$lib/stores/appsettings';
   import Spinner from '$lib/components/Spinner.svelte';
+  import { appSettingsStore } from '$lib/stores/appsettings';
   import { homeStore } from '$lib/stores/home';
+  import '../app.css';
   import type { LayoutData } from './$types';
 
   export let data: LayoutData;

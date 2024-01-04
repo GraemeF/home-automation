@@ -4,6 +4,8 @@
   import { homeStore } from '$lib/stores/home';
   import { compareByRoomTemperature } from '$lib/temperature';
   import { Option, ReadonlyArray, pipe } from 'effect';
+
+  export const ssr = false;
 </script>
 
 <div class="text-sm breadcrumbs">
@@ -19,13 +21,13 @@
           isHeating={pipe(
             $homeStore.state,
             Option.flatMap((state) => state.isHeating),
-            Option.getOrUndefined
+            Option.getOrUndefined,
           )}
         />
       {/if}
     </div>
     <div class="flex flex-row flex-wrap gap-2">
-      {#each pipe( $homeStore.state.value, (state) => pipe(state.rooms, ReadonlyArray.sort(compareByRoomTemperature)) ) as room}
+      {#each pipe( $homeStore.state.value, (state) => pipe(state.rooms, ReadonlyArray.sort(compareByRoomTemperature)), ) as room}
         <Room {room} />
       {/each}
     </div>
