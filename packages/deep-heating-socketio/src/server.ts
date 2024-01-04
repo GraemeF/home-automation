@@ -12,7 +12,7 @@ import { tmpdir } from 'os';
 import * as path from 'path';
 import { SocketServer } from './app/socket-server';
 
-export const handle = (
+export const handler = (
   httpServer: Server<typeof IncomingMessage, typeof ServerResponse>,
 ) => {
   const roomAdjustmentsPath =
@@ -23,7 +23,6 @@ export const handle = (
     try {
       return readFileSync(roomAdjustmentsPath).toString();
     } catch (e) {
-      console.error(e);
       return '[]';
     }
   };
@@ -38,9 +37,10 @@ export const handle = (
       Effect.flatMap(Schema.decode(JsonHomeData)),
     );
 
-  pipe(
+  return pipe(
     FileSystem.FileSystem,
     Effect.flatMap((fs) => readDataFromFile(fs)),
+    Effect.tap((data) => Effect.log(data)),
     Effect.map(
       (data) =>
         new SocketServer(
@@ -57,6 +57,8 @@ export const handle = (
           },
         ),
     ),
+    Effect.tap((server) => server.logConnections()),
+    Effect.tap(() => Effect.log('Socket.io server started')),
     Effect.provide(FileSystem.layer),
     Effect.runPromise,
   );

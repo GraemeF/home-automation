@@ -1,0 +1,77 @@
+{
+  "name": "deep-heating",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/deep-heating/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "dependsOn": ["deep-heating-web:build"],
+      "options": {
+        "outputPath": "dist/packages/deep-heating",
+        "main": "packages/deep-heating/src/main.ts",
+        "tsConfig": "packages/deep-heating/tsconfig.app.json",
+        "target": "node",
+        "compiler": "tsc"
+      },
+      "configurations": {
+        "production": {
+          "optimization": true,
+          "extractLicenses": true,
+          "inspect": false,
+          "fileReplacements": [
+            {
+              "replace": "packages/deep-heating/src/environments/environment.ts",
+              "with": "packages/deep-heating/src/environments/environment.prod.ts"
+            }
+          ]
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "dependsOn": ["deep-heating-web:build"],
+      "options": {
+        "buildTarget": "deep-heating:build"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["packages/deep-heating/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/packages/deep-heating"],
+      "options": {
+        "jestConfig": "packages/deep-heating/jest.config.ts"
+      }
+    },
+    "docker": {
+      "executor": "@nx-tools/nx-container:build",
+      "options": {
+        "push": false,
+        "platforms": ["linux/amd64", "linux/arm64", "linux/arm/v7"],
+        "metadata": {
+          "images": [
+            "graemef/deep-heating",
+            "ghcr.io/graemef/home-automation/deep-heating"
+          ],
+          "tags": [
+            "type=ref,event=branch",
+            "type=ref,event=tag",
+            "type=ref,event=pr",
+            "type=semver,pattern={{version}}",
+            "type=semver,pattern={{major}}.{{minor}}",
+            "type=semver,pattern={{major}}",
+            "type=sha"
+          ]
+        }
+      }
+    }
+  },
+  "tags": []
+}

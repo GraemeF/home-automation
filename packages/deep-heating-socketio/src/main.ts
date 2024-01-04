@@ -4,13 +4,13 @@ config();
 
 import debug from 'debug';
 import { createServer } from 'http';
-import { handle } from './server';
+import { handler } from './server';
 
 const log = debug('app');
 
 const httpServer = createServer();
 
-handle(httpServer);
+handler(httpServer);
 
 const port = process.env['PORT'] || 5123;
 
