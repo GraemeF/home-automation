@@ -1,0 +1,25 @@
+{
+  "apps": [
+    {
+      "name": "Backend",
+      "cwd": "./deep-heating-socketio",
+      "script": "node main.js",
+      "env": {
+        "PORT": "3002"
+      }
+    },
+    {
+      "name": "Frontend",
+      "cwd": "./deep-heating-web",
+      "script": "node index.js",
+      "env": {
+        "PORT": "3001",
+        "API_URL": "/"
+      }
+    },
+    {
+      "name": "nginx",
+      "script": "bash -c nginx -g daemon off"
+    }
+  ]
+}
