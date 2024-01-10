@@ -30,5 +30,7 @@ COPY --from=builder /usr/src/app/package.json .
 COPY --from=builder /usr/src/app/package-lock.json .
 
 COPY --from=builder /usr/src/app/dist/packages/deep-heating .
+COPY --from=builder /usr/src/app/dist/packages/deep-heating-web/client .
+
 
 CMD ["node", "main.js"]
