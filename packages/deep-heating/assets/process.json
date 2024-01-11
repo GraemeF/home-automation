@@ -13,8 +13,7 @@
       "cwd": "./deep-heating-web",
       "script": "node index.js",
       "env": {
-        "PORT": "3001",
-        "API_URL": "/"
+        "PORT": "3001"
       }
     },
     {
