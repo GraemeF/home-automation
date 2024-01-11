@@ -9,14 +9,13 @@
       "dependsOn": ["deep-heating-web:build", "deep-heating-socketio:build"],
       "options": {
         "push": false,
-        "platforms": ["linux/arm64"],
+        "platforms": ["linux/amd64", "linux/arm64", "linux/arm/v7"],
         "metadata": {
           "images": [
             "graemef/deep-heating",
             "ghcr.io/graemef/home-automation/deep-heating"
           ],
           "tags": [
-            "wip",
             "type=ref,event=branch",
             "type=ref,event=tag",
             "type=ref,event=pr",
