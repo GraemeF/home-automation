@@ -1,10 +1,10 @@
+import { appSettingsStore } from '$lib/stores/appsettings';
 import ioClient from 'socket.io-client';
 import { derived } from 'svelte/store';
-import { appSettingsStore } from '$lib/stores/appsettings';
 
-export const apiClientStore = derived(appSettingsStore, ($appSettings) => {
-  const apiUrl = $appSettings?.apiUrl;
+export const apiClientStore = derived(appSettingsStore, ($appSettings) =>
+  $appSettings ? createClient($appSettings?.apiUrl) : null,
+);
 
-  if (apiUrl) return ioClient(apiUrl);
-  else return null;
-});
+const createClient = (apiUrl: string | undefined) =>
+  apiUrl ? ioClient(apiUrl) : ioClient();
