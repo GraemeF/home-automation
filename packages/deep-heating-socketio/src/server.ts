@@ -28,7 +28,7 @@ export const handler = (
   };
   const initialRoomAdjustments = loadAdjustments();
 
-  const JsonHomeData = Schema.ParseJson.pipe(Schema.compose(Home));
+  const JsonHomeData = Schema.parseJson(Home);
 
   const readDataFromFile = (fs: FileSystem.FileSystem) =>
     pipe(
