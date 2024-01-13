@@ -1,0 +1,21 @@
+name: 'Deep Heating'
+description: 'Cleverer climate control'
+version: 'sha-1d34126'
+slug: 'deep_heating'
+image: 'ghcr.io/graemef/home-automation/deep-heating'
+arch:
+  - amd64
+  - armhf
+  - armv7
+homeassistant_api: true
+ingress: true
+ports:
+  8503/tcp: 8503
+webui: 'http://[HOST]:[PORT:8503]/'
+map:
+  - addon_config:rw
+environment:
+  DEBUG: deep-heating,app
+  HOME_CONFIG_PATH: /config/home.json
+  ROOM_ADJUSTMENTS_PATH: /config/room-adjustments.json
+  SUPERVISOR_URL: http://supervisor/core
