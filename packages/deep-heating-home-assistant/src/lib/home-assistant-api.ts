@@ -1,6 +1,6 @@
-import { HttpClient } from '@effect/platform';
 import { BodyError } from '@effect/platform/Http/Body';
 import { HttpClientError } from '@effect/platform/Http/ClientError';
+import * as HttpClient from '@effect/platform/HttpClient';
 import { ParseError } from '@effect/schema/ParseResult';
 import * as Schema from '@effect/schema/Schema';
 import {
@@ -24,15 +24,13 @@ export const HomeAssistantConfig = Context.Tag<HomeAssistantConfig>();
 export const HomeAssistantConfigLive = Layer.effect(
   HomeAssistantConfig,
   pipe(
-    Effect.config(
-      Config.all([
-        pipe(
-          Config.string('SUPERVISOR_URL'),
-          Config.withDefault('http://supervisor'),
-        ),
-        Config.string('SUPERVISOR_TOKEN'),
-      ]),
-    ),
+    Config.all([
+      pipe(
+        Config.string('SUPERVISOR_URL'),
+        Config.withDefault('http://supervisor'),
+      ),
+      Config.string('SUPERVISOR_TOKEN'),
+    ]),
     Effect.map(([url, token]) => ({ url, token })),
   ),
 );

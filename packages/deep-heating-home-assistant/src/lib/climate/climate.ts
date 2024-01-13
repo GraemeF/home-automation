@@ -8,6 +8,7 @@ import {
   HomeAssistantEntity,
   Temperature,
   TrvUpdate,
+  isSchema,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestByKey } from '@home-automation/rxx';
 import { Effect, Option, pipe } from 'effect';
@@ -26,7 +27,7 @@ export const getTrvApiUpdates =
       map((response) =>
         pipe(
           home.rooms.find((room) =>
-            room.climateEntityIds.includes(response.entity_id)
+            room.climateEntityIds.includes(response.entity_id),
           ),
           Option.fromNullable,
           Option.flatMap((room) => room.schedule),
@@ -45,15 +46,15 @@ export const getTrvApiUpdates =
               schedule,
             },
           })),
-          Option.getOrNull
-        )
+          Option.getOrNull,
+        ),
       ),
       filter(isNotNull),
-      shareReplayLatestByKey((x) => x.climateEntityId)
+      shareReplayLatestByKey((x) => x.climateEntityId),
     );
 
 export const getHeatingApiUpdates = (
-  p$: Observable<ClimateEntity>
+  p$: Observable<ClimateEntity>,
 ): Observable<HeatingUpdate> =>
   p$.pipe(
     filter((entity) => entity.entity_id === heatingEntityId),
@@ -71,27 +72,27 @@ export const getHeatingApiUpdates = (
         isHeating: response.attributes.hvac_action === 'heating',
       },
     })),
-    shareReplayLatestByKey((x) => x.heatingId)
+    shareReplayLatestByKey((x) => x.heatingId),
   );
 
 export const getClimateEntityUpdates = (
-  entityUpdates$: Observable<HomeAssistantEntity>
-) => entityUpdates$.pipe(filter(Schema.is(ClimateEntity)));
+  entityUpdates$: Observable<HomeAssistantEntity>,
+) => entityUpdates$.pipe(filter(isSchema(ClimateEntity)));
 
 export const setClimateEntityTemperature = (
   entityId: ClimateEntityId,
-  targetTemperature: Temperature
+  targetTemperature: Temperature,
 ) =>
   pipe(
     HomeAssistantApi,
-    Effect.flatMap((api) => api.setTemperature(entityId, targetTemperature))
+    Effect.flatMap((api) => api.setTemperature(entityId, targetTemperature)),
   );
 
 export const setClimateEntityMode = (
   entityId: ClimateEntityId,
-  mode: ClimateMode
+  mode: ClimateMode,
 ) =>
   pipe(
     HomeAssistantApi,
-    Effect.flatMap((api) => api.setHvacMode(entityId, mode))
+    Effect.flatMap((api) => api.setHvacMode(entityId, mode)),
   );

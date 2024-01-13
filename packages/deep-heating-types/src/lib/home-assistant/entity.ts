@@ -10,8 +10,8 @@ import {
 import { Temperature } from '../temperature';
 
 export const BaseEntity = Schema.struct({
-  last_changed: pipe(Schema.string, Schema.dateFromString),
-  last_updated: pipe(Schema.string, Schema.dateFromString),
+  last_changed: Schema.Date,
+  last_updated: Schema.Date,
   context: Schema.struct({
     id: Schema.string,
     parent_id: Schema.optional(Schema.nullable(Schema.string)),
@@ -27,8 +27,8 @@ export const OtherEntity = pipe(
       state: Schema.string,
       entity_id: EntityId,
       attributes: Schema.object,
-    })
-  )
+    }),
+  ),
 );
 export type OtherEntity = BaseEntity;
 
@@ -37,8 +37,8 @@ export const SensorEntity = pipe(
   Schema.extend(
     Schema.struct({
       entity_id: SensorEntityId,
-    })
-  )
+    }),
+  ),
 );
 export type SensorEntity = Schema.Schema.To<typeof SensorEntity>;
 
@@ -53,8 +53,8 @@ export const TemperatureSensorEntity = pipe(
         unit_of_measurement: Schema.literal('°C'),
         friendly_name: Schema.string,
       }),
-    })
-  )
+    }),
+  ),
 );
 export type TemperatureSensorEntity = Schema.Schema.To<
   typeof TemperatureSensorEntity
@@ -84,8 +84,8 @@ export const ClimateEntity = pipe(
         friendly_name: Schema.string,
         supported_features: Schema.number,
       }),
-    })
-  )
+    }),
+  ),
 );
 export type ClimateEntity = Schema.Schema.To<typeof ClimateEntity>;
 
@@ -94,12 +94,12 @@ export const ButtonPressEventEntity = pipe(
   Schema.extend(
     Schema.struct({
       entity_id: EventEntityId,
-      state: pipe(Schema.string, Schema.dateFromString),
+      state: Schema.DateFromString,
       attributes: Schema.struct({
         friendly_name: Schema.string,
       }),
-    })
-  )
+    }),
+  ),
 );
 export type ButtonPressEventEntity = Schema.Schema.To<
   typeof ButtonPressEventEntity
@@ -110,18 +110,18 @@ export const InputButtonEntity = pipe(
   Schema.extend(
     Schema.struct({
       entity_id: InputButtonEntityId,
-      state: pipe(Schema.string, Schema.dateFromString),
+      state: Schema.Date,
       attributes: Schema.struct({
         friendly_name: Schema.string,
       }),
-    })
-  )
+    }),
+  ),
 );
 export type InputButtonEntity = Schema.Schema.To<typeof InputButtonEntity>;
 
 export const GoodnightEventEntity = Schema.union(
   InputButtonEntity,
-  ButtonPressEventEntity
+  ButtonPressEventEntity,
 );
 export type GoodnightEventEntity = Schema.Schema.To<
   typeof GoodnightEventEntity
@@ -131,6 +131,11 @@ export const HomeAssistantEntity = Schema.union(
   TemperatureSensorEntity,
   GoodnightEventEntity,
   ClimateEntity,
-  OtherEntity
+  OtherEntity,
 );
 export type HomeAssistantEntity = Schema.Schema.To<typeof HomeAssistantEntity>;
+
+export const isSchema =
+  <From, To>(schema: Schema.Schema<From, To>) =>
+  (e: unknown): e is To =>
+    Schema.is(schema)(e);

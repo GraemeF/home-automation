@@ -1,17 +1,17 @@
-import { Schema } from '@effect/schema';
 import {
   HomeAssistantEntity,
   TemperatureSensorEntity,
+  isSchema,
 } from '@home-automation/deep-heating-types';
 import { Observable } from 'rxjs';
 import { filter } from 'rxjs/operators';
 
 export const createHomeAssistantSensorProvider: (
-  entityUpdates$: Observable<HomeAssistantEntity>
+  entityUpdates$: Observable<HomeAssistantEntity>,
 ) => { sensorUpdates$: Observable<TemperatureSensorEntity> } = (
-  entityUpdates$: Observable<HomeAssistantEntity>
+  entityUpdates$: Observable<HomeAssistantEntity>,
 ) => ({
   sensorUpdates$: entityUpdates$.pipe(
-    filter(Schema.is(TemperatureSensorEntity))
+    filter(isSchema(TemperatureSensorEntity)),
   ),
 });

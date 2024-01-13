@@ -1,4 +1,3 @@
-import * as Schema from '@effect/schema/Schema';
 import {
   ButtonPressEventEntity,
   ClimateEntity,
@@ -7,8 +6,9 @@ import {
   OtherEntity,
   SensorEntity,
   TemperatureSensorEntity,
+  isSchema,
 } from '@home-automation/deep-heating-types';
-import { Effect, pipe } from 'effect';
+import { Effect, ReadonlyArray, pipe } from 'effect';
 import { HomeAssistantApiTest, getEntities } from './home-assistant-api';
 
 const exampleStates = [
@@ -234,42 +234,32 @@ describe('home-assistant-api', () => {
 
     it('parses climate entities', async () => {
       expect(
-        entities.filter(Schema.is(ClimateEntity)).map((e) => e.entity_id),
+        pipe(entities, ReadonlyArray.filter(isSchema(ClimateEntity))),
       ).toHaveLength(3);
     });
 
     it('parses sensor entities', async () => {
       expect(
-        entities.filter(Schema.is(SensorEntity)).map((e) => e.entity_id),
+        pipe(entities, ReadonlyArray.filter(isSchema(SensorEntity))),
       ).toHaveLength(3);
     });
 
     it('parses temperature sensor entities', async () => {
-      expect(
-        entities
-          .filter(Schema.is(TemperatureSensorEntity))
-          .map((e) => e.entity_id),
-      ).toHaveLength(2);
+      expect(entities.filter(isSchema(TemperatureSensorEntity))).toHaveLength(
+        2,
+      );
     });
 
     it('parses button press event entities', async () => {
-      expect(
-        entities
-          .filter(Schema.is(ButtonPressEventEntity))
-          .map((e) => e.entity_id),
-      ).toHaveLength(2);
+      expect(entities.filter(isSchema(ButtonPressEventEntity))).toHaveLength(2);
     });
 
     it('parses input button entities', async () => {
-      expect(
-        entities.filter(Schema.is(InputButtonEntity)).map((e) => e.entity_id),
-      ).toHaveLength(1);
+      expect(entities.filter(isSchema(InputButtonEntity))).toHaveLength(1);
     });
 
     it('parses other entities', async () => {
-      expect(
-        entities.filter(Schema.is(OtherEntity)).map((e) => e.entity_id),
-      ).toHaveLength(5);
+      expect(entities.filter(isSchema(OtherEntity))).toHaveLength(5);
     });
   });
 });
