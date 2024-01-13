@@ -50,6 +50,7 @@ export const handler = (
           (roomAdjustments) =>
             writeFileSync(roomAdjustmentsPath, JSON.stringify(roomAdjustments)),
           {
+            path: process.env['SOCKETIO_PATH'] || '/socket.io',
             cors: {
               origin: (process.env['CORS_ORIGINS'] || '').split(','),
               methods: ['GET', 'POST', 'OPTIONS'],
