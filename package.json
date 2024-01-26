@@ -2,7 +2,9 @@
   "name": "home-automation",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "prepare": "husky"
+  },
   "private": true,
   "devDependencies": {
     "@nx/eslint": "17.2.8",
