@@ -42,7 +42,7 @@
   {#if adjustment}
     <p class="stat-desc">
       {`(${formatTemperature(
-        Option.some(Schema.parseSync(Temperature)(adjustment))
+        Option.some(Schema.decodeUnknownSync(Temperature)(adjustment))
       )})`}
     </p>
   {/if}

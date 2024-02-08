@@ -34,7 +34,7 @@ function getTrvDesiredTargetTemperature({
     ),
   );
 
-  const roundedTargetTemperature = Schema.parseSync(Temperature)(
+  const roundedTargetTemperature = Schema.decodeUnknownSync(Temperature)(
     0.5 *
       (heatingRequired
         ? Math.ceil(trvTargetTemperature * 2.0)

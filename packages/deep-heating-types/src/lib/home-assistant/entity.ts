@@ -136,6 +136,6 @@ export const HomeAssistantEntity = Schema.union(
 export type HomeAssistantEntity = Schema.Schema.To<typeof HomeAssistantEntity>;
 
 export const isSchema =
-  <From, To>(schema: Schema.Schema<From, To>) =>
+  <From, To>(schema: Schema.Schema<never, From, To>) =>
   (e: unknown): e is To =>
     Schema.is(schema)(e);

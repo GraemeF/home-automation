@@ -36,7 +36,9 @@ export const homeStore = derived<
         .on('State', (state) => {
           home.update((home) => ({
             ...home,
-            state: Option.some(Schema.parseSync(DeepHeatingState)(state)),
+            state: Option.some(
+              Schema.decodeUnknownSync(DeepHeatingState)(state),
+            ),
           }));
           set(get(home));
         });

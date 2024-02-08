@@ -27,9 +27,9 @@ describe('sensor', () => {
       expect(
         pipe(
           exampleSensorEntity,
-          Schema.parse(TemperatureSensorEntity),
-          Effect.runSync
-        )
+          Schema.decodeUnknown(TemperatureSensorEntity),
+          Effect.runSync,
+        ),
       ).toStrictEqual({
         entity_id: 'sensor.bedroom_sensor_temperature',
         state: 21.1,
