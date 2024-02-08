@@ -19,7 +19,7 @@ export const formatTemperature = (
     }),
   );
 
-const VeryHot = Schema.parse(Temperature)(60);
+const VeryHot = Schema.decodeUnknown(Temperature)(60);
 
 const getTemperatureFromRoom = (room: {
   temperature: Option.Option<{ temperature: Temperature }>;

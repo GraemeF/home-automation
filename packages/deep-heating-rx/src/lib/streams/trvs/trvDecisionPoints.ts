@@ -34,9 +34,12 @@ export const getTrvDecisionPoints = (
     share(),
   );
 
-export const MinimumRoomTargetTemperature = Schema.parseSync(Temperature)(15);
-export const MinimumTrvTargetTemperature = Schema.parseSync(Temperature)(7);
-export const MaximumTrvTargetTemperature = Schema.parseSync(Temperature)(32);
+export const MinimumRoomTargetTemperature =
+  Schema.decodeUnknownSync(Temperature)(15);
+export const MinimumTrvTargetTemperature =
+  Schema.decodeUnknownSync(Temperature)(7);
+export const MaximumTrvTargetTemperature =
+  Schema.decodeUnknownSync(Temperature)(32);
 
 export const TrvDecisionPoint = Schema.struct({
   climateEntityId: ClimateEntityId,

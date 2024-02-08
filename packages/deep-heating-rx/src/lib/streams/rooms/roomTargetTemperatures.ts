@@ -31,7 +31,7 @@ const getTargetTemperature = (
     case 'Off':
       return MinimumTrvTargetTemperature;
     default:
-      return Schema.parseSync(Temperature)(
+      return Schema.decodeUnknownSync(Temperature)(
         Math.max(
           MinimumRoomTargetTemperature,
           roomScheduledTargetTemperature.targetTemperature +

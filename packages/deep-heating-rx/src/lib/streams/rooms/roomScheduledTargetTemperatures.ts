@@ -18,9 +18,9 @@ const refreshIntervalSeconds = 60;
 
 const getScheduledTargetTemperature = (
   schedule: HeatingSchedule,
-  time: DateTime
+  time: DateTime,
 ) =>
-  Schema.parseSync(Temperature)(
+  Schema.decodeUnknownSync(Temperature)(
     Math.max(
       ...schedule.map(
         (entry) =>
@@ -29,35 +29,35 @@ const getScheduledTargetTemperature = (
               0.5 *
                 Math.max(
                   0.0,
-                  DateTime.fromJSDate(entry.start).diff(time).as('hours')
+                  DateTime.fromJSDate(entry.start).diff(time).as('hours'),
                 )) *
-              10
-          ) / 10
-      )
-    )
+              10,
+          ) / 10,
+      ),
+    ),
   );
 
 export const getRoomScheduledTargetTemperatures = (
   rooms$: Observable<GroupedObservable<string, RoomDefinition>>,
-  roomSchedules$: Observable<RoomSchedule>
+  roomSchedules$: Observable<RoomSchedule>,
 ): Observable<RoomTargetTemperature> =>
   rooms$.pipe(
     mergeMap((room) =>
       combineLatest([
         timer(0, refreshIntervalSeconds * 1000).pipe(
           map(() => DateTime.local()),
-          shareReplay(1)
+          shareReplay(1),
         ),
         room,
         roomSchedules$.pipe(filter((x) => x.roomName === room.key)),
-      ]).pipe(shareReplayLatestDistinct())
+      ]).pipe(shareReplayLatestDistinct()),
     ),
     map(([time, room, roomSchedule]) => ({
       roomName: room.name,
       targetTemperature: getScheduledTargetTemperature(
         roomSchedule.schedule,
-        time
+        time,
       ),
     })),
-    shareReplayLatestDistinctByKey((x) => x.roomName)
+    shareReplayLatestDistinctByKey((x) => x.roomName),
   );

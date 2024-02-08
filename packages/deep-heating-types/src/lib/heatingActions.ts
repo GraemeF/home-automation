@@ -6,9 +6,9 @@ import { ClimateEntityId } from './entities';
 import { ClimateMode } from './home-assistant';
 import { Temperature } from './temperature';
 
-const Heat = Schema.parseSync(ClimateMode)('heat');
-const On = Schema.parseSync(Temperature)(32);
-const Off = Schema.parseSync(Temperature)(7);
+const Heat = Schema.decodeUnknownSync(ClimateMode)('heat');
+const On = Schema.decodeUnknownSync(Temperature)(32);
+const Off = Schema.decodeUnknownSync(Temperature)(7);
 
 export const getHeatingActions = (
   heatingId: ClimateEntityId,
