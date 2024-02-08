@@ -4,8 +4,6 @@
   import { homeStore } from '$lib/stores/home';
   import { compareByRoomTemperature } from '$lib/temperature';
   import { Option, ReadonlyArray, pipe } from 'effect';
-
-  export const ssr = false;
 </script>
 
 <div class="text-sm breadcrumbs">
