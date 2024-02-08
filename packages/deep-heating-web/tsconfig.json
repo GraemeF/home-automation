@@ -3,11 +3,7 @@
 
   "compilerOptions": {
     "moduleResolution": "node",
-    /**
-      Svelte Preprocess cannot figure out whether you have a value or a type, so tell TypeScript
-      to enforce using `import type` instead of `import` for Types.
-     */
-    "importsNotUsedAsValues": "error",
+    "verbatimModuleSyntax": true,
     "isolatedModules": true,
     /**
       To have warnings/errors of the Svelte compiler at the correct position,
@@ -35,25 +31,11 @@
     "noImplicitThis": true,
     "alwaysStrict": true,
 
-    // TypeScript cannot 'see' when you
-    // use an imported value in your
-    // markup, so we need this
-    "preserveValueImports": true,
-
     // This ensures both `vite build`
     // and `svelte-package` work correctly
     "lib": ["esnext", "DOM", "DOM.Iterable"],
     "module": "esnext",
-    "target": "esnext",
-    "paths": {
-      "$lib": ["./src/lib"],
-      "$lib/*": ["./src/lib/*"],
-      "$packages": ["../../node_modules"],
-      "$packages/*": ["../../node_modules/*"],
-      "@home-automation/deep-heating-types": [
-        "../deep-heating-types/src/index.ts"
-      ]
-    }
+    "target": "esnext"
   },
   "include": [],
   "references": [
