@@ -72,8 +72,8 @@
     "jsonwebtoken": "9.0.2",
     "luxon": "3.4.4",
     "rxjs-multi-scan": "1.0.2",
-    "socket.io": "4.7.4",
-    "socket.io-client": "4.7.4",
+    "socket.io": "4.7.5",
+    "socket.io-client": "4.7.5",
     "svelte-material-icons": "3.0.5",
     "tslib": "2.6.2",
     "utf-8-validate": "6.0.3"
