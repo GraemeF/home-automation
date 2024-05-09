@@ -41,7 +41,7 @@
     "jest": "29.7.0",
     "jest-environment-jsdom": "29.7.0",
     "nx": "18.0.3",
-    "nx-cloud": "18.0.0",
+    "nx-cloud": "18.0.1",
     "postcss": "8.4.38",
     "prettier": "3.2.5",
     "prettier-plugin-svelte": "3.2.3",
