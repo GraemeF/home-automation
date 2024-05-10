@@ -1,5 +1,5 @@
 ### Build Step
-FROM --platform=$BUILDPLATFORM node:20.12.2 as builder
+FROM --platform=$BUILDPLATFORM node:20.13.1 as builder
 
 WORKDIR /usr/src/app
 
@@ -20,7 +20,7 @@ RUN npx nx run deep-heating-web:build
 RUN npm prune --omit=dev
 
 ### Serve Step
-FROM node:20.12.2-slim
+FROM node:20.13.1-slim
 
 # Add nginx and create the run folder for nginx.
 RUN apt-get update && apt-get install -y \
