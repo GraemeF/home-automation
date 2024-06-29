@@ -6,3 +6,4 @@
 .svelte-kit/
 
 /.nx/cache
+/.nx/workspace-data
