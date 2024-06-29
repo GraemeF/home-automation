@@ -4,235 +4,226 @@ import { ClimateMode } from './home-assistant';
 import { WeekSchedule } from './schedule-types';
 import { Temperature } from './temperature';
 
-export const ClimateTargetTemperature = Schema.struct({
+export const ClimateTargetTemperature = Schema.Struct({
   climateEntityId: ClimateEntityId,
   targetTemperature: Temperature,
 });
-export type ClimateTargetTemperature = Schema.Schema.To<
-  typeof ClimateTargetTemperature
->;
+export type ClimateTargetTemperature = typeof ClimateTargetTemperature.Type;
 
-export const RoomClimateTargetTemperatures = Schema.struct({
-  roomName: Schema.string,
-  climateTargetTemperatures: Schema.array(ClimateTargetTemperature),
+export const RoomClimateTargetTemperatures = Schema.Struct({
+  roomName: Schema.String,
+  climateTargetTemperatures: Schema.Array(ClimateTargetTemperature),
 });
-export type RoomClimateTargetTemperatures = Schema.Schema.To<
-  typeof RoomClimateTargetTemperatures
->;
+export type RoomClimateTargetTemperatures =
+  typeof RoomClimateTargetTemperatures.Type;
 
-const TemperatureReading = Schema.struct({
+const TemperatureReading = Schema.Struct({
   temperature: Temperature,
   time: Schema.Date,
 });
-export type TemperatureReading = Schema.Schema.To<typeof TemperatureReading>;
+export type TemperatureReading = typeof TemperatureReading;
 
-const ClimateTemperatureReading = Schema.struct({
+const ClimateTemperatureReading = Schema.Struct({
   climateEntityId: ClimateEntityId,
   temperatureReading: TemperatureReading,
 });
-export type ClimateTemperatureReading = Schema.Schema.To<
-  typeof ClimateTemperatureReading
->;
+export type ClimateTemperatureReading = typeof ClimateTemperatureReading.Type;
 
-const RoomDefinition = Schema.struct({
-  name: Schema.string,
-  temperatureSensorEntityId: Schema.optionFromNullable(SensorEntityId),
-  climateEntityIds: Schema.array(ClimateEntityId),
-  schedule: Schema.optionFromNullable(WeekSchedule),
+const RoomDefinition = Schema.Struct({
+  name: Schema.String,
+  temperatureSensorEntityId: Schema.OptionFromNullOr(SensorEntityId),
+  climateEntityIds: Schema.Array(ClimateEntityId),
+  schedule: Schema.OptionFromNullOr(WeekSchedule),
 });
-export type RoomDefinition = Schema.Schema.To<typeof RoomDefinition>;
+export type RoomDefinition = typeof RoomDefinition.Type;
 
-const RoomClimateEntities = Schema.struct({
-  roomName: Schema.string,
-  climateEntityIds: Schema.array(ClimateEntityId),
+const RoomClimateEntities = Schema.Struct({
+  roomName: Schema.String,
+  climateEntityIds: Schema.Array(ClimateEntityId),
 });
-export type RoomClimateEntities = Schema.Schema.To<typeof RoomClimateEntities>;
+export type RoomClimateEntities = typeof RoomClimateEntities.Type;
 
-const ClimateEntityStatus = Schema.struct({
+const ClimateEntityStatus = Schema.Struct({
   climateEntityId: ClimateEntityId,
-  isHeating: Schema.boolean,
+  isHeating: Schema.Boolean,
 });
-export type ClimateEntityStatus = Schema.Schema.To<typeof ClimateEntityStatus>;
+export type ClimateEntityStatus = typeof ClimateEntityStatus.Type;
 
-const HeatingStatus = Schema.struct({
+const HeatingStatus = Schema.Struct({
   heatingId: ClimateEntityId,
-  isHeating: Schema.boolean,
-  source: Schema.string,
+  isHeating: Schema.Boolean,
+  source: Schema.String,
 });
-export type HeatingStatus = Schema.Schema.To<typeof HeatingStatus>;
+export type HeatingStatus = typeof HeatingStatus.Type;
 
-const HeatingScheduleEntry = Schema.struct({
+const HeatingScheduleEntry = Schema.Struct({
   start: Schema.Date,
   targetTemperature: Temperature,
 });
-export type HeatingScheduleEntry = Schema.Schema.To<
-  typeof HeatingScheduleEntry
->;
+export type HeatingScheduleEntry = typeof HeatingScheduleEntry.Type;
 
-const HeatingSchedule = Schema.array(HeatingScheduleEntry);
-export type HeatingSchedule = Schema.Schema.To<typeof HeatingSchedule>;
+const HeatingSchedule = Schema.Array(HeatingScheduleEntry);
+export type HeatingSchedule = typeof HeatingSchedule.Type;
 
-const RoomSchedule = Schema.struct({
-  roomName: Schema.string,
+const RoomSchedule = Schema.Struct({
+  roomName: Schema.String,
   schedule: HeatingSchedule,
 });
-export type RoomSchedule = Schema.Schema.To<typeof RoomSchedule>;
+export type RoomSchedule = typeof RoomSchedule.Type;
 
-const RoomTargetTemperature = Schema.struct({
-  roomName: Schema.string,
+const RoomTargetTemperature = Schema.Struct({
+  roomName: Schema.String,
   targetTemperature: Temperature,
 });
-export type RoomTargetTemperature = Schema.Schema.To<
-  typeof RoomTargetTemperature
->;
+export type RoomTargetTemperature = typeof RoomTargetTemperature.Type;
 
-export const TrvMode = Schema.struct({
+export const TrvMode = Schema.Struct({
   climateEntityId: ClimateEntityId,
   mode: ClimateMode,
-  source: Schema.string,
+  source: Schema.String,
 });
-export type TrvMode = Schema.Schema.To<typeof TrvMode>;
+export type TrvMode = typeof TrvMode.Type;
 
-export const ClimateAction = Schema.struct({
+export const ClimateAction = Schema.Struct({
   climateEntityId: ClimateEntityId,
   mode: ClimateMode,
   targetTemperature: Temperature,
 });
-export type ClimateAction = Schema.Schema.To<typeof ClimateAction>;
+export type ClimateAction = typeof ClimateAction.Type;
 
-const RoomTrvModes = Schema.struct({
-  roomName: Schema.string,
-  trvModes: Schema.array(TrvMode),
+const RoomTrvModes = Schema.Struct({
+  roomName: Schema.String,
+  trvModes: Schema.Array(TrvMode),
 });
-export type RoomTrvModes = Schema.Schema.To<typeof RoomTrvModes>;
+export type RoomTrvModes = typeof RoomTrvModes.Type;
 
-const RoomTrvStatuses = Schema.struct({
-  roomName: Schema.string,
-  trvStatuses: Schema.array(ClimateEntityStatus),
+const RoomTrvStatuses = Schema.Struct({
+  roomName: Schema.String,
+  trvStatuses: Schema.Array(ClimateEntityStatus),
 });
-export type RoomTrvStatuses = Schema.Schema.To<typeof RoomTrvStatuses>;
+export type RoomTrvStatuses = typeof RoomTrvStatuses.Type;
 
-const RoomStatus = Schema.struct({
-  roomName: Schema.string,
-  isHeating: Schema.boolean,
+const RoomStatus = Schema.Struct({
+  roomName: Schema.String,
+  isHeating: Schema.Boolean,
 });
-export type RoomStatus = Schema.Schema.To<typeof RoomStatus>;
+export type RoomStatus = typeof RoomStatus.Type;
 
-export const HouseModeValue = Schema.literal('Auto', 'Sleeping');
-export type HouseModeValue = Schema.Schema.To<typeof HouseModeValue>;
+export const HouseModeValue = Schema.Literal('Auto', 'Sleeping');
+export type HouseModeValue = typeof HouseModeValue.Type;
 
-export const RoomModeValue = Schema.literal('Off', 'Auto', 'Sleeping');
-export type RoomModeValue = Schema.Schema.To<typeof RoomModeValue>;
+export const RoomModeValue = Schema.Literal('Off', 'Auto', 'Sleeping');
+export type RoomModeValue = typeof RoomModeValue.Type;
 
-const RoomMode = Schema.struct({
-  roomName: Schema.string,
+const RoomMode = Schema.Struct({
+  roomName: Schema.String,
   mode: RoomModeValue,
 });
-export type RoomMode = Schema.Schema.To<typeof RoomMode>;
+export type RoomMode = typeof RoomMode.Type;
 
-const RoomTrvTemperatures = Schema.struct({
-  roomName: Schema.string,
-  trvTemperatures: Schema.array(ClimateTemperatureReading),
+const RoomTrvTemperatures = Schema.Struct({
+  roomName: Schema.String,
+  trvTemperatures: Schema.Array(ClimateTemperatureReading),
 });
-export type RoomTrvTemperatures = Schema.Schema.To<typeof RoomTrvTemperatures>;
+export type RoomTrvTemperatures = typeof RoomTrvTemperatures.Type;
 
-const RadiatorState = Schema.struct({
-  isHeating: Schema.option(Schema.boolean),
-  name: Schema.string,
-  temperature: Schema.option(TemperatureReading),
-  targetTemperature: Schema.option(TemperatureReading),
-  desiredTargetTemperature: Schema.option(TemperatureReading),
+const RadiatorState = Schema.Struct({
+  isHeating: Schema.Option(Schema.Boolean),
+  name: Schema.String,
+  temperature: Schema.Option(TemperatureReading),
+  targetTemperature: Schema.Option(TemperatureReading),
+  desiredTargetTemperature: Schema.Option(TemperatureReading),
 });
-export type RadiatorState = Schema.Schema.To<typeof RadiatorState>;
+export type RadiatorState = typeof RadiatorState.Type;
 
-export const RoomState = Schema.struct({
-  name: Schema.string,
-  temperature: Schema.option(TemperatureReading),
-  targetTemperature: Schema.option(Temperature),
-  radiators: Schema.array(RadiatorState),
-  mode: Schema.option(RoomModeValue),
-  isHeating: Schema.option(Schema.boolean),
+export const RoomState = Schema.Struct({
+  name: Schema.String,
+  temperature: Schema.Option(TemperatureReading),
+  targetTemperature: Schema.Option(Temperature),
+  radiators: Schema.Array(RadiatorState),
+  mode: Schema.Option(RoomModeValue),
+  isHeating: Schema.Option(Schema.Boolean),
   adjustment: Schema.number,
 });
-export type RoomState = Schema.Schema.To<typeof RoomState>;
+export type RoomState = typeof RoomState.Type;
 
 export interface RoomTemperature {
   roomName: string;
   temperatureReading: TemperatureReading;
 }
 
-const RoomSensors = Schema.struct({
-  roomName: Schema.string,
-  temperatureSensorIds: Schema.array(SensorEntityId),
+const RoomSensors = Schema.Struct({
+  roomName: Schema.String,
+  temperatureSensorIds: Schema.Array(SensorEntityId),
 });
-export type RoomSensors = Schema.Schema.To<typeof RoomSensors>;
+export type RoomSensors = typeof RoomSensors.Type;
 
-export const RoomDecisionPoint = Schema.struct({
-  roomName: Schema.string,
+export const RoomDecisionPoint = Schema.Struct({
+  roomName: Schema.String,
   targetTemperature: Temperature,
   temperature: Temperature,
-  trvTargetTemperatures: Schema.array(ClimateTargetTemperature),
-  trvTemperatures: Schema.array(ClimateTemperatureReading),
-  trvModes: Schema.array(TrvMode),
+  trvTargetTemperatures: Schema.Array(ClimateTargetTemperature),
+  trvTemperatures: Schema.Array(ClimateTemperatureReading),
+  trvModes: Schema.Array(TrvMode),
 });
-export type RoomDecisionPoint = Schema.Schema.To<typeof RoomDecisionPoint>;
+export type RoomDecisionPoint = typeof RoomDecisionPoint.Type;
 
 export interface RoomAdjustment {
   roomName: string;
   adjustment: number;
 }
 
-export const DeepHeatingState = Schema.struct({
-  rooms: Schema.array(RoomState),
-  isHeating: Schema.option(Schema.boolean),
+export const DeepHeatingState = Schema.Struct({
+  rooms: Schema.Array(RoomState),
+  isHeating: Schema.Option(Schema.Boolean),
 });
-export type DeepHeatingState = Schema.Schema.To<typeof DeepHeatingState>;
+export type DeepHeatingState = typeof DeepHeatingState.Type;
 
-export const Home = Schema.struct({
-  rooms: Schema.array(RoomDefinition),
+export const Home = Schema.Struct({
+  rooms: Schema.Array(RoomDefinition),
   sleepSwitchId: GoodnightEntityId,
   heatingId: ClimateEntityId,
 });
-export type Home = Schema.Schema.To<typeof Home>;
+export type Home = typeof Home.Type;
 
 export interface TrvScheduledTargetTemperature {
   climateEntityId: ClimateEntityId;
   scheduledTargetTemperature: Temperature;
 }
 
-export const UpdateSource = Schema.literal('Device', 'Synthesised');
-export type UpdateSource = Schema.Schema.To<typeof UpdateSource>;
+export const UpdateSource = Schema.Literal('Device', 'Synthesised');
+export type UpdateSource = typeof UpdateSource.Type;
 
-export const TrvControlState = Schema.struct({
+export const TrvControlState = Schema.Struct({
   climateEntityId: ClimateEntityId,
   targetTemperature: Temperature,
   mode: ClimateMode,
   source: UpdateSource,
 });
-export type TrvControlState = Schema.Schema.To<typeof TrvControlState>;
+export type TrvControlState = typeof TrvControlState.Type;
 
-export const TrvUpdate = Schema.struct({
-  state: Schema.struct({
+export const TrvUpdate = Schema.Struct({
+  state: Schema.Struct({
     temperature: TemperatureReading,
     target: Temperature,
     mode: ClimateMode,
-    isHeating: Schema.boolean,
+    isHeating: Schema.Boolean,
     schedule: WeekSchedule,
   }),
   climateEntityId: ClimateEntityId,
-  deviceType: Schema.string,
-  name: Schema.string,
+  deviceType: Schema.String,
+  name: Schema.String,
 });
-export type TrvUpdate = Schema.Schema.To<typeof TrvUpdate>;
+export type TrvUpdate = typeof TrvUpdate.Type;
 
-export const HeatingUpdate = Schema.struct({
-  state: Schema.struct({
+export const HeatingUpdate = Schema.Struct({
+  state: Schema.Struct({
     temperature: TemperatureReading,
     target: Temperature,
-    mode: Schema.string,
-    isHeating: Schema.boolean,
+    mode: Schema.String,
+    isHeating: Schema.Boolean,
   }),
   heatingId: ClimateEntityId,
-  name: Schema.string,
+  name: Schema.String,
 });
-export type HeatingUpdate = Schema.Schema.To<typeof HeatingUpdate>;
+export type HeatingUpdate = typeof HeatingUpdate.Type;

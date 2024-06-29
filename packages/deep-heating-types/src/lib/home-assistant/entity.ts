@@ -9,24 +9,24 @@ import {
 } from '../entities';
 import { Temperature } from '../temperature';
 
-export const BaseEntity = Schema.struct({
+export const BaseEntity = Schema.Struct({
   last_changed: Schema.Date,
   last_updated: Schema.Date,
-  context: Schema.struct({
-    id: Schema.string,
-    parent_id: Schema.optional(Schema.nullable(Schema.string)),
-    user_id: Schema.optional(Schema.nullable(Schema.string)),
+  context: Schema.Struct({
+    id: Schema.String,
+    parent_id: Schema.Option(Schema.NullOr(Schema.String)),
+    user_id: Schema.Option(Schema.NullOr(Schema.String)),
   }),
 });
-export type BaseEntity = Schema.Schema.To<typeof BaseEntity>;
+export type BaseEntity = typeof BaseEntity.Type;
 
 export const OtherEntity = pipe(
   BaseEntity,
   Schema.extend(
-    Schema.struct({
-      state: Schema.string,
+    Schema.Struct({
+      state: Schema.String,
       entity_id: EntityId,
-      attributes: Schema.object,
+      attributes: Schema.Object,
     }),
   ),
 );
@@ -35,105 +35,99 @@ export type OtherEntity = BaseEntity;
 export const SensorEntity = pipe(
   BaseEntity,
   Schema.extend(
-    Schema.struct({
+    Schema.Struct({
       entity_id: SensorEntityId,
     }),
   ),
 );
-export type SensorEntity = Schema.Schema.To<typeof SensorEntity>;
+export type SensorEntity = typeof SensorEntity.Type;
 
 export const TemperatureSensorEntity = pipe(
   SensorEntity,
   Schema.extend(
-    Schema.struct({
+    Schema.Struct({
       state: Schema.compose(Schema.NumberFromString, Temperature),
-      attributes: Schema.struct({
-        state_class: Schema.literal('measurement'),
-        device_class: Schema.optional(Schema.literal('temperature')),
-        unit_of_measurement: Schema.literal('°C'),
-        friendly_name: Schema.string,
+      attributes: Schema.Struct({
+        state_class: Schema.Literal('measurement'),
+        device_class: Schema.Option(Schema.Literal('temperature')),
+        unit_of_measurement: Schema.Literal('°C'),
+        friendly_name: Schema.String,
       }),
     }),
   ),
 );
-export type TemperatureSensorEntity = Schema.Schema.To<
-  typeof TemperatureSensorEntity
->;
+export type TemperatureSensorEntity = typeof TemperatureSensorEntity.Type;
 
-export const ClimateMode = Schema.literal('auto', 'heat', 'off');
-export type ClimateMode = Schema.Schema.To<typeof ClimateMode>;
+export const ClimateMode = Schema.Literal('auto', 'heat', 'off');
+export type ClimateMode = typeof ClimateMode.Type;
 
-export const HassHvacAction = Schema.literal('idle', 'heating');
-export type HassHvacAction = Schema.Schema.To<typeof HassHvacAction>;
+export const HassHvacAction = Schema.Literal('idle', 'heating');
+export type HassHvacAction = typeof HassHvacAction.Type;
 
 export const ClimateEntity = pipe(
   BaseEntity,
   Schema.extend(
-    Schema.struct({
+    Schema.Struct({
       entity_id: ClimateEntityId,
       state: ClimateMode,
-      attributes: Schema.struct({
-        hvac_modes: Schema.array(Schema.string),
+      attributes: Schema.Struct({
+        hvac_modes: Schema.Array(Schema.String),
         min_temp: Temperature,
         max_temp: Temperature,
-        preset_modes: Schema.optional(Schema.array(Schema.string)),
+        preset_modes: Schema.Option(Schema.Array(Schema.String)),
         current_temperature: Temperature,
         temperature: Temperature,
-        hvac_action: Schema.optional(HassHvacAction),
-        preset_mode: Schema.optional(Schema.string),
-        friendly_name: Schema.string,
-        supported_features: Schema.number,
+        hvac_action: Schema.Option(HassHvacAction),
+        preset_mode: Schema.Option(Schema.String),
+        friendly_name: Schema.String,
+        supported_features: Schema.Number,
       }),
     }),
   ),
 );
-export type ClimateEntity = Schema.Schema.To<typeof ClimateEntity>;
+export type ClimateEntity = typeof ClimateEntity.Type;
 
 export const ButtonPressEventEntity = pipe(
   BaseEntity,
   Schema.extend(
-    Schema.struct({
+    Schema.Struct({
       entity_id: EventEntityId,
       state: Schema.DateFromString,
-      attributes: Schema.struct({
-        friendly_name: Schema.string,
+      attributes: Schema.Struct({
+        friendly_name: Schema.String,
       }),
     }),
   ),
 );
-export type ButtonPressEventEntity = Schema.Schema.To<
-  typeof ButtonPressEventEntity
->;
+export type ButtonPressEventEntity = typeof ButtonPressEventEntity.Type;
 
 export const InputButtonEntity = pipe(
   BaseEntity,
   Schema.extend(
-    Schema.struct({
+    Schema.Struct({
       entity_id: InputButtonEntityId,
       state: Schema.Date,
-      attributes: Schema.struct({
-        friendly_name: Schema.string,
+      attributes: Schema.Struct({
+        friendly_name: Schema.String,
       }),
     }),
   ),
 );
-export type InputButtonEntity = Schema.Schema.To<typeof InputButtonEntity>;
+export type InputButtonEntity = typeof InputButtonEntity.Type;
 
-export const GoodnightEventEntity = Schema.union(
+export const GoodnightEventEntity = Schema.Union(
   InputButtonEntity,
   ButtonPressEventEntity,
 );
-export type GoodnightEventEntity = Schema.Schema.To<
-  typeof GoodnightEventEntity
->;
+export type GoodnightEventEntity = typeof GoodnightEventEntity.Type;
 
-export const HomeAssistantEntity = Schema.union(
+export const HomeAssistantEntity = Schema.Union(
   TemperatureSensorEntity,
   GoodnightEventEntity,
   ClimateEntity,
   OtherEntity,
 );
-export type HomeAssistantEntity = Schema.Schema.To<typeof HomeAssistantEntity>;
+export type HomeAssistantEntity = typeof HomeAssistantEntity.Type;
 
 export const isSchema =
   <From, To>(schema: Schema.Schema<never, From, To>) =>

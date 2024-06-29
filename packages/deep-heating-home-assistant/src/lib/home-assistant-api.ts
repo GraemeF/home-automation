@@ -136,7 +136,7 @@ export const getEntities = pipe(
   Effect.flatMap((api) =>
     pipe(
       api.getStates(),
-      Effect.map(Schema.decodeUnknownSync(Schema.array(HomeAssistantEntity))),
+      Effect.map(Schema.decodeUnknownSync(Schema.Array(HomeAssistantEntity))),
       Effect.withLogSpan(`fetch_entities`),
     ),
   ),
