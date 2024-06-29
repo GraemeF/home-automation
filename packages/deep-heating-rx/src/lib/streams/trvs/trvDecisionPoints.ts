@@ -41,11 +41,11 @@ export const MinimumTrvTargetTemperature =
 export const MaximumTrvTargetTemperature =
   Schema.decodeUnknownSync(Temperature)(32);
 
-export const TrvDecisionPoint = Schema.struct({
+export const TrvDecisionPoint = Schema.Struct({
   climateEntityId: ClimateEntityId,
   trvTemperature: Temperature,
   roomTemperature: Temperature,
   roomTargetTemperature: Temperature,
   trvMode: ClimateMode,
 });
-export type TrvDecisionPoint = Schema.Schema.To<typeof TrvDecisionPoint>;
+export type TrvDecisionPoint = typeof TrvDecisionPoint.Type;
