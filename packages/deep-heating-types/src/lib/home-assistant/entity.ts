@@ -1,4 +1,4 @@
-import * as Schema from '@effect/schema/Schema';
+import { Schema } from '@effect/schema';
 import { pipe } from 'effect/Function';
 import {
   ClimateEntityId,
@@ -14,8 +14,8 @@ export const BaseEntity = Schema.Struct({
   last_updated: Schema.Date,
   context: Schema.Struct({
     id: Schema.String,
-    parent_id: Schema.Option(Schema.NullOr(Schema.String)),
-    user_id: Schema.Option(Schema.NullOr(Schema.String)),
+    parent_id: Schema.UndefinedOr(Schema.NullOr(Schema.String)),
+    user_id: Schema.UndefinedOr(Schema.NullOr(Schema.String)),
   }),
 });
 export type BaseEntity = typeof BaseEntity.Type;
@@ -49,7 +49,9 @@ export const TemperatureSensorEntity = pipe(
       state: Schema.compose(Schema.NumberFromString, Temperature),
       attributes: Schema.Struct({
         state_class: Schema.Literal('measurement'),
-        device_class: Schema.Option(Schema.Literal('temperature')),
+        device_class: Schema.UndefinedOr(
+          Schema.NullOr(Schema.Literal('temperature')),
+        ),
         unit_of_measurement: Schema.Literal('°C'),
         friendly_name: Schema.String,
       }),
@@ -74,11 +76,11 @@ export const ClimateEntity = pipe(
         hvac_modes: Schema.Array(Schema.String),
         min_temp: Temperature,
         max_temp: Temperature,
-        preset_modes: Schema.Option(Schema.Array(Schema.String)),
+        preset_modes: Schema.UndefinedOr(Schema.Array(Schema.String)),
         current_temperature: Temperature,
         temperature: Temperature,
-        hvac_action: Schema.Option(HassHvacAction),
-        preset_mode: Schema.Option(Schema.String),
+        hvac_action: Schema.UndefinedOr(HassHvacAction),
+        preset_mode: Schema.UndefinedOr(Schema.String),
         friendly_name: Schema.String,
         supported_features: Schema.Number,
       }),
@@ -130,6 +132,6 @@ export const HomeAssistantEntity = Schema.Union(
 export type HomeAssistantEntity = typeof HomeAssistantEntity.Type;
 
 export const isSchema =
-  <From, To>(schema: Schema.Schema<never, From, To>) =>
-  (e: unknown): e is To =>
+  <A, I>(schema: Schema.Schema<A, I>) =>
+  (e: unknown): e is A =>
     Schema.is(schema)(e);

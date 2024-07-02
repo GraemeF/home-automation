@@ -8,7 +8,7 @@ import {
   TemperatureSensorEntity,
   isSchema,
 } from '@home-automation/deep-heating-types';
-import { Effect, ReadonlyArray, pipe } from 'effect';
+import { Array, Effect, pipe } from 'effect';
 import { HomeAssistantApiTest, getEntities } from './home-assistant-api';
 
 const exampleStates = [
@@ -234,14 +234,14 @@ describe('home-assistant-api', () => {
 
     it('parses climate entities', async () => {
       expect(
-        pipe(entities, ReadonlyArray.filter(isSchema(ClimateEntity))),
+        pipe(entities, Array.filter(isSchema(ClimateEntity))),
       ).toHaveLength(3);
     });
 
     it('parses sensor entities', async () => {
-      expect(
-        pipe(entities, ReadonlyArray.filter(isSchema(SensorEntity))),
-      ).toHaveLength(3);
+      expect(pipe(entities, Array.filter(isSchema(SensorEntity)))).toHaveLength(
+        3,
+      );
     });
 
     it('parses temperature sensor entities', async () => {

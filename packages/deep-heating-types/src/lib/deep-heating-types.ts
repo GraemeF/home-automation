@@ -21,7 +21,7 @@ const TemperatureReading = Schema.Struct({
   temperature: Temperature,
   time: Schema.Date,
 });
-export type TemperatureReading = typeof TemperatureReading;
+export type TemperatureReading = typeof TemperatureReading.Type;
 
 const ClimateTemperatureReading = Schema.Struct({
   climateEntityId: ClimateEntityId,
@@ -130,7 +130,7 @@ export type RoomTrvTemperatures = typeof RoomTrvTemperatures.Type;
 const RadiatorState = Schema.Struct({
   isHeating: Schema.Option(Schema.Boolean),
   name: Schema.String,
-  temperature: Schema.Option(TemperatureReading),
+  temperature: Schema.OptionFromNullOr(TemperatureReading),
   targetTemperature: Schema.Option(TemperatureReading),
   desiredTargetTemperature: Schema.Option(TemperatureReading),
 });
@@ -143,7 +143,7 @@ export const RoomState = Schema.Struct({
   radiators: Schema.Array(RadiatorState),
   mode: Schema.Option(RoomModeValue),
   isHeating: Schema.Option(Schema.Boolean),
-  adjustment: Schema.number,
+  adjustment: Schema.Number,
 });
 export type RoomState = typeof RoomState.Type;
 

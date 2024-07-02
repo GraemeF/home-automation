@@ -2,7 +2,8 @@ import { config } from 'dotenv';
 
 config();
 
-import { FileSystem } from '@effect/platform-node';
+import { FileSystem } from '@effect/platform';
+import { NodeFileSystem } from '@effect/platform-node';
 import { Schema } from '@effect/schema';
 import { Home } from '@home-automation/deep-heating-types';
 import { Effect, pipe } from 'effect';
@@ -60,7 +61,7 @@ export const handler = (
     ),
     Effect.tap((server) => server.logConnections()),
     Effect.tap(() => Effect.log('Socket.io server started')),
-    Effect.provide(FileSystem.layer),
+    Effect.provide(NodeFileSystem.layer),
     Effect.runPromise,
   );
 };

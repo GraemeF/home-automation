@@ -1,4 +1,4 @@
-import * as Schema from '@effect/schema/Schema';
+import { Schema } from '@effect/schema';
 import { pipe } from 'effect';
 
 export const EntityId = pipe(
@@ -36,7 +36,7 @@ export const InputButtonEntityId = pipe(
 );
 export type InputButtonEntityId = typeof InputButtonEntityId.Type;
 
-export const GoodnightEntityId = Schema.union(
+export const GoodnightEntityId = Schema.Union(
   EventEntityId,
   InputButtonEntityId,
 );

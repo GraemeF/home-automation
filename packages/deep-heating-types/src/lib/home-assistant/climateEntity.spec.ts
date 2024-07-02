@@ -1,4 +1,4 @@
-import * as Schema from '@effect/schema/Schema';
+import { Schema } from '@effect/schema';
 import { Effect } from 'effect';
 import { pipe } from 'effect/Function';
 import { ClimateEntity } from './entity';
