@@ -2,40 +2,36 @@ import { Schema } from '@effect/schema';
 import { ClimateEntityId } from './entities';
 import { Temperature } from './temperature';
 
-const Day = Schema.literal(
+const Day = Schema.Literal(
   'monday',
   'tuesday',
   'wednesday',
   'thursday',
   'friday',
   'saturday',
-  'sunday'
+  'sunday',
 );
 
-const TimeOfDay = Schema.string;
-export type TimeOfDay = Schema.Schema.To<typeof TimeOfDay>;
+const TimeOfDay = Schema.String;
+export type TimeOfDay = typeof TimeOfDay.Type;
 
-export const ScheduleSlot = Schema.tuple(TimeOfDay, Temperature);
-export type ScheduleSlot = Schema.Schema.To<typeof ScheduleSlot>;
+export const ScheduleSlot = Schema.Tuple(TimeOfDay, Temperature);
+export type ScheduleSlot = typeof ScheduleSlot.Type;
 
-export const DaySchedule = Schema.record(TimeOfDay, Temperature);
-export type DaySchedule = Schema.Schema.To<typeof DaySchedule>;
+export const DaySchedule = Schema.Record(TimeOfDay, Temperature);
+export type DaySchedule = typeof DaySchedule.Type;
 
-export const WeekSchedule = Schema.record(Day, DaySchedule);
-export type WeekSchedule = Schema.Schema.To<typeof WeekSchedule>;
+export const WeekSchedule = Schema.Record(Day, DaySchedule);
+export type WeekSchedule = typeof WeekSchedule.Type;
 
-export const TrvWeekHeatingSchedule = Schema.struct({
+export const TrvWeekHeatingSchedule = Schema.Struct({
   climateEntityId: ClimateEntityId,
   schedule: WeekSchedule,
 });
-export type TrvWeekHeatingSchedule = Schema.Schema.To<
-  typeof TrvWeekHeatingSchedule
->;
+export type TrvWeekHeatingSchedule = typeof TrvWeekHeatingSchedule.Type;
 
-export const RoomWeekHeatingSchedule = Schema.struct({
-  roomName: Schema.string,
+export const RoomWeekHeatingSchedule = Schema.Struct({
+  roomName: Schema.String,
   schedule: WeekSchedule,
 });
-export type RoomWeekHeatingSchedule = Schema.Schema.To<
-  typeof RoomWeekHeatingSchedule
->;
+export type RoomWeekHeatingSchedule = typeof RoomWeekHeatingSchedule.Type;

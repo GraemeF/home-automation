@@ -1,43 +1,43 @@
-import * as Schema from '@effect/schema/Schema';
+import { Schema } from '@effect/schema';
 import { pipe } from 'effect';
 
 export const EntityId = pipe(
-  Schema.string,
+  Schema.String,
   Schema.nonEmpty(),
-  Schema.brand('EntityId')
+  Schema.brand('EntityId'),
 );
-export type EntityId = Schema.Schema.To<typeof EntityId>;
+export type EntityId = typeof EntityId.Type;
 
 export const ClimateEntityId = pipe(
   EntityId,
   Schema.startsWith('climate.'),
-  Schema.brand('ClimateEntityId')
+  Schema.brand('ClimateEntityId'),
 );
-export type ClimateEntityId = Schema.Schema.To<typeof ClimateEntityId>;
+export type ClimateEntityId = typeof ClimateEntityId.Type;
 
 export const SensorEntityId = pipe(
   EntityId,
   Schema.startsWith('sensor.'),
-  Schema.brand('SensorEntityId')
+  Schema.brand('SensorEntityId'),
 );
-export type SensorEntityId = Schema.Schema.To<typeof SensorEntityId>;
+export type SensorEntityId = typeof SensorEntityId.Type;
 
 export const EventEntityId = pipe(
   EntityId,
   Schema.startsWith('event.'),
-  Schema.brand('EventEntityId')
+  Schema.brand('EventEntityId'),
 );
-export type EventEntityId = Schema.Schema.To<typeof EventEntityId>;
+export type EventEntityId = typeof EventEntityId.Type;
 
 export const InputButtonEntityId = pipe(
   EntityId,
   Schema.startsWith('input_button.'),
-  Schema.brand('InputButtonEntityId')
+  Schema.brand('InputButtonEntityId'),
 );
-export type InputButtonEntityId = Schema.Schema.To<typeof InputButtonEntityId>;
+export type InputButtonEntityId = typeof InputButtonEntityId.Type;
 
-export const GoodnightEntityId = Schema.union(
+export const GoodnightEntityId = Schema.Union(
   EventEntityId,
-  InputButtonEntityId
+  InputButtonEntityId,
 );
-export type GoodnightEntityId = Schema.Schema.To<typeof GoodnightEntityId>;
+export type GoodnightEntityId = typeof GoodnightEntityId.Type;

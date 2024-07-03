@@ -5,7 +5,7 @@ import {
   RoomDefinition,
   RoomState,
 } from '@home-automation/deep-heating-types';
-import { Option, ReadonlyArray, pipe } from 'effect';
+import { Array, Option, pipe } from 'effect';
 import { Observable } from 'rxjs';
 import { multiScan } from 'rxjs-multi-scan';
 import { filter, mergeAll, mergeMap, startWith } from 'rxjs/operators';
@@ -13,20 +13,20 @@ import { filter, mergeAll, mergeMap, startWith } from 'rxjs/operators';
 export const addOrReplace = <T>(
   array: ReadonlyArray<T>,
   element: T,
-  idKey: keyof T
+  idKey: keyof T,
 ): ReadonlyArray<T> =>
   pipe(
     array,
-    ReadonlyArray.findFirstIndex((f) => f[idKey] === element[idKey]),
+    Array.findFirstIndex((f) => f[idKey] === element[idKey]),
     Option.match({
-      onSome: (index) => ReadonlyArray.replace(index, element)(array),
-      onNone: () => ReadonlyArray.append(element)(array),
-    })
+      onSome: (index) => Array.replace(index, element)(array),
+      onNone: () => Array.append(element)(array),
+    }),
   );
 
 function maintainTrvState(
   deepHeating: DeepHeating,
-  trvId: string
+  trvId: string,
 ): Observable<RadiatorState> {
   const initialState: RadiatorState = {
     name: trvId,
@@ -37,7 +37,7 @@ function maintainTrvState(
   };
   return multiScan(
     deepHeating.trvTemperatures$.pipe(
-      filter((x) => x.climateEntityId === trvId)
+      filter((x) => x.climateEntityId === trvId),
     ),
     (state, update) => ({
       ...state,
@@ -45,7 +45,7 @@ function maintainTrvState(
     }),
 
     deepHeating.trvTargetTemperatures$.pipe(
-      filter((x) => x.climateEntityId === trvId)
+      filter((x) => x.climateEntityId === trvId),
     ),
     (state, update) => ({
       ...state,
@@ -62,7 +62,7 @@ function maintainTrvState(
     }),
 
     deepHeating.trvDesiredTargetTemperatures$.pipe(
-      filter((x) => x.climateEntityId === trvId)
+      filter((x) => x.climateEntityId === trvId),
     ),
     (state, desired) => ({
       ...state,
@@ -72,16 +72,16 @@ function maintainTrvState(
       }),
     }),
 
-    initialState
+    initialState,
   ).pipe(startWith<RadiatorState>(initialState));
 }
 
 function maintainRoomState(
   deepHeating: DeepHeating,
-  room: RoomDefinition
+  room: RoomDefinition,
 ): Observable<RoomState> {
   const initialRoomState: RoomState = {
-    radiators: ReadonlyArray.empty<RadiatorState>(),
+    radiators: Array.empty<RadiatorState>(),
     name: room.name,
     adjustment: 0,
     isHeating: Option.none(),
@@ -97,7 +97,7 @@ function maintainRoomState(
     }),
 
     deepHeating.roomTargetTemperatures$.pipe(
-      filter((x) => x.roomName === room.name)
+      filter((x) => x.roomName === room.name),
     ),
     (state, update) => ({
       ...state,
@@ -125,36 +125,36 @@ function maintainRoomState(
     deepHeating.roomTrvs$.pipe(
       filter((x) => x.roomName === room.name),
       mergeMap((x) =>
-        x.climateEntityIds.map((y) => maintainTrvState(deepHeating, y))
+        x.climateEntityIds.map((y) => maintainTrvState(deepHeating, y)),
       ),
-      mergeAll()
+      mergeAll(),
     ),
     (state, _update) => ({
       ...state,
       radiators: addOrReplace(state.radiators, _update, 'name'),
     }),
 
-    initialRoomState
+    initialRoomState,
   ).pipe(startWith<RoomState>(initialRoomState));
 }
 
 const emptyState: DeepHeatingState = {
-  rooms: ReadonlyArray.empty<RoomState>(),
+  rooms: Array.empty<RoomState>(),
   isHeating: Option.none(),
 };
 
 export function maintainState(
-  deepHeating: DeepHeating
+  deepHeating: DeepHeating,
 ): Observable<DeepHeatingState> {
   return multiScan(
     deepHeating.rooms$.pipe(
       mergeMap((x) =>
         x.pipe(
           mergeMap((roomDefinition) =>
-            maintainRoomState(deepHeating, roomDefinition)
-          )
-        )
-      )
+            maintainRoomState(deepHeating, roomDefinition),
+          ),
+        ),
+      ),
     ),
     (state, roomState) => ({
       ...state,
@@ -167,6 +167,6 @@ export function maintainState(
       isHeating: Option.some(heatingStatus.isHeating),
     }),
 
-    emptyState
+    emptyState,
   );
 }

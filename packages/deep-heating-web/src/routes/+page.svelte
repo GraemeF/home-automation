@@ -3,7 +3,7 @@
   import Room from '$lib/components/Room.svelte';
   import { homeStore } from '$lib/stores/home';
   import { compareByRoomTemperature } from '$lib/temperature';
-  import { Option, ReadonlyArray, pipe } from 'effect';
+  import { Array, Option, pipe } from 'effect';
 </script>
 
 <div class="text-sm breadcrumbs">
@@ -25,7 +25,7 @@
       {/if}
     </div>
     <div class="flex flex-row flex-wrap gap-2">
-      {#each pipe( $homeStore.state.value, (state) => pipe(state.rooms, ReadonlyArray.sort(compareByRoomTemperature)), ) as room}
+      {#each pipe( $homeStore.state.value, (state) => pipe(state.rooms, Array.sort(compareByRoomTemperature)), ) as room}
         <Room {room} />
       {/each}
     </div>
