@@ -8,9 +8,6 @@
       "analyzeSourceFiles": true
     }
   },
-  "affected": {
-    "defaultBase": "main"
-  },
   "defaultProject": "deep-heating-socketio",
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
@@ -50,5 +47,6 @@
       "inputs": ["default", "{workspaceRoot}/.eslintrc.json"],
       "cache": true
     }
-  }
+  },
+  "defaultBase": "main"
 }
