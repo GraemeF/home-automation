@@ -61,7 +61,7 @@
   "dependencies": {
     "@effect/platform": "0.58.18",
     "@effect/platform-node": "0.53.17",
-    "@sveltejs/adapter-node": "4.0.1",
+    "@sveltejs/adapter-node": "5.2.0",
     "@sveltejs/kit": "2.5.7",
     "amazon-user-pool-srp-client": "1.0.4",
     "axios": "1.6.8",
