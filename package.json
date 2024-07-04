@@ -32,7 +32,7 @@
     "eslint-config-prettier": "9.1.0",
     "eslint-plugin-compat": "4.2.0",
     "eslint-plugin-expect-type": "0.4.0",
-    "eslint-plugin-functional": "6.5.1",
+    "eslint-plugin-functional": "6.6.0",
     "eslint-plugin-jest": "28.6.0",
     "eslint-plugin-svelte": "2.39.0",
     "eslint-plugin-testing-library": "6.2.2",
