@@ -54,7 +54,7 @@
     "ts-jest": "29.1.5",
     "ts-node": "10.9.2",
     "typescript": "5.4.5",
-    "vite-plugin-checker": "0.6.4",
+    "vite-plugin-checker": "0.7.0",
     "vitest": "1.6.0",
     "webpack-merge": "5.10.0"
   },
