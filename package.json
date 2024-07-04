@@ -59,15 +59,15 @@
     "webpack-merge": "5.10.0"
   },
   "dependencies": {
-    "@effect/platform": "0.58.19",
-    "@effect/platform-node": "0.53.18",
+    "@effect/platform": "0.58.20",
+    "@effect/platform-node": "0.53.19",
     "@sveltejs/adapter-node": "5.2.0",
     "@sveltejs/kit": "2.5.18",
     "amazon-user-pool-srp-client": "1.0.4",
     "axios": "1.6.8",
     "bufferutil": "4.0.8",
     "dotenv": "16.4.5",
-    "effect": "3.4.6",
+    "effect": "3.4.7",
     "express": "4.19.2",
     "jsonwebtoken": "9.0.2",
     "luxon": "3.4.4",
