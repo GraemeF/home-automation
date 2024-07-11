@@ -34,7 +34,7 @@
     "eslint-plugin-expect-type": "0.4.0",
     "eslint-plugin-functional": "6.6.3",
     "eslint-plugin-jest": "28.6.0",
-    "eslint-plugin-svelte": "2.41.0",
+    "eslint-plugin-svelte": "2.42.0",
     "eslint-plugin-testing-library": "6.2.2",
     "eslint-plugin-unused-imports": "3.2.0",
     "husky": "9.0.11",
