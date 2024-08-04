@@ -70,7 +70,7 @@
     "effect": "3.5.5",
     "express": "4.19.2",
     "jsonwebtoken": "9.0.2",
-    "luxon": "3.4.4",
+    "luxon": "3.5.0",
     "rxjs-multi-scan": "1.0.2",
     "socket.io": "4.7.5",
     "socket.io-client": "4.7.5",
