@@ -68,7 +68,7 @@
     "bufferutil": "4.0.9",
     "dotenv": "16.4.7",
     "effect": "3.5.5",
-    "express": "4.19.2",
+    "express": "4.21.2",
     "jsonwebtoken": "9.0.2",
     "luxon": "3.5.0",
     "rxjs-multi-scan": "1.0.2",
