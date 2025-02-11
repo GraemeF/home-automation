@@ -1,5 +1,5 @@
 ### Build Step
-FROM --platform=$BUILDPLATFORM node:20.18.2 as builder
+FROM --platform=$BUILDPLATFORM node:20.18.3 as builder
 
 WORKDIR /usr/src/app
 
@@ -17,7 +17,7 @@ RUN npx nx run deep-heating-web:build
 RUN npm prune --omit=dev
 
 ### Serve Step
-FROM node:20.18.2-slim
+FROM node:20.18.3-slim
 
 LABEL org.opencontainers.image.source = "https://github.com/GraemeF/home-automation"
 
