@@ -16,7 +16,7 @@
     "@nx/workspace": "19.4.3",
     "@nx-tools/container-metadata": "6.1.1",
     "@nx-tools/nx-container": "6.2.0",
-    "@testing-library/svelte": "5.2.6",
+    "@testing-library/svelte": "5.2.7",
     "@tsconfig/svelte": "5.0.4",
     "@types/debug": "4.1.12",
     "@types/jest": "29.5.14",
