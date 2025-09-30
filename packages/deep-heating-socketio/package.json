@@ -6,5 +6,9 @@
     "serve": "node ../../dist/out-tsc/main.js",
     "lint": "eslint .",
     "format": "prettier --write ."
+  },
+  "dependencies": {
+    "deep-heating-rx": "*",
+    "deep-heating-state": "*"
   }
 }
