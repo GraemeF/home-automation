@@ -3,7 +3,6 @@
   "version": "0.0.1",
   "scripts": {
     "lint": "eslint .",
-    "test": "jest",
     "format": "prettier --write ."
   }
 }
