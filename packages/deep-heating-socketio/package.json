@@ -8,7 +8,8 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "deep-heating-rx": "*",
-    "deep-heating-state": "*"
+    "@home-automation/deep-heating-types": "*",
+    "@home-automation/deep-heating-rx": "*",
+    "@home-automation/deep-heating-state": "*"
   }
 }

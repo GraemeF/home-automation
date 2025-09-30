@@ -1,7 +1,9 @@
 {
-  "name": "deep-heating-types",
+  "name": "@home-automation/deep-heating-types",
   "version": "0.0.1",
+  "main": "dist/src/index.js",
   "scripts": {
+    "build": "tsc -p tsconfig.lib.json",
     "lint": "eslint .",
     "test": "jest",
     "format": "prettier --write ."

@@ -1,12 +1,15 @@
 {
-  "name": "deep-heating-home-assistant",
+  "name": "@home-automation/deep-heating-home-assistant",
   "version": "0.0.1",
+  "main": "dist/src/index.js",
   "scripts": {
+    "build": "tsc -p tsconfig.lib.json",
     "lint": "eslint .",
     "test": "jest",
     "format": "prettier --write ."
   },
   "dependencies": {
-    "deep-heating-types": "*"
+    "@home-automation/deep-heating-types": "*",
+    "@home-automation/rxx": "*"
   }
 }
