@@ -1,2 +1,6 @@
+[tools]
+nodejs = "20.18.3"
+bun = "latest"
+
 [env]
 _.path = ["./node_modules/.bin"]
