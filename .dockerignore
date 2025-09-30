@@ -1,3 +1,51 @@
 node_modules
+npm-debug.log
+yarn-error.log
+
+# Build outputs
+/dist
+/tmp
+/out-tsc
+.turbo
+.next
+.svelte-kit
+
+# Environment files
+.env
+.env.local
+.env*.local
 home.json
-.nx
+/home
+/data
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# CI
+.github
+
+# Docs
+*.md
+!README.md
+
+# Test
+/coverage
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+
+# Misc
+.husky

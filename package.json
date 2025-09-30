@@ -13,7 +13,11 @@
     "lint": "turbo run lint",
     "dev": "turbo run dev",
     "serve": "turbo run serve",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "docker:build:deep-heating": "docker build -f packages/deep-heating/Dockerfile -t deep-heating:latest .",
+    "docker:build:socketio": "docker build -f packages/deep-heating-socketio/Dockerfile -t deep-heating-socketio:latest .",
+    "docker:build:web": "docker build -f packages/deep-heating-web/Dockerfile -t deep-heating-web:latest .",
+    "docker:build:all": "npm run docker:build:deep-heating && npm run docker:build:socketio && npm run docker:build:web"
   },
   "private": true,
   "devDependencies": {

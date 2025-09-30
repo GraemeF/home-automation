@@ -1,31 +1,33 @@
+### Prune Step
+FROM node:20.18.3-alpine AS pruner
+RUN apk update && apk add --no-cache libc6-compat
+WORKDIR /app
+RUN npm install -g turbo@^2
+COPY . .
+RUN turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker
+
 ### Build Step
-FROM --platform=$BUILDPLATFORM node:20.18.3 as builder
+FROM --platform=$BUILDPLATFORM node:20.18.3-alpine as builder
+RUN apk update && apk add --no-cache libc6-compat
 
-WORKDIR /usr/src/app
-
-COPY package.json ./
-COPY package-lock.json ./
+WORKDIR /app
 
 ARG TARGETOS
 ARG TARGETARCH
 
+COPY --from=pruner /app/out/json/ .
 RUN npm ci --target_arch=$TARGETARCH --target_platform=$TARGETOS
-COPY . .
 
-ENV NX_DAEMON=false
-ENV CI=true
-RUN npx nx run deep-heating-socketio:build
-RUN npx nx run deep-heating-web:build
+COPY --from=pruner /app/out/full/ .
+RUN npm run build
 
 RUN npm prune --omit=dev
 
 ### Serve Step
-FROM node:20.18.3-slim
+FROM node:20.18.3-alpine
 
 # Add nginx and create the run folder for nginx.
-RUN apt-get update && apt-get install -y \
-  nginx \
-  && rm -rf /var/lib/apt/lists/*
+RUN apk update && apk add --no-cache nginx
 
 RUN mkdir -p /run/nginx
 
@@ -35,17 +37,19 @@ LABEL org.opencontainers.image.source = "https://github.com/GraemeF/home-automat
 
 WORKDIR /app
 
-COPY --from=builder /usr/src/app/node_modules ./node_modules
-COPY --from=builder /usr/src/app/package.json .
-COPY --from=builder /usr/src/app/package-lock.json .
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json .
+COPY --from=builder /app/package-lock.json .
 
-COPY --from=builder /usr/src/app/dist/packages/deep-heating-web ./deep-heating-web
-COPY --from=builder /usr/src/app/packages/deep-heating-web/package.json ./deep-heating-web
+COPY --from=builder /app/dist/packages/deep-heating-web ./deep-heating-web
+COPY --from=builder /app/packages/deep-heating-web/package.json ./deep-heating-web
 
-COPY --from=builder /usr/src/app/dist/packages/deep-heating-socketio ./deep-heating-socketio
-COPY --from=builder /usr/src/app/package.json ./deep-heating-socketio
+COPY --from=builder /app/dist/packages/deep-heating-socketio ./deep-heating-socketio
+COPY --from=builder /app/package.json ./deep-heating-socketio
 
-COPY --from=builder /usr/src/app/packages/deep-heating/assets/ingress.conf /etc/nginx/nginx.conf
-COPY --from=builder /usr/src/app/packages/deep-heating/assets/process.json .
+COPY --from=builder /app/packages/deep-heating/assets/ingress.conf /etc/nginx/nginx.conf
+COPY --from=builder /app/packages/deep-heating/assets/process.json .
+
+ENV NODE_ENV=production
 
 CMD ["pm2", "start", "--no-daemon", "process.json"]

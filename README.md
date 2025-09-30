@@ -14,6 +14,56 @@ Combine TRVs with external temperature sensors to heat your home more efficientl
 
 ## Development
 
-This monorepo was generated using [Nx](https://nx.dev). See
-[the NX docs](https://nx.dev/using-nx/nx-cli) for details about how to add
-libraries, run tests, and so on.
+This monorepo uses [Turborepo](https://turbo.build/repo) for task orchestration and caching.
+
+### Building Docker Images
+
+Build Docker images from the repository root using the following commands:
+
+**Deep Heating (combined socketio + web)**:
+
+```bash
+docker build -f packages/deep-heating/Dockerfile -t deep-heating:latest .
+```
+
+**Deep Heating SocketIO (standalone)**:
+
+```bash
+docker build -f packages/deep-heating-socketio/Dockerfile -t deep-heating-socketio:latest .
+```
+
+**Deep Heating Web (standalone)**:
+
+```bash
+docker build -f packages/deep-heating-web/Dockerfile -t deep-heating-web:latest .
+```
+
+All Dockerfiles use `turbo prune` to create optimized multi-stage builds with proper caching layers.
+
+#### Multi-platform builds
+
+To build for multiple platforms (e.g., ARM64 for Raspberry Pi and AMD64):
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -f packages/deep-heating/Dockerfile \
+  -t your-registry/deep-heating:latest \
+  --push .
+```
+
+#### Using npm scripts
+
+```bash
+npm run docker:build:deep-heating      # Build combined image
+npm run docker:build:socketio          # Build socketio standalone
+npm run docker:build:web               # Build web standalone
+npm run docker:build:all               # Build all images
+```
+
+### Development Tasks
+
+- `npm run build` - Build all packages
+- `npm run test` - Run all tests
+- `npm run lint` - Lint all packages
+- `npm run dev` - Start development servers
+- `npm run serve` - Serve built packages
