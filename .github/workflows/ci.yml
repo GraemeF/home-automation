@@ -73,7 +73,8 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=sha,prefix={{branch}}-
+            type=sha,prefix=pr-{{number}}-,enable={{is_pull_request}}
+            type=sha,enable={{is_default_branch}}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push deep-heating
@@ -98,7 +99,8 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=sha,prefix={{branch}}-
+            type=sha,prefix=pr-{{number}}-,enable={{is_pull_request}}
+            type=sha,enable={{is_default_branch}}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push deep-heating-socketio
@@ -123,7 +125,8 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=sha,prefix={{branch}}-
+            type=sha,prefix=pr-{{number}}-,enable={{is_pull_request}}
+            type=sha,enable={{is_default_branch}}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push deep-heating-web
