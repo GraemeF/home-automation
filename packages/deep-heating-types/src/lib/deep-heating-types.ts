@@ -1,6 +1,6 @@
 import { Schema } from '@effect/schema';
 import { ClimateEntityId, GoodnightEntityId, SensorEntityId } from './entities';
-import { ClimateMode } from './home-assistant';
+import { ClimateMode, OperationalClimateMode } from './home-assistant';
 import { WeekSchedule } from './schedule-types';
 import { Temperature } from './temperature';
 
@@ -86,7 +86,7 @@ export type TrvMode = typeof TrvMode.Type;
 
 export const ClimateAction = Schema.Struct({
   climateEntityId: ClimateEntityId,
-  mode: ClimateMode,
+  mode: OperationalClimateMode,
   targetTemperature: Temperature,
 });
 export type ClimateAction = typeof ClimateAction.Type;
@@ -197,7 +197,7 @@ export type UpdateSource = typeof UpdateSource.Type;
 export const TrvControlState = Schema.Struct({
   climateEntityId: ClimateEntityId,
   targetTemperature: Temperature,
-  mode: ClimateMode,
+  mode: OperationalClimateMode,
   source: UpdateSource,
 });
 export type TrvControlState = typeof TrvControlState.Type;
@@ -206,7 +206,7 @@ export const TrvUpdate = Schema.Struct({
   state: Schema.Struct({
     temperature: TemperatureReading,
     target: Temperature,
-    mode: ClimateMode,
+    mode: OperationalClimateMode,
     isHeating: Schema.Boolean,
     schedule: WeekSchedule,
   }),
@@ -220,7 +220,7 @@ export const HeatingUpdate = Schema.Struct({
   state: Schema.Struct({
     temperature: TemperatureReading,
     target: Temperature,
-    mode: Schema.String,
+    mode: OperationalClimateMode,
     isHeating: Schema.Boolean,
   }),
   heatingId: ClimateEntityId,

@@ -1,8 +1,8 @@
 import {
   ClimateAction,
   ClimateEntityId,
-  ClimateMode,
   ClimateTemperatureReading,
+  OperationalClimateMode,
   Temperature,
   TrvControlState,
   TrvScheduledTargetTemperature,
@@ -21,7 +21,7 @@ import { isDeepStrictEqual } from 'util';
 import { TrvDesiredTargetTemperature } from './trvDesiredTargetTemperatures';
 
 function getTrvAction(new_target: Temperature): {
-  mode: ClimateMode;
+  mode: OperationalClimateMode;
   targetTemperature: Temperature;
 } {
   return { mode: 'heat', targetTemperature: new_target };
@@ -31,7 +31,7 @@ export function determineAction(
   trvDesiredTargetTemperature: TrvDesiredTargetTemperature,
   trvControlState: TrvControlState,
   trvTemperature: ClimateTemperatureReading,
-  trvScheduledTargetTemperature: TrvScheduledTargetTemperature
+  trvScheduledTargetTemperature: TrvScheduledTargetTemperature,
 ): ClimateAction | null {
   if (
     trvControlState.climateEntityId !==
@@ -46,7 +46,7 @@ export function determineAction(
   if (trvControlState.mode === 'off') return null;
 
   const possibleAction = getTrvAction(
-    trvDesiredTargetTemperature.targetTemperature
+    trvDesiredTargetTemperature.targetTemperature,
   );
 
   if (possibleAction.mode !== trvControlState.mode)
@@ -72,19 +72,19 @@ export const getTrvActions = (
   trvDesiredTargetTemperatures: Observable<TrvDesiredTargetTemperature>,
   trvControlStates: Observable<TrvControlState>,
   trvTemperatures: Observable<ClimateTemperatureReading>,
-  trvScheduledTargetTemperatures: Observable<TrvScheduledTargetTemperature>
+  trvScheduledTargetTemperatures: Observable<TrvScheduledTargetTemperature>,
 ): Observable<ClimateAction> =>
   trvIds$.pipe(
     mergeMap((trvIds) =>
       trvIds.map((trvId) =>
         combineLatest([
           trvDesiredTargetTemperatures.pipe(
-            filter((x) => x.climateEntityId === trvId)
+            filter((x) => x.climateEntityId === trvId),
           ),
           trvControlStates.pipe(filter((x) => x.climateEntityId === trvId)),
           trvTemperatures.pipe(filter((x) => x.climateEntityId === trvId)),
           trvScheduledTargetTemperatures.pipe(
-            filter((x) => x.climateEntityId === trvId)
+            filter((x) => x.climateEntityId === trvId),
           ),
         ]).pipe(
           distinctUntilChanged<
@@ -92,12 +92,12 @@ export const getTrvActions = (
               TrvDesiredTargetTemperature,
               TrvControlState,
               ClimateTemperatureReading,
-              TrvScheduledTargetTemperature
+              TrvScheduledTargetTemperature,
             ]
           >(isDeepStrictEqual),
-          filter(([, x]) => x.mode !== 'off')
-        )
-      )
+          filter(([, x]) => x.mode !== 'off'),
+        ),
+      ),
     ),
     mergeMap((x) =>
       x.pipe(
@@ -112,12 +112,12 @@ export const getTrvActions = (
               trvDesiredTargetTemperature,
               controlState,
               trvTemperature,
-              trvScheduledTargetTemperature
-            )
+              trvScheduledTargetTemperature,
+            ),
         ),
         filter(Predicate.isNotNull),
-        shareReplay(1)
-      )
+        shareReplay(1),
+      ),
     ),
-    share()
+    share(),
   );
