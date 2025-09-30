@@ -14,5 +14,8 @@
     "format": "prettier --ignore-path .gitignore --write --plugin-search-dir=. .",
     "test": "echo 'No tests for web package'",
     "serve": "npm run dev"
+  },
+  "dependencies": {
+    "deep-heating-types": "*"
   }
 }
