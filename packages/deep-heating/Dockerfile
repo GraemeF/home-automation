@@ -48,8 +48,8 @@ COPY --from=builder /app/packages/deep-heating-web/package.json ./deep-heating-w
 COPY --from=builder /app/dist/out-tsc/packages/deep-heating-socketio/src ./deep-heating-socketio
 COPY --from=builder /app/package.json ./deep-heating-socketio
 
-COPY --from=builder /app/packages/deep-heating/assets/ingress.conf /etc/nginx/nginx.conf
-COPY --from=builder /app/packages/deep-heating/assets/process.json .
+COPY --from=pruner /app/packages/deep-heating/assets/ingress.conf /etc/nginx/nginx.conf
+COPY --from=pruner /app/packages/deep-heating/assets/process.json .
 
 ENV NODE_ENV=production
 
