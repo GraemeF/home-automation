@@ -26,6 +26,9 @@
     },
     "sync": {
       "outputs": [".svelte-kit/**"]
+    },
+    "format": {
+      "outputs": []
     }
   }
 }

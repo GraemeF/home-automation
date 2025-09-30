@@ -17,7 +17,7 @@ export const getRoomDecisionPoints = (
   roomTemperatures: Observable<RoomTemperature>,
   roomTrvTargetTemperatures: Observable<RoomClimateTargetTemperatures>,
   roomTrvTemperatures: Observable<RoomTrvTemperatures>,
-  roomTrvModes: Observable<RoomTrvModes>
+  roomTrvModes: Observable<RoomTrvModes>,
 ): Observable<RoomDecisionPoint> =>
   rooms.pipe(
     mergeMap((room) =>
@@ -28,7 +28,7 @@ export const getRoomDecisionPoints = (
         roomTrvTargetTemperatures.pipe(filter((x) => x.roomName === room.key)),
         roomTrvTemperatures.pipe(filter((x) => x.roomName === room.key)),
         roomTrvModes.pipe(filter((x) => x.roomName === room.key)),
-      ]).pipe(shareReplayLatestDistinct())
+      ]).pipe(shareReplayLatestDistinct()),
     ),
     map(
       ([
@@ -46,7 +46,7 @@ export const getRoomDecisionPoints = (
           roomTrvTargetTemperatures.climateTargetTemperatures,
         trvTemperatures: roomTrvTemperatures.trvTemperatures,
         trvModes: roomTrvModes.trvModes,
-      })
+      }),
     ),
-    share()
+    share(),
   );

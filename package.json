@@ -13,6 +13,7 @@
     "lint": "turbo run lint",
     "dev": "turbo run dev",
     "serve": "turbo run serve",
+    "format": "turbo run format",
     "format:check": "prettier --check .",
     "docker:build:deep-heating": "docker build -f packages/deep-heating/Dockerfile -t deep-heating:latest .",
     "docker:build:socketio": "docker build -f packages/deep-heating-socketio/Dockerfile -t deep-heating-socketio:latest .",

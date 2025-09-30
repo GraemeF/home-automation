@@ -191,8 +191,9 @@ export class DeepHeating {
       share(),
     );
     const trvDisplayName = (trvId: ClimateEntityId): string =>
-      `${home.rooms.find((x) => x.climateEntityIds.includes(trvId))
-        ?.name} (${trvId})`;
+      `${
+        home.rooms.find((x) => x.climateEntityIds.includes(trvId))?.name
+      } (${trvId})`;
     this.trvControlStates$.subscribe((x) =>
       log(
         'TRV',

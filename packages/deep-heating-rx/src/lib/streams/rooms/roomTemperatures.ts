@@ -9,14 +9,14 @@ import { filter, map, mergeMap, share } from 'rxjs/operators';
 
 export const getRoomTemperatures = (
   roomSensors$: Observable<Observable<RoomSensors>>,
-  temperatureSensorUpdate$: Observable<TemperatureSensorEntity>
+  temperatureSensorUpdate$: Observable<TemperatureSensorEntity>,
 ): Observable<RoomTemperature> =>
   roomSensors$.pipe(
     mergeMap((roomSensors$) =>
       combineLatest([roomSensors$, temperatureSensorUpdate$]).pipe(
         filter(([roomSensors, temperatureSensorUpdate]) => {
           return roomSensors.temperatureSensorIds.includes(
-            temperatureSensorUpdate.entity_id
+            temperatureSensorUpdate.entity_id,
           );
         }),
         map(([roomSensors, temperatureSensorUpdate]) => {
@@ -28,8 +28,8 @@ export const getRoomTemperatures = (
             },
           };
         }),
-        shareReplayLatestDistinctByKey((x) => x.roomName)
-      )
+        shareReplayLatestDistinctByKey((x) => x.roomName),
+      ),
     ),
-    share()
+    share(),
   );

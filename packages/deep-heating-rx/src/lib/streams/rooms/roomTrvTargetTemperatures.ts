@@ -9,7 +9,7 @@ import { filter, map, mergeMap } from 'rxjs/operators';
 
 export const getRoomTrvTargetTemperatures = (
   roomTrvs$: Observable<RoomClimateEntities>,
-  trvTargetTemperatures$: Observable<ClimateTargetTemperature>
+  trvTargetTemperatures$: Observable<ClimateTargetTemperature>,
 ): Observable<RoomClimateTargetTemperatures> =>
   roomTrvs$.pipe(
     mergeMap((roomTrvs) => {
@@ -18,16 +18,16 @@ export const getRoomTrvTargetTemperatures = (
           trvTargetTemperatures$.pipe(
             filter(
               (trvTargetTemperature) =>
-                trvTargetTemperature.climateEntityId === trvId
-            )
-          )
-        )
+                trvTargetTemperature.climateEntityId === trvId,
+            ),
+          ),
+        ),
       ).pipe(
         map((trvTargetTemperatures) => ({
           roomName: roomTrvs.roomName,
           climateTargetTemperatures: trvTargetTemperatures,
         })),
-        shareReplayLatestDistinctByKey((x) => x.roomName)
+        shareReplayLatestDistinctByKey((x) => x.roomName),
       );
-    })
+    }),
   );

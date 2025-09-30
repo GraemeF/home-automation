@@ -11,7 +11,7 @@ import { filter, map, mergeAll, mergeMap } from 'rxjs/operators';
 export const getTrvSynthesisedStatuses = (
   trvIds$: Observable<ClimateEntityId[]>,
   trvTemperatures$: Observable<ClimateTemperatureReading>,
-  trvControlStates$: Observable<TrvControlState>
+  trvControlStates$: Observable<TrvControlState>,
 ): Observable<ClimateEntityStatus> =>
   trvIds$.pipe(
     mergeMap((trvIds) =>
@@ -26,9 +26,9 @@ export const getTrvSynthesisedStatuses = (
               trvControlState.targetTemperature >
               trvTemperature.temperatureReading.temperature,
           })),
-          shareReplayLatestDistinct()
-        )
-      )
+          shareReplayLatestDistinct(),
+        ),
+      ),
     ),
-    mergeAll()
+    mergeAll(),
   );

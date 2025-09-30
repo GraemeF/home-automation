@@ -5,6 +5,7 @@
     "build": "tsc -p tsconfig.app.json",
     "serve": "node ../../dist/out-tsc/main.js",
     "lint": "eslint .",
-    "test": "jest"
+    "test": "jest",
+    "format": "prettier --write ."
   }
 }

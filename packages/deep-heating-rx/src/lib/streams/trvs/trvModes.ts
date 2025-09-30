@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 export const getTrvModes = (
-  trvControlStates: Observable<TrvControlState>
+  trvControlStates: Observable<TrvControlState>,
 ): Observable<TrvMode> =>
   trvControlStates.pipe(
     map((x) => ({
@@ -14,6 +14,6 @@ export const getTrvModes = (
     })),
     shareReplayLatestDistinctByKey(
       (x) => x.climateEntityId,
-      (a, b) => a.mode === b.mode
-    )
+      (a, b) => a.mode === b.mode,
+    ),
   );

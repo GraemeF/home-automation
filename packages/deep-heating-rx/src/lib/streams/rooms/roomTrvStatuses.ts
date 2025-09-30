@@ -8,7 +8,7 @@ import { filter, map, mergeMap } from 'rxjs/operators';
 
 export const getRoomTrvStatuses = (
   roomTrvs$: Observable<RoomClimateEntities>,
-  climateEntityStatus$: Observable<ClimateEntityStatus>
+  climateEntityStatus$: Observable<ClimateEntityStatus>,
 ): Observable<RoomTrvStatuses> =>
   roomTrvs$.pipe(
     mergeMap((roomTrvs) =>
@@ -17,15 +17,15 @@ export const getRoomTrvStatuses = (
           climateEntityStatus$.pipe(
             filter(
               (climateEntityStatus) =>
-                climateEntityStatus.climateEntityId === trvId
-            )
-          )
-        )
+                climateEntityStatus.climateEntityId === trvId,
+            ),
+          ),
+        ),
       ).pipe(
         map((trvStatuses) => ({
           roomName: roomTrvs.roomName,
           trvStatuses: trvStatuses,
-        }))
-      )
-    )
+        })),
+      ),
+    ),
   );

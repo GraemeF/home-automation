@@ -15,7 +15,7 @@ import { isDeepStrictEqual } from 'util';
 export const getRoomAdjustments = (
   initialRoomAdjustments: RoomAdjustment[],
   rooms$: Observable<GroupedObservable<string, RoomDefinition>>,
-  roomAdjustmentCommands$: Observable<RoomAdjustment>
+  roomAdjustmentCommands$: Observable<RoomAdjustment>,
 ): Observable<RoomAdjustment> =>
   rooms$.pipe(
     mergeMap((room$) =>
@@ -28,7 +28,7 @@ export const getRoomAdjustments = (
               ?.adjustment ?? 0,
         }),
         distinctUntilChanged<RoomAdjustment>(isDeepStrictEqual),
-        shareReplay(1)
-      )
-    )
+        shareReplay(1),
+      ),
+    ),
   );

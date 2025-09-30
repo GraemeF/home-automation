@@ -18,24 +18,24 @@ describe('Weekly schedule', () => {
     it('should have correct slots', () => {
       const slots = toHeatingSchedule(
         exampleSchedule,
-        DateTime.local(2023, 10, 16, 9, 30)
+        DateTime.local(2023, 10, 16, 9, 30),
       );
 
       const nowSlot = slots[0];
       expect(nowSlot.start).toEqual(
-        DateTime.local(2023, 10, 16, 9, 24).toJSDate()
+        DateTime.local(2023, 10, 16, 9, 24).toJSDate(),
       );
       expect(nowSlot.targetTemperature).toEqual(20);
 
       const nextSlot = slots[1];
       expect(nextSlot.start).toEqual(
-        DateTime.local(2023, 10, 16, 10, 0).toJSDate()
+        DateTime.local(2023, 10, 16, 10, 0).toJSDate(),
       );
       expect(nextSlot.targetTemperature).toEqual(22);
 
       const laterSlot = slots[2];
       expect(laterSlot.start).toEqual(
-        DateTime.local(2023, 10, 17, 9, 25).toJSDate()
+        DateTime.local(2023, 10, 17, 9, 25).toJSDate(),
       );
       expect(laterSlot.targetTemperature).toEqual(21);
     });
