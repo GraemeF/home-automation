@@ -1,4 +1,10 @@
 {
   "name": "deep-heating-socketio",
-  "version": "0.0.1"
+  "version": "0.0.1",
+  "scripts": {
+    "build": "tsc -p tsconfig.app.json",
+    "serve": "node ../../dist/out-tsc/main.js",
+    "lint": "eslint .",
+    "test": "jest"
+  }
 }

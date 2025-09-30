@@ -18,7 +18,6 @@ module.exports = {
   ],
   plugins: [
     '@typescript-eslint',
-    '@nx',
     'jest',
     'unused-imports',
     'functional',
@@ -36,7 +35,7 @@ module.exports = {
     },
     {
       files: ['*.stories.ts'],
-      extends: ['plugin:@nx/typescript', 'plugin:functional/recommended'],
+      extends: ['plugin:functional/recommended'],
       rules: {
         'functional/prefer-immutable-types': 'warn',
         'functional/functional-parameters': 'off',

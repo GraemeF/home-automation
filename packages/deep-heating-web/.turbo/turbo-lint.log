@@ -1,0 +1,30 @@
+
+> @home-automation/deep-heating-web@0.0.1 lint
+> prettier --ignore-path .gitignore --check . && eslint --ignore-path .gitignore .
+
+Checking formatting...
+All matched files use Prettier code style!
+
+Oops! Something went wrong! :(
+
+ESLint: 8.57.1
+
+ESLint couldn't find the plugin "@nx/eslint-plugin".
+
+(The package "@nx/eslint-plugin" was not found when loaded as a Node module from the directory "/Users/graemefoster/Development/home-automation/packages/deep-heating-web".)
+
+It's likely that the plugin isn't installed correctly. Try reinstalling by running the following:
+
+    npm install @nx/eslint-plugin@latest --save-dev
+
+The plugin "@nx/eslint-plugin" was referenced from the config file in ".eslintrc.cjs#overrides[1]".
+
+If you still can't figure out the problem, please stop by https://eslint.org/chat/help to chat with the team.
+
+npm error Lifecycle script `lint` failed with error:
+npm error code 2
+npm error path /Users/graemefoster/Development/home-automation/packages/deep-heating-web
+npm error workspace @home-automation/deep-heating-web@0.0.1
+npm error location /Users/graemefoster/Development/home-automation/packages/deep-heating-web
+npm error command failed
+npm error command sh -c prettier --ignore-path .gitignore --check . && eslint --ignore-path .gitignore .

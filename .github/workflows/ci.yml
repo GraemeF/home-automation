@@ -10,10 +10,6 @@ on:
       - main
 
 env:
-  NX_CLOUD_DISTRIBUTED_EXECUTION: false
-  NX_BRANCH: ${{ github.event.number || github.ref }}
-  NX_RUN_GROUP: ${{ github.run_id }}
-  NX_CLOUD_AUTH_TOKEN: ${{ secrets.NX_CLOUD_AUTH_TOKEN }}
   PRISMA_HIDE_UPDATE_MESSAGE: 'true'
 
 jobs:
@@ -42,47 +38,29 @@ jobs:
         uses: asdf-vm/actions/install@v3
         timeout-minutes: 2
 
-      - name: Derive appropriate SHAs for base and head for `nx affected` commands
-        uses: nrwl/nx-set-shas@v4
       - run: npm ci
-      - run: npx nx format:check
-      - run: npx nx run-many --target=build
-      - run: npx nx run-many --target=lint
-      - run: npx nx run-many --target=test
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Login to DockerHub
-        uses: docker/login-action@v3
-        if: ${{ github.actor != 'dependabot[bot]' }}
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - run: npm ci
-      - run: npx nx affected --target=docker
-        if: ${{ github.actor != 'renovate[bot]' }}
-        env:
-          NX_CLOUD_DISTRIBUTED_EXECUTION: false
-          INPUT_PUSH: ${{ (github.event_name != 'pull_request' && 'true') || 'false' }}
-          INPUT_CACHE_FROM: type=registry,ref=ghcr.io/graemef/home-automation/build:buildcache
-          INPUT_CACHE_TO: type=registry,ref=ghcr.io/graemef/home-automation/build:buildcache,mode=max
-          INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: npx nx affected --target=docker
-        if: ${{ github.actor == 'renovate[bot]' }}
-        env:
-          NX_CLOUD_DISTRIBUTED_EXECUTION: false
-          INPUT_PUSH: false
-          INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm run format:check
+      - run: npm run build
+      - run: npm run lint
+      - run: npm run test
+      # Docker builds have been disabled during Nx to Turborepo migration
+      # TODO: Re-enable docker builds with turbo or direct docker commands
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@v3
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@v3
+      # - name: Login to GitHub Container Registry
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: ghcr.io
+      #     username: ${{ github.actor }}
+      #     password: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Login to DockerHub
+      #   uses: docker/login-action@v3
+      #   if: ${{ github.actor != 'dependabot[bot]' }}
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Archive npm failure logs
         uses: actions/upload-artifact@v4
         if: failure()
