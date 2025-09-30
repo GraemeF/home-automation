@@ -1,4 +1,4 @@
-FROM node:20.18.3-alpine AS base
+FROM node:22.20.0-alpine AS base
 RUN apk update && apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -32,7 +32,7 @@ COPY --from=pruner /app/out/json/ .
 RUN npm install --omit=dev
 
 ### Serve Step
-FROM node:20.18.3-alpine AS runner
+FROM node:22.20.0-alpine AS runner
 
 RUN apk update && apk add --no-cache nginx
 RUN mkdir -p /run/nginx
