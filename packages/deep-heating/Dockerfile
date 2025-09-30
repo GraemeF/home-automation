@@ -19,6 +19,7 @@ COPY --from=pruner /app/out/json/ .
 RUN npm ci --target_arch=$TARGETARCH --target_platform=$TARGETOS
 
 COPY --from=pruner /app/out/full/ .
+COPY --from=pruner /app/tsconfig.base.json .
 RUN npm run build
 
 RUN npm prune --omit=dev
