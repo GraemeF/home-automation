@@ -8,7 +8,7 @@ RUN turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker
 
 ### Build Step
 FROM --platform=$BUILDPLATFORM node:20.18.3-alpine as builder
-RUN apk update && apk add --no-cache libc6-compat
+RUN apk update && apk add --no-cache libc6-compat python3 make g++
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ ARG TARGETOS
 ARG TARGETARCH
 
 COPY --from=pruner /app/out/json/ .
-RUN npm ci --target_arch=$TARGETARCH --target_platform=$TARGETOS
+RUN npm install --target_arch=$TARGETARCH --target_platform=$TARGETOS
 
 COPY --from=pruner /app/out/full/ .
 COPY --from=pruner /app/tsconfig.base.json .

@@ -51,6 +51,7 @@ Thumbs.db
 
 # Turbo
 .turbo
+out/
 
 # Claude
 *.local.json
