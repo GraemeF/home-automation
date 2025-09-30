@@ -41,10 +41,10 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json .
 COPY --from=builder /app/package-lock.json .
 
-COPY --from=builder /app/dist/packages/deep-heating-web ./deep-heating-web
+COPY --from=builder /app/packages/deep-heating-web/.svelte-kit/output ./deep-heating-web
 COPY --from=builder /app/packages/deep-heating-web/package.json ./deep-heating-web
 
-COPY --from=builder /app/dist/packages/deep-heating-socketio ./deep-heating-socketio
+COPY --from=builder /app/dist/out-tsc/packages/deep-heating-socketio/src ./deep-heating-socketio
 COPY --from=builder /app/package.json ./deep-heating-socketio
 
 COPY --from=builder /app/packages/deep-heating/assets/ingress.conf /etc/nginx/nginx.conf
