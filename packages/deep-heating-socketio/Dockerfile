@@ -22,6 +22,13 @@ COPY --from=pruner /app/out/full/ .
 COPY --from=pruner /app/tsconfig.base.json .
 RUN npm run build
 
+# Copy built outputs back to package directories for proper module resolution
+RUN mkdir -p /app/packages/deep-heating-types/dist && cp -r /app/dist/out-tsc/packages/deep-heating-types/* /app/packages/deep-heating-types/dist/ && \
+    mkdir -p /app/packages/deep-heating-rx/dist && cp -r /app/dist/out-tsc/packages/deep-heating-rx/* /app/packages/deep-heating-rx/dist/ && \
+    mkdir -p /app/packages/deep-heating-home-assistant/dist && cp -r /app/dist/out-tsc/packages/deep-heating-home-assistant/* /app/packages/deep-heating-home-assistant/dist/ && \
+    mkdir -p /app/packages/deep-heating-state/dist && cp -r /app/dist/out-tsc/packages/deep-heating-state/* /app/packages/deep-heating-state/dist/ && \
+    mkdir -p /app/packages/rxx/dist && cp -r /app/dist/out-tsc/packages/rxx/* /app/packages/rxx/dist/
+
 RUN npm prune --omit=dev
 
 ### Serve Step
@@ -31,10 +38,13 @@ LABEL org.opencontainers.image.source = "https://github.com/GraemeF/home-automat
 
 WORKDIR /app
 
+# Copy the entire built workspace structure from builder
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/package.json .
 COPY --from=builder /app/package-lock.json .
 
+# Copy built socketio output
 COPY --from=builder /app/dist/out-tsc/packages/deep-heating-socketio/src .
 
 ENV NODE_ENV=production
