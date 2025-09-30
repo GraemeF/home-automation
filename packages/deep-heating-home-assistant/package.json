@@ -5,5 +5,8 @@
     "lint": "eslint .",
     "test": "jest",
     "format": "prettier --write ."
+  },
+  "dependencies": {
+    "deep-heating-types": "*"
   }
 }
