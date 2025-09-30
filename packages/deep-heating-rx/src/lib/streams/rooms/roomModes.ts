@@ -12,14 +12,14 @@ import { filter, map, mergeMap } from 'rxjs/operators';
 
 const getRoomMode = (
   trvModes: readonly TrvMode[],
-  houseMode: HouseModeValue
+  houseMode: HouseModeValue,
 ): RoomModeValue =>
   trvModes.some((x) => x.mode === 'off') ? 'Off' : houseMode;
 
 export const getRoomModes = (
   rooms$: Observable<GroupedObservable<string, RoomDefinition>>,
   houseModes$: Observable<HouseModeValue>,
-  roomTrvModes$: Observable<RoomTrvModes>
+  roomTrvModes$: Observable<RoomTrvModes>,
 ): Observable<RoomMode> =>
   rooms$.pipe(
     mergeMap((roomDefinition$) =>
@@ -30,8 +30,8 @@ export const getRoomModes = (
         map(([houseMode, roomTrvModes]) => ({
           roomName: roomTrvModes.roomName,
           mode: getRoomMode(roomTrvModes.trvModes, houseMode),
-        }))
-      )
+        })),
+      ),
     ),
-    shareReplayLatestDistinctByKey((x) => x.roomName)
+    shareReplayLatestDistinctByKey((x) => x.roomName),
   );

@@ -7,7 +7,7 @@ import { Observable } from 'rxjs';
 import { distinctUntilChanged, map, scan, shareReplay } from 'rxjs/operators';
 
 export const getTrvsHeating = (
-  trvStatuses$: Observable<ClimateEntityStatus>
+  trvStatuses$: Observable<ClimateEntityStatus>,
 ): Observable<HashSet.HashSet<ClimateEntityId>> =>
   trvStatuses$.pipe(
     scan(
@@ -16,19 +16,19 @@ export const getTrvsHeating = (
           heatingTrvs,
           isHeating
             ? HashSet.add(climateEntityId)
-            : HashSet.remove(climateEntityId)
+            : HashSet.remove(climateEntityId),
         ),
-      HashSet.empty<ClimateEntityId>()
+      HashSet.empty<ClimateEntityId>(),
     ),
-    shareReplay(1)
+    shareReplay(1),
   );
 
 export const getAnyHeating = <T>(
-  heatingThings: Observable<HashSet.HashSet<T>>
+  heatingThings: Observable<HashSet.HashSet<T>>,
 ): Observable<boolean> =>
   heatingThings.pipe(
     map(HashSet.size),
     map((size) => size > 0),
     distinctUntilChanged((a, b) => a === b),
-    shareReplay(1)
+    shareReplay(1),
   );

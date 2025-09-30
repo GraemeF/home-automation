@@ -14,20 +14,20 @@ const trvScheduleRooms = (roomTrvs$: Observable<RoomClimateEntities>) =>
         x.climateEntityIds.length > 0 ? x.climateEntityIds[0] : null,
     })),
     filter((x) => x.scheduleTrvId !== null),
-    groupBy((x) => x.scheduleTrvId)
+    groupBy((x) => x.scheduleTrvId),
   );
 
 export const getRoomHiveHeatingSchedules = (
   roomTrvs$: Observable<RoomClimateEntities>,
-  trvSchedules: Observable<TrvWeekHeatingSchedule>
+  trvSchedules: Observable<TrvWeekHeatingSchedule>,
 ): Observable<RoomWeekHeatingSchedule> =>
   trvScheduleRooms(roomTrvs$).pipe(
     mergeMap((groupedTrvScheduleRooms) =>
       combineLatest([
         groupedTrvScheduleRooms,
         trvSchedules.pipe(
-          filter((y) => y.climateEntityId === groupedTrvScheduleRooms.key)
+          filter((y) => y.climateEntityId === groupedTrvScheduleRooms.key),
         ),
-      ]).pipe(map(([{ roomName }, { schedule }]) => ({ roomName, schedule })))
-    )
+      ]).pipe(map(([{ roomName }, { schedule }]) => ({ roomName, schedule }))),
+    ),
   );

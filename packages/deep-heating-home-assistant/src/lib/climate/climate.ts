@@ -1,11 +1,12 @@
 import { Schema } from '@effect/schema';
 import {
+  AvailableClimateEntity,
   ClimateEntity,
   ClimateEntityId,
-  ClimateMode,
   HeatingUpdate,
   Home,
   HomeAssistantEntity,
+  OperationalClimateMode,
   Temperature,
   TrvUpdate,
   isSchema,
@@ -19,12 +20,17 @@ import { HomeAssistantApi } from '../home-assistant-api';
 
 const heatingEntityId = Schema.decodeSync(ClimateEntityId)('climate.main');
 
+const isAvailableClimateEntity = (
+  entity: ClimateEntity,
+): entity is AvailableClimateEntity => entity.state !== 'unavailable';
+
 export const getTrvApiUpdates =
   (home: Home) =>
   (p$: Observable<ClimateEntity>): Observable<TrvUpdate> =>
     p$.pipe(
       filter((entity) => entity.entity_id !== home.heatingId),
-      map((response) =>
+      filter(isAvailableClimateEntity),
+      map((response: AvailableClimateEntity) =>
         pipe(
           home.rooms.find((room) =>
             room.climateEntityIds.includes(response.entity_id),
@@ -58,7 +64,8 @@ export const getHeatingApiUpdates = (
 ): Observable<HeatingUpdate> =>
   p$.pipe(
     filter((entity) => entity.entity_id === heatingEntityId),
-    map((response) => ({
+    filter(isAvailableClimateEntity),
+    map((response: AvailableClimateEntity) => ({
       heatingId: response.entity_id,
       name: response.attributes.friendly_name,
       deviceType: 'trv',
@@ -90,7 +97,7 @@ export const setClimateEntityTemperature = (
 
 export const setClimateEntityMode = (
   entityId: ClimateEntityId,
-  mode: ClimateMode,
+  mode: OperationalClimateMode,
 ) =>
   pipe(
     HomeAssistantApi,

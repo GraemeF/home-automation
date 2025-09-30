@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { scan, shareReplay } from 'rxjs/operators';
 
 export const getRoomsHeating = (
-  roomStatuses$: Observable<RoomDecisionPoint>
+  roomStatuses$: Observable<RoomDecisionPoint>,
 ): Observable<HashSet.HashSet<string>> =>
   roomStatuses$.pipe(
     scan(
@@ -13,9 +13,9 @@ export const getRoomsHeating = (
           heatingRooms,
           targetTemperature > temperature
             ? HashSet.add(roomName)
-            : HashSet.remove(roomName)
+            : HashSet.remove(roomName),
         ),
-      HashSet.empty<string>()
+      HashSet.empty<string>(),
     ),
-    shareReplay(1)
+    shareReplay(1),
   );

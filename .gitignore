@@ -48,3 +48,10 @@ Thumbs.db
 
 .nx/cache
 .nx/workspace-data
+
+# Turbo
+.turbo
+out/
+
+# Claude
+*.local.json

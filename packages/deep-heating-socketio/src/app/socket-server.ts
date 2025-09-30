@@ -44,37 +44,37 @@ export class SocketServer {
     home: Home,
     initialRoomAdjustments: RoomAdjustment[],
     saveRoomAdjustments: (roomAdjustments: RoomAdjustment[]) => void,
-    opts?: Partial<ServerOptions>
+    opts?: Partial<ServerOptions>,
   ) {
     this.io$ = of(new SocketIO.Server(server, opts));
 
     this.connection$ = this.io$.pipe(
       switchMap((io) =>
         fromEvent(io, 'connection').pipe(
-          map((client) => ({ io, client: client as SocketIO.Socket }))
-        )
-      )
+          map((client) => ({ io, client: client as SocketIO.Socket })),
+        ),
+      ),
     );
 
     this.disconnect$ = this.connection$.pipe(
       mergeMap(({ client }) =>
-        fromEvent(client, 'disconnect').pipe(map(() => client))
-      )
+        fromEvent(client, 'disconnect').pipe(map(() => client)),
+      ),
     );
 
     const roomAdjustments$ = this.events<RoomAdjustment>('adjust_room').pipe(
       map(({ data }: { data: RoomAdjustment }) => data),
       distinctUntilChanged<RoomAdjustment>(isDeepStrictEqual),
-      share()
+      share(),
     );
     const deepHeating = new DeepHeating(
       home,
       initialRoomAdjustments,
-      roomAdjustments$
+      roomAdjustments$,
     );
 
     this.state$ = maintainState(deepHeating).pipe(
-      throttleTime(100, undefined, { leading: true, trailing: true })
+      throttleTime(100, undefined, { leading: true, trailing: true }),
     );
 
     this.connection$
@@ -84,7 +84,7 @@ export class SocketServer {
       });
 
     this.subscription = combineLatest([this.state$, this.io$]).subscribe(
-      ([state, io]) => io.emit('State', state)
+      ([state, io]) => io.emit('State', state),
     );
 
     this.saveRoomAdjustmentsSubscription = this.state$
@@ -93,8 +93,8 @@ export class SocketServer {
           state.rooms.map((room) => ({
             roomName: room.name,
             adjustment: room.adjustment,
-          }))
-        )
+          })),
+        ),
       )
       .subscribe(saveRoomAdjustments);
   }
@@ -114,9 +114,9 @@ export class SocketServer {
       mergeMap(({ io, client }) =>
         fromEvent<T>(client, eventName).pipe(
           takeUntil(fromEvent(client, 'disconnect')),
-          map((data: T) => ({ io, client, data }))
-        )
-      )
+          map((data: T) => ({ io, client, data })),
+        ),
+      ),
     );
   }
 }

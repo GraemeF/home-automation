@@ -1,4 +1,14 @@
 {
-  "name": "deep-heating-state",
-  "version": "0.0.1"
+  "name": "@home-automation/deep-heating-state",
+  "version": "0.0.1",
+  "main": "dist/src/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@home-automation/deep-heating-rx": "*",
+    "@home-automation/deep-heating-types": "*"
+  }
 }

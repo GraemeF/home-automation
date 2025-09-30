@@ -1,0 +1,36 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".eslintrc.json", "tsconfig.base.json"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".svelte-kit/**", ".next/**", "../../dist/**"]
+    },
+    "test": {
+      "dependsOn": ["^build", "lint"],
+      "outputs": ["coverage/**"]
+    },
+    "lint": {
+      "dependsOn": ["^build", "format"]
+    },
+    "check": {
+      "dependsOn": ["^build", "lint"]
+    },
+    "dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    },
+    "serve": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    },
+    "sync": {
+      "outputs": [".svelte-kit/**"]
+    },
+    "format": {
+      "outputs": []
+    }
+  }
+}

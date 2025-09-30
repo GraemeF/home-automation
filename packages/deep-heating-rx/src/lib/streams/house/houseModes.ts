@@ -18,39 +18,39 @@ const refreshIntervalSeconds = 63;
 
 export const getHouseMode = (
   now: DateTime,
-  lastButtonTime?: DateTime
+  lastButtonTime?: DateTime,
 ): HouseModeValue =>
   lastButtonTime &&
   lastButtonTime.startOf('day').equals(now.startOf('day')) &&
   lastButtonTime.hour > 20
     ? 'Sleeping'
     : now.hour < 3
-    ? 'Sleeping'
-    : 'Auto';
+      ? 'Sleeping'
+      : 'Auto';
 
 export const getHouseModes = (
   buttonEvents$: Observable<GoodnightEventEntity>,
-  sleepSwitchId: GoodnightEntityId
+  sleepSwitchId: GoodnightEntityId,
 ): Observable<HouseModeValue> =>
   timer(0, refreshIntervalSeconds * 1000)
     .pipe(
       map(() => DateTime.local()),
-      shareReplay(1)
+      shareReplay(1),
     )
     .pipe(
       withLatestFrom(
         buttonEvents$.pipe(
           filter((x) => x.entity_id === sleepSwitchId),
-          startWith(undefined)
-        )
+          startWith(undefined),
+        ),
       ),
       map(([time, lastButtonEvent]) =>
         getHouseMode(
           time,
           lastButtonEvent
             ? DateTime.fromJSDate(lastButtonEvent.state)
-            : undefined
-        )
+            : undefined,
+        ),
       ),
-      shareReplayLatestDistinct()
+      shareReplayLatestDistinct(),
     );

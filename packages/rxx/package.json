@@ -1,4 +1,10 @@
 {
-  "name": "rxx",
-  "version": "0.0.1"
+  "name": "@home-automation/rxx",
+  "version": "0.0.1",
+  "main": "dist/src/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  }
 }

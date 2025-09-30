@@ -10,10 +10,6 @@ on:
       - main
 
 env:
-  NX_CLOUD_DISTRIBUTED_EXECUTION: false
-  NX_BRANCH: ${{ github.event.number || github.ref }}
-  NX_RUN_GROUP: ${{ github.run_id }}
-  NX_CLOUD_AUTH_TOKEN: ${{ secrets.NX_CLOUD_AUTH_TOKEN }}
   PRISMA_HIDE_UPDATE_MESSAGE: 'true'
 
 jobs:
@@ -32,57 +28,111 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - name: Cache asdf
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.asdf
-          key: ${{ runner.os }}-asdf-${{ hashFiles('**/.tool-versions') }}
-      - name: Install asdf & tools
-        uses: asdf-vm/actions/install@v3
-        timeout-minutes: 2
+      - name: Install tools
+        uses: jdx/mise-action@v2
 
-      - name: Derive appropriate SHAs for base and head for `nx affected` commands
-        uses: nrwl/nx-set-shas@v4
       - run: npm ci
-      - run: npx nx format:check
-      - run: npx nx run-many --target=build
-      - run: npx nx run-many --target=lint
-      - run: npx nx run-many --target=test
+      - run: npm run format:check
+      - run: npm run build
+      - run: npm run lint
+      - run: npm run test
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Login to DockerHub
         uses: docker/login-action@v3
         if: ${{ github.actor != 'dependabot[bot]' }}
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - uses: actions/checkout@v4
+
+      - name: Extract metadata for deep-heating
+        id: meta-deep-heating
+        uses: docker/metadata-action@v5
         with:
-          fetch-depth: 0
-      - run: npm ci
-      - run: npx nx affected --target=docker
-        if: ${{ github.actor != 'renovate[bot]' }}
-        env:
-          NX_CLOUD_DISTRIBUTED_EXECUTION: false
-          INPUT_PUSH: ${{ (github.event_name != 'pull_request' && 'true') || 'false' }}
-          INPUT_CACHE_FROM: type=registry,ref=ghcr.io/graemef/home-automation/build:buildcache
-          INPUT_CACHE_TO: type=registry,ref=ghcr.io/graemef/home-automation/build:buildcache,mode=max
-          INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: npx nx affected --target=docker
-        if: ${{ github.actor == 'renovate[bot]' }}
-        env:
-          NX_CLOUD_DISTRIBUTED_EXECUTION: false
-          INPUT_PUSH: false
-          INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          images: |
+            ghcr.io/${{ github.repository_owner }}/deep-heating
+            ${{ github.actor != 'dependabot[bot]' && format('{0}/deep-heating', secrets.DOCKERHUB_USERNAME) || '' }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=pr-${{ github.event.pull_request.number }}-,enable=${{ github.event_name == 'pull_request' }}
+            type=sha,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push deep-heating
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: packages/deep-heating/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta-deep-heating.outputs.tags }}
+          labels: ${{ steps.meta-deep-heating.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract metadata for deep-heating-socketio
+        id: meta-socketio
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/deep-heating-socketio
+            ${{ github.actor != 'dependabot[bot]' && format('{0}/deep-heating-socketio', secrets.DOCKERHUB_USERNAME) || '' }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=pr-${{ github.event.pull_request.number }}-,enable=${{ github.event_name == 'pull_request' }}
+            type=sha,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push deep-heating-socketio
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: packages/deep-heating-socketio/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta-socketio.outputs.tags }}
+          labels: ${{ steps.meta-socketio.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract metadata for deep-heating-web
+        id: meta-web
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/deep-heating-web
+            ${{ github.actor != 'dependabot[bot]' && format('{0}/deep-heating-web', secrets.DOCKERHUB_USERNAME) || '' }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=pr-${{ github.event.pull_request.number }}-,enable=${{ github.event_name == 'pull_request' }}
+            type=sha,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push deep-heating-web
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: packages/deep-heating-web/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta-web.outputs.tags }}
+          labels: ${{ steps.meta-web.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       - name: Archive npm failure logs
         uses: actions/upload-artifact@v4
         if: failure()

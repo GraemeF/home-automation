@@ -9,8 +9,8 @@ import { Schema } from '@effect/schema';
 import { ParseError } from '@effect/schema/ParseResult';
 import {
   ClimateEntityId,
-  ClimateMode,
   HomeAssistantEntity,
+  OperationalClimateMode,
   Temperature,
 } from '@home-automation/deep-heating-types';
 import { Config, Context, Effect, Layer, Runtime } from 'effect';
@@ -56,9 +56,9 @@ export class HomeAssistantApi extends Context.Tag('HomeAssistantApi')<
     >;
     setHvacMode: (
       entityId: ClimateEntityId,
-      mode: ClimateMode,
+      mode: OperationalClimateMode,
     ) => Effect.Effect<
-      { entityId: ClimateEntityId; mode: ClimateMode },
+      { entityId: ClimateEntityId; mode: OperationalClimateMode },
       HttpClientError.HttpClientError | HttpBody.HttpBodyError
     >;
   }
@@ -102,7 +102,10 @@ export const HomeAssistantApiLive = Layer.effect(
             Effect.map(() => ({ entityId, targetTemperature: temperature })),
             Effect.scoped,
           ),
-        setHvacMode: (entityId: ClimateEntityId, mode: ClimateMode) =>
+        setHvacMode: (
+          entityId: ClimateEntityId,
+          mode: OperationalClimateMode,
+        ) =>
           pipe(
             url + '/api/services/climate/set_hvac_mode',
             (url) => HttpClientRequest.post(url),
@@ -130,7 +133,7 @@ export const HomeAssistantApiTest = (
       getStates: () => states,
       setTemperature: (entityId: ClimateEntityId, temperature: Temperature) =>
         Effect.succeed({ entityId, targetTemperature: temperature }),
-      setHvacMode: (entityId: ClimateEntityId, mode: ClimateMode) =>
+      setHvacMode: (entityId: ClimateEntityId, mode: OperationalClimateMode) =>
         Effect.succeed({ entityId, mode }),
     }),
   );

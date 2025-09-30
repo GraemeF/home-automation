@@ -60,34 +60,69 @@ export const TemperatureSensorEntity = pipe(
 );
 export type TemperatureSensorEntity = typeof TemperatureSensorEntity.Type;
 
-export const ClimateMode = Schema.Literal('auto', 'heat', 'off');
-export type ClimateMode = typeof ClimateMode.Type;
+export const OperationalClimateMode = Schema.Literal('auto', 'heat', 'off');
+export type OperationalClimateMode = typeof OperationalClimateMode.Type;
 
 export const HassHvacAction = Schema.Literal('idle', 'heating');
 export type HassHvacAction = typeof HassHvacAction.Type;
 
-export const ClimateEntity = pipe(
+const BaseClimateAttributes = Schema.Struct({
+  hvac_modes: Schema.Array(Schema.String),
+  min_temp: Temperature,
+  max_temp: Temperature,
+  preset_modes: Schema.optional(Schema.Array(Schema.String)),
+  preset_mode: Schema.optional(Schema.String),
+  friendly_name: Schema.String,
+  supported_features: Schema.Number,
+  restored: Schema.optional(Schema.Boolean),
+});
+
+export const AvailableClimateEntity = pipe(
   BaseEntity,
   Schema.extend(
     Schema.Struct({
       entity_id: ClimateEntityId,
-      state: ClimateMode,
-      attributes: Schema.Struct({
-        hvac_modes: Schema.Array(Schema.String),
-        min_temp: Temperature,
-        max_temp: Temperature,
-        preset_modes: Schema.UndefinedOr(Schema.Array(Schema.String)),
-        current_temperature: Temperature,
-        temperature: Temperature,
-        hvac_action: Schema.UndefinedOr(HassHvacAction),
-        preset_mode: Schema.UndefinedOr(Schema.String),
-        friendly_name: Schema.String,
-        supported_features: Schema.Number,
-      }),
+      state: OperationalClimateMode,
+      attributes: pipe(
+        BaseClimateAttributes,
+        Schema.extend(
+          Schema.Struct({
+            current_temperature: Temperature,
+            temperature: Temperature,
+            hvac_action: Schema.optional(HassHvacAction),
+          }),
+        ),
+      ),
     }),
   ),
 );
+export type AvailableClimateEntity = typeof AvailableClimateEntity.Type;
+
+export const UnavailableClimateEntity = pipe(
+  BaseEntity,
+  Schema.extend(
+    Schema.Struct({
+      entity_id: ClimateEntityId,
+      state: Schema.Literal('unavailable'),
+      attributes: Schema.Struct({
+        friendly_name: Schema.String,
+      }).pipe(Schema.extend(Schema.Record(Schema.String, Schema.Unknown))),
+    }),
+  ),
+);
+export type UnavailableClimateEntity = typeof UnavailableClimateEntity.Type;
+
+export const ClimateEntity = Schema.Union(
+  AvailableClimateEntity,
+  UnavailableClimateEntity,
+);
 export type ClimateEntity = typeof ClimateEntity.Type;
+
+export const ClimateMode = Schema.Union(
+  OperationalClimateMode,
+  Schema.Literal('unavailable'),
+);
+export type ClimateMode = typeof ClimateMode.Type;
 
 export const ButtonPressEventEntity = pipe(
   BaseEntity,

@@ -18,7 +18,7 @@ import {
 export const createHomeAssistantHeatingProvider = (
   home: Home,
   entityUpdates$: Observable<HomeAssistantEntity>,
-  runtime: Runtime.Runtime<HomeAssistantApi>
+  runtime: Runtime.Runtime<HomeAssistantApi>,
 ) => {
   const heatingActions = new Subject<ClimateAction>();
   const trvActions = new Subject<ClimateAction>();
@@ -26,16 +26,16 @@ export const createHomeAssistantHeatingProvider = (
   merge(
     trvActions.pipe(
       groupBy((x) => x.climateEntityId),
-      mergeMap((x) => x.pipe(debounceTime(5000)))
+      mergeMap((x) => x.pipe(debounceTime(5000))),
     ),
-    heatingActions.pipe(debounceTime(5000))
+    heatingActions.pipe(debounceTime(5000)),
   ).subscribe((action) =>
     pipe(
       [
         setClimateEntityMode(action.climateEntityId, action.mode),
         setClimateEntityTemperature(
           action.climateEntityId,
-          action.targetTemperature
+          action.targetTemperature,
         ),
       ],
       Effect.all,
@@ -44,20 +44,20 @@ export const createHomeAssistantHeatingProvider = (
           Effect.log(
             `${action.climateEntityId} has been changed to ${
               (action.mode ?? '', action.targetTemperature)
-            }`
+            }`,
           ),
         onFailure: () =>
           Effect.logError(
             `Failed to change ${action.climateEntityId} to ${
               (action.mode ?? '', action.targetTemperature)
-            }`
+            }`,
           ),
       }),
       Effect.sandbox,
       Effect.catchAll(Effect.logError),
       Effect.as('done'),
-      Runtime.runPromise(runtime)
-    )
+      Runtime.runPromise(runtime),
+    ),
   );
 
   const climateEntityUpdates$ = getClimateEntityUpdates(entityUpdates$);

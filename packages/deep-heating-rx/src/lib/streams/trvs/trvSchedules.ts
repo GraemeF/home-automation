@@ -7,12 +7,12 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 export const getTrvWeekHeatingSchedules = (
-  trvUpdates$: Observable<TrvUpdate>
+  trvUpdates$: Observable<TrvUpdate>,
 ): Observable<TrvWeekHeatingSchedule> =>
   trvUpdates$.pipe(
     map((x) => ({
       climateEntityId: x.climateEntityId,
       schedule: x.state.schedule,
     })),
-    shareReplayLatestDistinctByKey((x) => x.climateEntityId)
+    shareReplayLatestDistinctByKey((x) => x.climateEntityId),
   );

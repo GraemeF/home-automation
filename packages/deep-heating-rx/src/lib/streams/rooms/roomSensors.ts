@@ -8,7 +8,7 @@ import { GroupedObservable, Observable } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 
 export const getRoomSensors = (
-  rooms$: Observable<GroupedObservable<string, RoomDefinition>>
+  rooms$: Observable<GroupedObservable<string, RoomDefinition>>,
 ): Observable<Observable<RoomSensors>> =>
   rooms$.pipe(
     map((room$) =>
@@ -20,10 +20,10 @@ export const getRoomSensors = (
               roomName: room$.key,
               temperatureSensorIds: [temperatureSensorId],
             })),
-            Option.getOrNull
-          )
+            Option.getOrNull,
+          ),
         ),
-        filter(isNotNull)
-      )
-    )
+        filter(isNotNull),
+      ),
+    ),
   );
