@@ -69,7 +69,7 @@
     "@sveltejs/adapter-node": "5.2.2",
     "@sveltejs/kit": "2.5.26",
     "amazon-user-pool-srp-client": "1.0.4",
-    "axios": "1.7.9",
+    "axios": "1.12.2",
     "bufferutil": "4.0.9",
     "dotenv": "16.4.7",
     "effect": "3.5.5",
