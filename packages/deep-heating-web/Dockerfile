@@ -1,5 +1,5 @@
 ### Prune Step
-FROM node:20.18.3-alpine AS pruner
+FROM node:20.19.5-alpine AS pruner
 RUN apk update && apk add --no-cache libc6-compat
 WORKDIR /app
 RUN npm install -g turbo@^2
@@ -7,7 +7,7 @@ COPY . .
 RUN turbo prune @home-automation/deep-heating-web --docker
 
 ### Build Step
-FROM --platform=$BUILDPLATFORM node:20.18.3-alpine as builder
+FROM --platform=$BUILDPLATFORM node:20.19.5-alpine as builder
 RUN apk update && apk add --no-cache libc6-compat python3 make g++
 
 WORKDIR /app
@@ -28,7 +28,7 @@ RUN mkdir -p /app/packages/deep-heating-types/dist && cp -r /app/dist/out-tsc/pa
 RUN npm prune --omit=dev
 
 ### Serve Step
-FROM node:20.18.3-alpine
+FROM node:20.19.5-alpine
 
 LABEL org.opencontainers.image.source = "https://github.com/GraemeF/home-automation"
 
