@@ -71,7 +71,7 @@
     "amazon-user-pool-srp-client": "1.0.4",
     "axios": "1.12.2",
     "bufferutil": "4.0.9",
-    "dotenv": "16.4.7",
+    "dotenv": "16.6.1",
     "effect": "3.5.5",
     "express": "4.21.2",
     "jsonwebtoken": "9.0.2",
