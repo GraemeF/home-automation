@@ -28,7 +28,7 @@
     "@types/jest": "29.5.14",
     "@types/jsonwebtoken": "9.0.10",
     "@types/luxon": "3.4.2",
-    "@types/node": "20.19.19",
+    "@types/node": "22.18.12",
     "@typescript-eslint/eslint-plugin": "7.18.0",
     "@typescript-eslint/parser": "7.18.0",
     "autoprefixer": "10.4.21",
