@@ -1,5 +1,5 @@
 [tools]
-nodejs = "20.19.5"
+nodejs = "22.21.0"
 bun = "latest"
 
 [env]
