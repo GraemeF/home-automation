@@ -134,7 +134,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Archive npm failure logs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: npm-logs
