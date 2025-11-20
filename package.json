@@ -23,7 +23,7 @@
   "private": true,
   "devDependencies": {
     "@testing-library/svelte": "5.2.9",
-    "@tsconfig/svelte": "5.0.5",
+    "@tsconfig/svelte": "5.0.6",
     "@types/debug": "4.1.12",
     "@types/jest": "29.5.14",
     "@types/jsonwebtoken": "9.0.10",
