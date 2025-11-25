@@ -10,26 +10,26 @@ Deep Heating is a Home Assistant add-on that combines TRVs (Thermostatic Radiato
 
 ```bash
 # Development
-npm run build          # Build all packages (uses turbo)
-npm run test           # Run all tests
-npm run lint           # Lint all packages
-npm run dev            # Start dev servers (socketio + web)
-npm run format         # Format code with Prettier
+bun run build          # Build all packages (uses turbo)
+bun run test           # Run all tests
+bun run lint           # Lint all packages
+bun run dev            # Start dev servers (socketio + web)
+bun run format         # Format code with Prettier
 
 # Single package testing
-npm test --workspace=packages/deep-heating-rx
-npm test --workspace=packages/deep-heating-rx -- --testNamePattern="pattern"
+bun test --filter deep-heating-rx
+bun test --filter deep-heating-rx -- --testNamePattern="pattern"
 
 # Docker builds
-npm run docker:build:deep-heating   # Combined image
-npm run docker:build:all            # All images
+bun run docker:build:deep-heating   # Combined image
+bun run docker:build:all            # All images
 ```
 
 ## Architecture
 
 ### Monorepo Structure
 
-This is an npm workspaces monorepo orchestrated by Turborepo. Packages are in `packages/`:
+This is a Bun workspaces monorepo orchestrated by Turborepo. Packages are in `packages/`:
 
 **Libraries** (build to `dist/`, use `@home-automation/` scope):
 
@@ -75,6 +75,6 @@ deep-heating-home-assistant → deep-heating-types
 ## Tooling
 
 - **Node**: 20.19.5 (managed via mise in `.mise.toml`)
-- **Package manager**: npm 10.9.4
+- **Package manager**: Bun 1.3.2 (managed via mise in `.mise.toml`)
 - **Build orchestration**: Turborepo with caching
 - **Pre-commit**: Husky runs Prettier on staged files

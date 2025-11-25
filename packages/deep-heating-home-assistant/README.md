@@ -5,11 +5,11 @@ Home Assistant WebSocket API client.
 ## Running unit tests
 
 ```bash
-npm test --workspace=packages/deep-heating-home-assistant
+bun test --filter deep-heating-home-assistant
 ```
 
 ## Running lint
 
 ```bash
-npm run lint --workspace=packages/deep-heating-home-assistant
+bun run lint --filter deep-heating-home-assistant
 ```

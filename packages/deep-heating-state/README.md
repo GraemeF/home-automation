@@ -5,11 +5,11 @@ State management for Deep Heating.
 ## Running unit tests
 
 ```bash
-npm test --workspace=packages/deep-heating-state
+bun test --filter deep-heating-state
 ```
 
 ## Running lint
 
 ```bash
-npm run lint --workspace=packages/deep-heating-state
+bun run lint --filter deep-heating-state
 ```

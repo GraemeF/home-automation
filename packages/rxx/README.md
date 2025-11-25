@@ -5,11 +5,11 @@ General RxJS utilities.
 ## Running unit tests
 
 ```bash
-npm test --workspace=packages/rxx
+bun test --filter rxx
 ```
 
 ## Running lint
 
 ```bash
-npm run lint --workspace=packages/rxx
+bun run lint --filter rxx
 ```
