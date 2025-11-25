@@ -67,7 +67,7 @@
     "@effect/platform": "0.59.1",
     "@effect/platform-node": "0.54.2",
     "@sveltejs/adapter-node": "5.2.2",
-    "@sveltejs/kit": "2.5.26",
+    "@sveltejs/kit": "2.49.0",
     "amazon-user-pool-srp-client": "1.0.4",
     "axios": "1.13.2",
     "bufferutil": "4.0.9",
