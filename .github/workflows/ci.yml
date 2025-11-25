@@ -31,11 +31,11 @@ jobs:
       - name: Install tools
         uses: jdx/mise-action@v2
 
-      - run: npm ci
-      - run: npm run format:check
-      - run: npm run build
-      - run: npm run lint
-      - run: npm run test
+      - run: bun install --frozen-lockfile
+      - run: bun run format:check
+      - run: bun run build
+      - run: bun run lint
+      - run: bun run test
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -133,9 +133,3 @@ jobs:
           labels: ${{ steps.meta-web.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Archive npm failure logs
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: npm-logs
-          path: ~/.npm/_logs
