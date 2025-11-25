@@ -32,6 +32,7 @@ npm run docker:build:all            # All images
 This is an npm workspaces monorepo orchestrated by Turborepo. Packages are in `packages/`:
 
 **Libraries** (build to `dist/`, use `@home-automation/` scope):
+
 - `deep-heating-types` - Core TypeScript interfaces and types
 - `deep-heating-home-assistant` - Home Assistant WebSocket API client
 - `deep-heating-rx` - RxJS reactive streams for heating logic
@@ -40,10 +41,12 @@ This is an npm workspaces monorepo orchestrated by Turborepo. Packages are in `p
 - `dictionary` - Shared constants/terminology
 
 **Applications**:
+
 - `deep-heating-socketio` - Express + Socket.IO backend server
 - `deep-heating-web` - SvelteKit frontend
 
 **Deployment**:
+
 - `deep-heating` - Combined Docker image (nginx + backend + frontend)
 
 ### Package Dependencies
