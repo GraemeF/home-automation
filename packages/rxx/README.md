@@ -1,11 +1,15 @@
 # rxx
 
-This library was generated with [Nx](https://nx.dev).
+General RxJS utilities.
 
 ## Running unit tests
 
-Run `nx test rxx` to execute the unit tests via [Jest](https://jestjs.io).
+```bash
+npm test --workspace=packages/rxx
+```
 
 ## Running lint
 
-Run `nx lint rxx` to execute the lint via [ESLint](https://eslint.org/).
+```bash
+npm run lint --workspace=packages/rxx
+```

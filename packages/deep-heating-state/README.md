@@ -1,11 +1,15 @@
 # deep-heating-state
 
-This library was generated with [Nx](https://nx.dev).
+State management for Deep Heating.
 
 ## Running unit tests
 
-Run `nx test deep-heating-state` to execute the unit tests via [Jest](https://jestjs.io).
+```bash
+npm test --workspace=packages/deep-heating-state
+```
 
 ## Running lint
 
-Run `nx lint deep-heating-state` to execute the lint via [ESLint](https://eslint.org/).
+```bash
+npm run lint --workspace=packages/deep-heating-state
+```

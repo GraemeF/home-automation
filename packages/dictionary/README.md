@@ -1,11 +1,15 @@
 # dictionary
 
-This library was generated with [Nx](https://nx.dev).
+Shared constants and terminology.
 
 ## Running unit tests
 
-Run `nx test dictionary` to execute the unit tests via [Jest](https://jestjs.io).
+```bash
+npm test --workspace=packages/dictionary
+```
 
 ## Running lint
 
-Run `nx lint dictionary` to execute the lint via [ESLint](https://eslint.org/).
+```bash
+npm run lint --workspace=packages/dictionary
+```

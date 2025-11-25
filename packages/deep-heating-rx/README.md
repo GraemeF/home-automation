@@ -1,11 +1,15 @@
 # deep-heating-rx
 
-This library was generated with [Nx](https://nx.dev).
+RxJS reactive streams for heating logic.
 
 ## Running unit tests
 
-Run `nx test deep-heating-rx` to execute the unit tests via [Jest](https://jestjs.io).
+```bash
+npm test --workspace=packages/deep-heating-rx
+```
 
 ## Running lint
 
-Run `nx lint deep-heating-rx` to execute the lint via [ESLint](https://eslint.org/).
+```bash
+npm run lint --workspace=packages/deep-heating-rx
+```
