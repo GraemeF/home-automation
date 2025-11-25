@@ -6,5 +6,8 @@
     "build": "tsc -p tsconfig.lib.json",
     "lint": "eslint .",
     "format": "prettier --write ."
+  },
+  "dependencies": {
+    "rxjs": "6.6.7"
   }
 }

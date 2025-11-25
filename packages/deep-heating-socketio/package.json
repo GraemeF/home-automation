@@ -8,8 +8,16 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@home-automation/deep-heating-types": "*",
+    "@effect/platform": "0.59.1",
+    "@effect/platform-node": "0.54.2",
+    "@effect/schema": "0.68.27",
     "@home-automation/deep-heating-rx": "*",
-    "@home-automation/deep-heating-state": "*"
+    "@home-automation/deep-heating-state": "*",
+    "@home-automation/deep-heating-types": "*",
+    "debug": "4.4.3",
+    "dotenv": "16.6.1",
+    "effect": "3.5.5",
+    "rxjs": "6.6.7",
+    "socket.io": "4.8.1"
   }
 }

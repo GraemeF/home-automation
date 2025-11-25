@@ -7,5 +7,11 @@
     "lint": "eslint .",
     "test": "jest",
     "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@effect/schema": "0.68.27",
+    "effect": "3.5.5",
+    "luxon": "3.7.2",
+    "rxjs": "6.6.7"
   }
 }
