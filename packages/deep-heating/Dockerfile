@@ -1,10 +1,12 @@
 FROM node:20.19.5-alpine AS base
-RUN apk update && apk add --no-cache libc6-compat
+RUN apk update && apk add --no-cache libc6-compat bash curl unzip
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:$PATH"
 WORKDIR /app
 
 ### Prune Step
 FROM base AS pruner
-RUN npm install -g turbo@^2
+RUN bun add -g turbo@^2
 COPY . .
 RUN turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker
 
@@ -13,11 +15,11 @@ FROM base AS builder
 RUN apk add --no-cache python3 make g++
 
 COPY --from=pruner /app/out/json/ .
-RUN npm install
+RUN bun install
 
 COPY --from=pruner /app/out/full/ .
 COPY --from=pruner /app/tsconfig.base.json .
-RUN npm run build
+RUN bun run build
 
 # Copy built outputs back to package directories for proper module resolution
 RUN mkdir -p /app/packages/deep-heating-types/dist && cp -r /app/dist/out-tsc/packages/deep-heating-types/* /app/packages/deep-heating-types/dist/ && \
@@ -29,7 +31,7 @@ RUN mkdir -p /app/packages/deep-heating-types/dist && cp -r /app/dist/out-tsc/pa
 ### Production dependencies
 FROM base AS prod-deps
 COPY --from=pruner /app/out/json/ .
-RUN npm install --omit=dev
+RUN bun install --production
 
 ### Serve Step
 FROM node:20.19.5-alpine AS runner
@@ -37,7 +39,7 @@ FROM node:20.19.5-alpine AS runner
 RUN apk update && apk add --no-cache nginx
 RUN mkdir -p /run/nginx
 
-RUN npm i -g pm2
+RUN npm install -g pm2
 
 LABEL org.opencontainers.image.source="https://github.com/GraemeF/home-automation"
 
@@ -48,7 +50,7 @@ WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/package-lock.json ./package-lock.json
+COPY --from=builder /app/bun.lock ./bun.lock
 
 # Copy built outputs for socketio
 COPY --from=builder /app/dist ./dist
