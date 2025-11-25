@@ -1,14 +1,18 @@
 ### Prune Step
 FROM node:20.19.5-alpine AS pruner
-RUN apk update && apk add --no-cache libc6-compat
+RUN apk update && apk add --no-cache libc6-compat bash curl unzip
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:$PATH"
 WORKDIR /app
-RUN npm install -g turbo@^2
+RUN bun add -g turbo@^2
 COPY . .
 RUN turbo prune deep-heating-socketio --docker
 
 ### Build Step
 FROM --platform=$BUILDPLATFORM node:20.19.5-alpine as builder
-RUN apk update && apk add --no-cache libc6-compat python3 make g++
+RUN apk update && apk add --no-cache libc6-compat python3 make g++ bash curl unzip
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:$PATH"
 
 WORKDIR /app
 
@@ -16,11 +20,11 @@ ARG TARGETOS
 ARG TARGETARCH
 
 COPY --from=pruner /app/out/json/ .
-RUN npm install --target_arch=$TARGETARCH --target_platform=$TARGETOS
+RUN bun install
 
 COPY --from=pruner /app/out/full/ .
 COPY --from=pruner /app/tsconfig.base.json .
-RUN npm run build
+RUN bun run build
 
 # Copy built outputs back to package directories for proper module resolution
 RUN mkdir -p /app/packages/deep-heating-types/dist && cp -r /app/dist/out-tsc/packages/deep-heating-types/* /app/packages/deep-heating-types/dist/ && \
@@ -29,7 +33,7 @@ RUN mkdir -p /app/packages/deep-heating-types/dist && cp -r /app/dist/out-tsc/pa
     mkdir -p /app/packages/deep-heating-state/dist && cp -r /app/dist/out-tsc/packages/deep-heating-state/* /app/packages/deep-heating-state/dist/ && \
     mkdir -p /app/packages/rxx/dist && cp -r /app/dist/out-tsc/packages/rxx/* /app/packages/rxx/dist/
 
-RUN npm prune --omit=dev
+RUN bun install --production
 
 ### Serve Step
 FROM node:20.19.5-alpine
@@ -42,7 +46,7 @@ WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/package.json .
-COPY --from=builder /app/package-lock.json .
+COPY --from=builder /app/bun.lock .
 
 # Copy built socketio output
 COPY --from=builder /app/dist/out-tsc/packages/deep-heating-socketio/src .

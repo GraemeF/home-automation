@@ -1,6 +1,6 @@
 {
   "extends": ["config:js-app", ":semanticCommits"],
-  "branchConcurrentLimit": 20,
+  "prConcurrentLimit": 1,
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch"],

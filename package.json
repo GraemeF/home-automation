@@ -2,11 +2,12 @@
   "name": "home-automation",
   "version": "0.0.0",
   "license": "MIT",
-  "packageManager": "npm@10.9.4",
+  "packageManager": "bun@1.3.2",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
+    "preinstall": "npx only-allow bun",
     "prepare": "husky",
     "build": "turbo run build",
     "test": "turbo run test",
@@ -18,7 +19,7 @@
     "docker:build:deep-heating": "docker build -f packages/deep-heating/Dockerfile -t deep-heating:latest .",
     "docker:build:socketio": "docker build -f packages/deep-heating-socketio/Dockerfile -t deep-heating-socketio:latest .",
     "docker:build:web": "docker build -f packages/deep-heating-web/Dockerfile -t deep-heating-web:latest .",
-    "docker:build:all": "npm run docker:build:deep-heating && npm run docker:build:socketio && npm run docker:build:web"
+    "docker:build:all": "bun run docker:build:deep-heating && bun run docker:build:socketio && bun run docker:build:web"
   },
   "private": true,
   "devDependencies": {
