@@ -79,10 +79,12 @@ jobs:
         run: |
           SOURCE_IMAGE="${{ steps.load.outputs.image }}"
           SHA_SHORT="${GITHUB_SHA::7}"
+          OWNER_LC="${{ github.repository_owner }}"
+          OWNER_LC="${OWNER_LC,,}"  # lowercase
 
           # Tag for GHCR
-          docker tag "$SOURCE_IMAGE" "ghcr.io/${{ github.repository_owner }}/deep-heating:latest"
-          docker tag "$SOURCE_IMAGE" "ghcr.io/${{ github.repository_owner }}/deep-heating:sha-$SHA_SHORT"
+          docker tag "$SOURCE_IMAGE" "ghcr.io/${OWNER_LC}/deep-heating:latest"
+          docker tag "$SOURCE_IMAGE" "ghcr.io/${OWNER_LC}/deep-heating:sha-$SHA_SHORT"
 
           # Tag for DockerHub (if credentials available)
           if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
@@ -91,8 +93,8 @@ jobs:
           fi
 
           # Push to GHCR
-          docker push "ghcr.io/${{ github.repository_owner }}/deep-heating:latest"
-          docker push "ghcr.io/${{ github.repository_owner }}/deep-heating:sha-$SHA_SHORT"
+          docker push "ghcr.io/${OWNER_LC}/deep-heating:latest"
+          docker push "ghcr.io/${OWNER_LC}/deep-heating:sha-$SHA_SHORT"
 
           # Push to DockerHub (if credentials available)
           if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
