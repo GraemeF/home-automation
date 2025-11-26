@@ -55,3 +55,6 @@ out/
 
 # Claude
 *.local.json
+
+# Nix
+result
