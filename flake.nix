@@ -24,59 +24,6 @@
           # Git commit timestamp for reproducible builds
           lastModified = builtins.toString (self.lastModified or 1);
 
-          # Platform-specific turbo package names
-          turboPlatformPackages = {
-            "x86_64-linux" = "turbo-linux-64";
-            "aarch64-linux" = "turbo-linux-arm64";
-            "x86_64-darwin" = "turbo-darwin-64";
-            "aarch64-darwin" = "turbo-darwin-arm64";
-          };
-
-          # Platform-specific hashes for turbo 2.6.1
-          # When updating, set to pkgs.lib.fakeHash and rebuild to get new hash
-          turboHashes = {
-            "x86_64-linux" = "sha256-zAA20bUP+auc08kW3A0D2ZOei39cTvqeJ9Ox1WPIf2w=";
-            "aarch64-linux" = pkgs.lib.fakeHash;
-            "x86_64-darwin" = pkgs.lib.fakeHash;
-            "aarch64-darwin" = "sha256-V2/3QqYjN9eUM5xr1mctVIucnh2zxQGmZwUur35+TDo=";
-          };
-
-          turboPackageName = turboPlatformPackages.${system};
-
-          turboFod = pkgs.stdenv.mkDerivation {
-            pname = "turbo-fod";
-            version = "2.6.1";
-
-            src = pkgs.writeTextDir "package.json" (builtins.toJSON {
-              name = "turbo-only";
-              version = "1.0.0";
-              dependencies = {
-                "${turboPackageName}" = "2.6.1";
-              };
-            });
-
-            buildInputs = [ pkgs.bun ];
-            dontPatchShebangs = true;
-            dontPatchELF = false;
-            dontStrip = true;  # Required: stripping causes hash collision between versions
-            SOURCE_DATE_EPOCH = lastModified;
-
-            buildPhase = ''
-              echo "Installing turbo ${turboPackageName}@2.6.1..."
-              bun install --no-progress
-            '';
-
-            installPhase = ''
-              mkdir -p $out/bin
-              cp node_modules/${turboPackageName}/bin/turbo $out/bin/turbo
-              chmod +x $out/bin/turbo
-              find $out -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
-            '';
-
-            outputHashAlgo = "sha256";
-            outputHashMode = "recursive";
-            outputHash = turboHashes.${system};
-          };
           # Filtered source - exclude build outputs and metadata
           depSource = pkgs.lib.cleanSourceWith {
             src = ./.;
@@ -100,11 +47,11 @@
             version = "0.1.0";
 
             src = depSource;
-            buildInputs = [ turboFod ];
+            buildInputs = [ pkgs.turbo ];
 
             buildPhase = ''
               echo "Pruning workspace with turbo..."
-              ${turboFod}/bin/turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker --out-dir=pruned
+              ${pkgs.turbo}/bin/turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker --out-dir=pruned
             '';
 
             installPhase = ''
@@ -188,11 +135,11 @@
             pname = "generate-bun-nix-deep-heating";
             version = "0.1.0";
             src = depSource;
-            buildInputs = [ turboFod ];
+            buildInputs = [ pkgs.turbo ];
 
             buildPhase = ''
               echo "Pruning workspace with turbo..."
-              ${turboFod}/bin/turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker --out-dir=pruned
+              ${pkgs.turbo}/bin/turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker --out-dir=pruned
 
               echo "Generating bun-deep-heating.nix from pruned lockfile..."
               ${bun2nix.packages.${system}.default}/bin/bun2nix \
@@ -234,7 +181,7 @@
             buildPhase = ''
               echo "Building deep-heating with Turbo..."
               # Build both socketio and web (SvelteKit)
-              ${turboFod}/bin/turbo build --filter='deep-heating-socketio...' --filter='@home-automation/deep-heating-web...'
+              ${pkgs.turbo}/bin/turbo build --filter='deep-heating-socketio...' --filter='@home-automation/deep-heating-web...'
 
               echo "Bundling socketio backend with Bun..."
               mkdir -p dist/socketio
@@ -422,7 +369,7 @@ EOF
           } else null;
         in
         {
-          inherit turboFod prunedWorkspace bunDepsDeepHeating bunDepsFull validateDeps generateBunNix generateBunNixDeepHeating deep-heating;
+          inherit prunedWorkspace bunDepsDeepHeating bunDepsFull validateDeps generateBunNix generateBunNixDeepHeating deep-heating;
         } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
           # Linux-only packages
           inherit s6Services nginxConfig containerInit dockerImage;
