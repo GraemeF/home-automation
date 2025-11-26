@@ -37,16 +37,21 @@ jobs:
       - run: bun run lint
       - run: bun run test
 
-      # TODO: Re-enable Docker builds after bun migration is stable
-      - name: Set up QEMU
-        if: false
-        uses: docker/setup-qemu-action@v3
-      - name: Set up Docker Buildx
-        if: false
-        uses: docker/setup-buildx-action@v3
+  docker:
+    runs-on: ubuntu-latest
+    needs: build
+    # Only build Docker on main branch pushes (not PRs)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
-        if: false
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -54,92 +59,43 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to DockerHub
-        if: false
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract metadata for deep-heating
-        if: false
-        id: meta-deep-heating
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ghcr.io/${{ github.repository_owner }}/deep-heating
-            ${{ github.actor != 'dependabot[bot]' && format('{0}/deep-heating', secrets.DOCKERHUB_USERNAME) || '' }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix=pr-${{ github.event.pull_request.number }}-,enable=${{ github.event_name == 'pull_request' }}
-            type=sha,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=latest,enable={{is_default_branch}}
+      - name: Build Docker image with Nix
+        run: nix build .#dockerImage --print-build-logs
 
-      - name: Build and push deep-heating
-        if: false
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: packages/deep-heating/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta-deep-heating.outputs.tags }}
-          labels: ${{ steps.meta-deep-heating.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Load Docker image
+        id: load
+        run: |
+          # Load the image and capture the name
+          LOADED=$(docker load < result | grep "Loaded image:" | sed 's/Loaded image: //')
+          echo "Loaded image: $LOADED"
+          echo "image=$LOADED" >> $GITHUB_OUTPUT
 
-      - name: Extract metadata for deep-heating-socketio
-        if: false
-        id: meta-socketio
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ghcr.io/${{ github.repository_owner }}/deep-heating-socketio
-            ${{ github.actor != 'dependabot[bot]' && format('{0}/deep-heating-socketio', secrets.DOCKERHUB_USERNAME) || '' }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix=pr-${{ github.event.pull_request.number }}-,enable=${{ github.event_name == 'pull_request' }}
-            type=sha,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=latest,enable={{is_default_branch}}
+      - name: Tag and push Docker image
+        run: |
+          SOURCE_IMAGE="${{ steps.load.outputs.image }}"
+          SHA_SHORT="${GITHUB_SHA::7}"
 
-      - name: Build and push deep-heating-socketio
-        if: false
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: packages/deep-heating-socketio/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta-socketio.outputs.tags }}
-          labels: ${{ steps.meta-socketio.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Tag for GHCR
+          docker tag "$SOURCE_IMAGE" "ghcr.io/${{ github.repository_owner }}/deep-heating:latest"
+          docker tag "$SOURCE_IMAGE" "ghcr.io/${{ github.repository_owner }}/deep-heating:sha-$SHA_SHORT"
 
-      - name: Extract metadata for deep-heating-web
-        if: false
-        id: meta-web
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ghcr.io/${{ github.repository_owner }}/deep-heating-web
-            ${{ github.actor != 'dependabot[bot]' && format('{0}/deep-heating-web', secrets.DOCKERHUB_USERNAME) || '' }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix=pr-${{ github.event.pull_request.number }}-,enable=${{ github.event_name == 'pull_request' }}
-            type=sha,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=latest,enable={{is_default_branch}}
+          # Tag for DockerHub (if credentials available)
+          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+            docker tag "$SOURCE_IMAGE" "${{ secrets.DOCKERHUB_USERNAME }}/deep-heating:latest"
+            docker tag "$SOURCE_IMAGE" "${{ secrets.DOCKERHUB_USERNAME }}/deep-heating:sha-$SHA_SHORT"
+          fi
 
-      - name: Build and push deep-heating-web
-        if: false
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: packages/deep-heating-web/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta-web.outputs.tags }}
-          labels: ${{ steps.meta-web.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Push to GHCR
+          docker push "ghcr.io/${{ github.repository_owner }}/deep-heating:latest"
+          docker push "ghcr.io/${{ github.repository_owner }}/deep-heating:sha-$SHA_SHORT"
+
+          # Push to DockerHub (if credentials available)
+          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+            docker push "${{ secrets.DOCKERHUB_USERNAME }}/deep-heating:latest"
+            docker push "${{ secrets.DOCKERHUB_USERNAME }}/deep-heating:sha-$SHA_SHORT"
+          fi
