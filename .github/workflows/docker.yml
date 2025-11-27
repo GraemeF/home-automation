@@ -5,6 +5,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version to build (without v prefix)'
+        required: true
+        type: string
 
 jobs:
   docker-amd64:
@@ -39,7 +45,8 @@ jobs:
         run: |
           SOURCE_IMAGE=$(docker load < result | grep "Loaded image:" | sed 's/Loaded image: //')
           echo "Loaded image: $SOURCE_IMAGE"
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ inputs.version || format('{0}', github.ref_name) }}"
+          VERSION="${VERSION#v}"
           OWNER_LC="${{ github.repository_owner }}"
           OWNER_LC="${OWNER_LC,,}"
 
@@ -85,7 +92,8 @@ jobs:
         run: |
           SOURCE_IMAGE=$(docker load < result | grep "Loaded image:" | sed 's/Loaded image: //')
           echo "Loaded image: $SOURCE_IMAGE"
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ inputs.version || format('{0}', github.ref_name) }}"
+          VERSION="${VERSION#v}"
           OWNER_LC="${{ github.repository_owner }}"
           OWNER_LC="${OWNER_LC,,}"
 
@@ -119,7 +127,8 @@ jobs:
 
       - name: Create and push multi-arch manifest
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ inputs.version || format('{0}', github.ref_name) }}"
+          VERSION="${VERSION#v}"
           OWNER_LC="${{ github.repository_owner }}"
           OWNER_LC="${OWNER_LC,,}"
 
