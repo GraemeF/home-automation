@@ -58,6 +58,12 @@ jobs:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
+      - name: Configure git user
+        if: steps.beads_check.outputs.beads_only == 'false'
+        run: |
+          git config user.name "home-automation-releaser[bot]"
+          git config user.email "home-automation-releaser[bot]@users.noreply.github.com"
+
       - name: Create Release Pull Request or Tag Release
         if: steps.beads_check.outputs.beads_only == 'false'
         uses: changesets/action@v1
