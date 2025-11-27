@@ -66,6 +66,7 @@ jobs:
 
       - name: Create Release Pull Request or Tag Release
         if: steps.beads_check.outputs.beads_only == 'false'
+        id: changesets
         uses: changesets/action@v1
         with:
           publish: bun run release
@@ -75,3 +76,23 @@ jobs:
           commitMode: 'github-api'
         env:
           GITHUB_TOKEN: ${{ steps.github-app-token.outputs.token }}
+
+      - name: Get release version
+        if: steps.changesets.outputs.published == 'true'
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' packages/deep-heating/package.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Released version: $VERSION"
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
+      version: ${{ steps.version.outputs.version }}
+
+  docker:
+    name: Build Docker
+    needs: release
+    if: needs.release.outputs.published == 'true'
+    uses: ./.github/workflows/docker.yml
+    with:
+      version: ${{ needs.release.outputs.version }}
+    secrets: inherit
