@@ -1,6 +1,6 @@
 name: 'Deep Heating'
 description: 'Cleverer climate control'
-version: 'sha-3fd5155'
+version: '0.0.1'
 slug: 'deep_heating'
 image: 'ghcr.io/graemef/home-automation/deep-heating'
 arch:

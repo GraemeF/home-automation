@@ -31,6 +31,13 @@
     },
     "format": {
       "outputs": []
+    },
+    "version:sync": {
+      "inputs": ["package.json"],
+      "outputs": ["config.yaml"]
+    },
+    "release": {
+      "cache": false
     }
   }
 }

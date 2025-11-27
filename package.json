@@ -16,6 +16,9 @@
     "serve": "turbo run serve",
     "format": "turbo run format",
     "format:check": "prettier --check .",
+    "changeset": "changeset",
+    "version": "changeset version && turbo run version:sync",
+    "release": "turbo run release",
     "docker:build:deep-heating": "docker build -f packages/deep-heating/Dockerfile -t deep-heating:latest .",
     "docker:build:socketio": "docker build -f packages/deep-heating-socketio/Dockerfile -t deep-heating-socketio:latest .",
     "docker:build:web": "docker build -f packages/deep-heating-web/Dockerfile -t deep-heating-web:latest .",
@@ -23,6 +26,8 @@
   },
   "private": true,
   "devDependencies": {
+    "@changesets/changelog-github": "^0.5.1",
+    "@changesets/cli": "^2.29.7",
     "@testing-library/svelte": "5.2.9",
     "@tsconfig/svelte": "5.0.6",
     "@types/debug": "4.1.12",

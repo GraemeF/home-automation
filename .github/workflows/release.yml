@@ -1,0 +1,71 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if beads-only commit
+        id: beads_check
+        run: |
+          FILES=$(git diff --name-only HEAD~1 HEAD)
+          echo "Changed files in last commit:"
+          echo "$FILES"
+
+          if [ "$FILES" = ".beads/issues.jsonl" ]; then
+            echo "beads_only=true" >> $GITHUB_OUTPUT
+            echo "✓ Beads-only commit detected - will skip release"
+          else
+            echo "beads_only=false" >> $GITHUB_OUTPUT
+            echo "✓ Code changes detected - will run release workflow"
+          fi
+
+      - name: Skip release for beads-only commit
+        if: steps.beads_check.outputs.beads_only == 'true'
+        run: |
+          echo "✓ Beads-only commit - skipping release workflow"
+          exit 0
+
+      - name: Install tools
+        if: steps.beads_check.outputs.beads_only == 'false'
+        uses: jdx/mise-action@v2
+
+      - name: Install dependencies
+        if: steps.beads_check.outputs.beads_only == 'false'
+        run: bun install --frozen-lockfile
+
+      - name: Generate GitHub App Token
+        if: steps.beads_check.outputs.beads_only == 'false'
+        id: github-app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Create Release Pull Request or Tag Release
+        if: steps.beads_check.outputs.beads_only == 'false'
+        uses: changesets/action@v1
+        with:
+          publish: bun run release
+          version: bun run version
+          commit: 'chore: version packages'
+          title: 'chore: version packages'
+          commitMode: 'github-api'
+        env:
+          GITHUB_TOKEN: ${{ steps.github-app-token.outputs.token }}
