@@ -78,3 +78,17 @@ deep-heating-home-assistant → deep-heating-types
 - **Package manager**: Bun 1.3.2 (managed via mise in `.mise.toml`)
 - **Build orchestration**: Turborepo with caching
 - **Pre-commit**: Husky runs Prettier on staged files
+
+## Changesets
+
+`bun run changeset` is interactive and won't work for Claude. To add a changeset manually, create a markdown file in `.changeset/` (e.g., `fix-temperature-rounding.md`):
+
+```markdown
+---
+'@home-automation/deep-heating-rx': patch
+---
+
+Brief description of what changed
+```
+
+The frontmatter lists affected packages and bump type (`patch`, `minor`, `major`). Changes to libraries automatically bump `@home-automation/deep-heating` via dependencies.
