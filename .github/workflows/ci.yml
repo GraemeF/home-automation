@@ -42,19 +42,46 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if lockfile changed
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+          fi
+          if git diff --name-only "$BASE_SHA" HEAD | grep -qE '^bun\.lock$|^bun-deep-heating\.nix$|^packages/.*/package\.json$'; then
+            echo "lockfile_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "lockfile_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Skip if no lockfile changes
+        if: steps.changes.outputs.lockfile_changed == 'false'
+        run: echo "✅ No lockfile changes, skipping validation"
 
       - name: Install Nix
+        if: steps.changes.outputs.lockfile_changed == 'true'
         uses: cachix/install-nix-action@v31
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install tools
+        if: steps.changes.outputs.lockfile_changed == 'true'
         uses: jdx/mise-action@v2
 
+      - name: Install dependencies
+        if: steps.changes.outputs.lockfile_changed == 'true'
+        run: bun install --frozen-lockfile
+
       - name: Validate bun-deep-heating.nix is in sync
+        if: steps.changes.outputs.lockfile_changed == 'true'
         run: |
           echo "Pruning workspace with turbo..."
-          turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker --out-dir=pruned
+          bunx turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker --out-dir=pruned
 
           echo "Generating fresh bun-deep-heating.nix from pruned lockfile..."
           nix run github:nix-community/bun2nix -- \
