@@ -9,8 +9,8 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@effect/schema": "0.68.27",
-    "effect": "3.5.5",
+    "@effect/schema": "0.75.5",
+    "effect": "3.19.8",
     "luxon": "3.7.2",
     "rxjs": "6.6.7"
   }

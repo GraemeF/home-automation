@@ -9,11 +9,11 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@effect/platform": "0.59.1",
-    "@effect/schema": "0.68.27",
+    "@effect/platform": "0.93.5",
+    "@effect/schema": "0.75.5",
     "@home-automation/deep-heating-types": "*",
     "@home-automation/rxx": "*",
-    "effect": "3.5.5",
+    "effect": "3.19.8",
     "rxjs": "6.6.7"
   }
 }
