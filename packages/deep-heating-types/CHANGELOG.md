@@ -1,5 +1,11 @@
 # @home-automation/deep-heating-types
 
+## 0.0.3
+
+### Patch Changes
+
+- [#1049](https://github.com/GraemeF/home-automation/pull/1049) [`71543e5`](https://github.com/GraemeF/home-automation/commit/71543e58438c6992da1362c26779ebaf9024925b) Thanks [@GraemeF](https://github.com/GraemeF)! - Add package description to deep-heating-types
+
 ## 0.0.2
 
 ### Patch Changes
