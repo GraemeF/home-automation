@@ -16,6 +16,7 @@
     "serve": "turbo run serve",
     "format": "turbo run format",
     "format:check": "prettier --check .",
+    "unused:check": "knip-bun",
     "changeset": "changeset",
     "version": "changeset version && turbo run version:sync",
     "release": "turbo run release"
@@ -45,6 +46,7 @@
     "eslint-plugin-testing-library": "6.5.0",
     "eslint-plugin-unused-imports": "4.3.0",
     "husky": "9.1.7",
+    "knip": "^5.70.1",
     "postcss": "8.5.6",
     "prettier": "3.6.2",
     "prettier-plugin-svelte": "3.4.0",
