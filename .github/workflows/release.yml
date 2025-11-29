@@ -43,11 +43,10 @@ jobs:
           git config user.name "home-automation-releaser[bot]"
           git config user.email "home-automation-releaser[bot]@users.noreply.github.com"
 
-      - name: Create Release Pull Request or Tag Release
+      - name: Create Release Pull Request or Build Docker
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: bun run release
           version: bun run version
           commit: 'chore: version packages'
           title: 'chore: version packages'
