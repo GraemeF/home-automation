@@ -1,4 +1,3 @@
-/* eslint-disable */
 export default {
   displayName: 'deep-heating-home-assistant',
 
