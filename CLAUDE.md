@@ -20,9 +20,8 @@ bun run format         # Format code with Prettier
 bun test --filter deep-heating-rx
 bun test --filter deep-heating-rx -- --testNamePattern="pattern"
 
-# Docker builds
-bun run docker:build:deep-heating   # Combined image
-bun run docker:build:all            # All images
+# Docker image (via Nix)
+nix build .#dockerImage              # Build Docker image
 ```
 
 ## Architecture
