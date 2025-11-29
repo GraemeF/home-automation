@@ -72,7 +72,7 @@ deep-heating-home-assistant → deep-heating-types
 
 ## Tooling
 
-- **Package manager**: Bun (managed via mise in `.mise.toml`)
+- **Package manager**: Bun (provided via `nix develop` from flake.nix)
 - **Build orchestration**: Turborepo with caching
 - **Pre-commit**: Husky runs Prettier on staged files
 
