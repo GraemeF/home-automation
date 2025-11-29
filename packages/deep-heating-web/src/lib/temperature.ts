@@ -1,4 +1,4 @@
-import { Schema } from '@effect/schema';
+import { Schema } from 'effect';
 import { Temperature } from '@home-automation/deep-heating-types';
 import { Option, pipe } from 'effect';
 

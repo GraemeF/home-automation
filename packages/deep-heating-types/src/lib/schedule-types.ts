@@ -1,4 +1,4 @@
-import { Schema } from '@effect/schema';
+import { Schema } from 'effect';
 import { ClimateEntityId } from './entities';
 import { Temperature } from './temperature';
 
@@ -18,10 +18,13 @@ export type TimeOfDay = typeof TimeOfDay.Type;
 export const ScheduleSlot = Schema.Tuple(TimeOfDay, Temperature);
 export type ScheduleSlot = typeof ScheduleSlot.Type;
 
-export const DaySchedule = Schema.Record(TimeOfDay, Temperature);
+export const DaySchedule = Schema.Record({
+  key: TimeOfDay,
+  value: Temperature,
+});
 export type DaySchedule = typeof DaySchedule.Type;
 
-export const WeekSchedule = Schema.Record(Day, DaySchedule);
+export const WeekSchedule = Schema.Record({ key: Day, value: DaySchedule });
 export type WeekSchedule = typeof WeekSchedule.Type;
 
 export const TrvWeekHeatingSchedule = Schema.Struct({

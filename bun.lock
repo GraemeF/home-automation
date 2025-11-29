@@ -82,7 +82,6 @@
       "version": "0.0.1",
       "dependencies": {
         "@effect/platform": "0.93.3",
-        "@effect/schema": "0.75.5",
         "@home-automation/deep-heating-types": "*",
         "@home-automation/rxx": "*",
         "effect": "3.19.6",
@@ -93,7 +92,7 @@
       "name": "@home-automation/deep-heating-rx",
       "version": "0.0.1",
       "dependencies": {
-        "@effect/schema": "0.75.5",
+        "@effect/platform": "0.93.3",
         "@home-automation/deep-heating-home-assistant": "*",
         "@home-automation/deep-heating-types": "*",
         "@home-automation/rxx": "*",
@@ -109,7 +108,6 @@
       "dependencies": {
         "@effect/platform": "0.93.3",
         "@effect/platform-node": "0.101.1",
-        "@effect/schema": "0.75.5",
         "@home-automation/deep-heating-rx": "*",
         "@home-automation/deep-heating-state": "*",
         "@home-automation/deep-heating-types": "*",
@@ -135,7 +133,6 @@
       "name": "@home-automation/deep-heating-types",
       "version": "0.0.3",
       "dependencies": {
-        "@effect/schema": "0.75.5",
         "effect": "3.19.6",
         "luxon": "3.7.2",
         "rxjs": "6.6.7",
@@ -145,7 +142,6 @@
       "name": "@home-automation/deep-heating-web",
       "version": "0.0.1",
       "dependencies": {
-        "@effect/schema": "0.75.5",
         "@home-automation/deep-heating-types": "*",
         "effect": "3.19.6",
         "socket.io-client": "4.8.1",
@@ -297,8 +293,6 @@
     "@effect/platform-node-shared": ["@effect/platform-node-shared@0.54.0", "", { "dependencies": { "@parcel/watcher": "^2.5.1", "multipasta": "^0.2.7", "ws": "^8.18.2" }, "peerDependencies": { "@effect/cluster": "^0.53.0", "@effect/platform": "^0.93.3", "@effect/rpc": "^0.72.2", "@effect/sql": "^0.48.0", "effect": "^3.19.5" } }, "sha512-prTgG3CXqmrxB4Rg6utfwCTqjlGwjAEvK7R4g3HzVdFpfFRum+FQBpGHUcjyz7EejkDtBY2MWJC3Wr1QKDPjPw=="],
 
     "@effect/rpc": ["@effect/rpc@0.72.2", "", { "dependencies": { "msgpackr": "^1.11.4" }, "peerDependencies": { "@effect/platform": "^0.93.3", "effect": "^3.19.5" } }, "sha512-BmTXybXCOq96D2r9mvSW/YdiTQs5CStnd4II+lfVKrMr3pMNERKLZ2LG37Tfm4Sy3Q8ire6IVVKO/CN+VR0uQQ=="],
-
-    "@effect/schema": ["@effect/schema@0.75.5", "", { "dependencies": { "fast-check": "^3.21.0" }, "peerDependencies": { "effect": "^3.9.2" } }, "sha512-TQInulTVCuF+9EIbJpyLP6dvxbQJMphrnRqgexm/Ze39rSjfhJuufF7XvU3SxTgg3HnL7B/kpORTJbHhlE6thw=="],
 
     "@effect/sql": ["@effect/sql@0.48.0", "", { "dependencies": { "uuid": "^11.0.3" }, "peerDependencies": { "@effect/experimental": "^0.57.0", "@effect/platform": "^0.93.0", "effect": "^3.19.0" } }, "sha512-tubdizHriDwzHUnER9UsZ/0TtF6O2WJckzeYDbVSRPeMkrpdpyEzEsoKctechTm65B3Bxy6JIixGPg2FszY72A=="],
 

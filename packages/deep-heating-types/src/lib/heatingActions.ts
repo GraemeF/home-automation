@@ -1,4 +1,4 @@
-import { Schema } from '@effect/schema';
+import { Schema } from 'effect';
 import { combineLatest, Observable } from 'rxjs';
 import { filter, map, shareReplay } from 'rxjs/operators';
 import { ClimateAction, HeatingStatus } from './deep-heating-types';

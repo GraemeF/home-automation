@@ -9,7 +9,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@effect/schema": "0.75.5",
+    "@effect/platform": "0.93.3",
     "@home-automation/deep-heating-home-assistant": "*",
     "@home-automation/deep-heating-types": "*",
     "@home-automation/rxx": "*",

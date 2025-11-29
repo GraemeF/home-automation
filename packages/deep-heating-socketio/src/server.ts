@@ -4,7 +4,7 @@ config();
 
 import { FileSystem } from '@effect/platform';
 import { NodeFileSystem } from '@effect/platform-node';
-import { Schema } from '@effect/schema';
+import { Schema } from 'effect';
 import { Home } from '@home-automation/deep-heating-types';
 import { Effect, pipe } from 'effect';
 import { readFileSync, writeFileSync } from 'fs';
