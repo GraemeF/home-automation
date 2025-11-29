@@ -23,7 +23,7 @@ export const handler = (
   const loadAdjustments = () => {
     try {
       return readFileSync(roomAdjustmentsPath).toString();
-    } catch (e) {
+    } catch {
       return '[]';
     }
   };
