@@ -12,6 +12,10 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   docker-amd64:
     name: Build Docker (amd64)
@@ -154,4 +158,88 @@ jobs:
               "${{ secrets.DOCKERHUB_USERNAME }}/deep-heating:${VERSION}-amd64" \
               "${{ secrets.DOCKERHUB_USERNAME }}/deep-heating:${VERSION}-arm64"
             docker manifest push "${{ secrets.DOCKERHUB_USERNAME }}/deep-heating:latest"
+          fi
+
+  github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [docker-manifest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION="${{ inputs.version || format('{0}', github.ref_name) }}"
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog for version
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          CHANGELOG_FILE="packages/deep-heating/CHANGELOG.md"
+
+          if [ ! -f "$CHANGELOG_FILE" ]; then
+            echo "body=No changelog available." >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Extract the section for this version (between ## X.Y.Z headers)
+          SECTION=$(awk -v ver="$VERSION" '
+            /^## / {
+              if (capturing) exit
+              if ($2 == ver || $2 == "["ver"]") capturing=1
+              next
+            }
+            capturing { print }
+          ' "$CHANGELOG_FILE")
+
+          if [ -z "$SECTION" ]; then
+            SECTION="No changelog available for this version."
+          fi
+
+          # Write to file to preserve newlines
+          echo "$SECTION" > /tmp/changelog_section.md
+          echo "file=/tmp/changelog_section.md" >> $GITHUB_OUTPUT
+
+      - name: Create release notes
+        id: notes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          OWNER_LC="${{ github.repository_owner }}"
+          OWNER_LC="${OWNER_LC,,}"
+
+          cat "${{ steps.changelog.outputs.file }}" > /tmp/release_notes.md
+
+          echo "" >> /tmp/release_notes.md
+          echo "## Docker Images" >> /tmp/release_notes.md
+          echo "" >> /tmp/release_notes.md
+          echo '```bash' >> /tmp/release_notes.md
+          echo "# GitHub Container Registry" >> /tmp/release_notes.md
+          echo "docker pull ghcr.io/${OWNER_LC}/deep-heating:${VERSION}" >> /tmp/release_notes.md
+          echo "" >> /tmp/release_notes.md
+          echo "# DockerHub" >> /tmp/release_notes.md
+          echo "docker pull graemef/deep-heating:${VERSION}" >> /tmp/release_notes.md
+          echo '```' >> /tmp/release_notes.md
+          echo "" >> /tmp/release_notes.md
+          echo 'Available architectures: `amd64`, `arm64`' >> /tmp/release_notes.md
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+
+          # Check if release already exists
+          if gh release view "$TAG" &>/dev/null; then
+            echo "Release $TAG already exists, updating..."
+            gh release edit "$TAG" --notes-file /tmp/release_notes.md
+          else
+            echo "Creating release $TAG..."
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes-file /tmp/release_notes.md
           fi
