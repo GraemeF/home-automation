@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'bun:test';
 import { Schema } from 'effect';
 import { DateTime } from 'luxon';
 import { WeekSchedule } from './schedule-types';

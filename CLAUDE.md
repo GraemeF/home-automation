@@ -67,8 +67,7 @@ deep-heating-home-assistant → deep-heating-types
 
 ## Testing
 
-- **Jest**: Library packages (`packages/deep-heating-*/`)
-- **Vitest**: SvelteKit frontend (`packages/deep-heating-web/`)
+- **Bun native test runner**: All packages use `bun test`
 - Tests run after lint and depend on building dependencies first (see turbo.json)
 
 ## Tooling

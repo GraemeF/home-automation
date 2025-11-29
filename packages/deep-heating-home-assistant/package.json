@@ -5,13 +5,13 @@
   "scripts": {
     "build": "tsc -p tsconfig.lib.json",
     "lint": "eslint .",
-    "test": "jest",
+    "test": "bun test",
     "format": "prettier --write ."
   },
   "dependencies": {
     "@effect/platform": "0.93.3",
-    "@home-automation/deep-heating-types": "*",
-    "@home-automation/rxx": "*",
+    "@home-automation/deep-heating-types": "workspace:*",
+    "@home-automation/rxx": "workspace:*",
     "effect": "3.19.6",
     "rxjs": "6.6.7"
   }

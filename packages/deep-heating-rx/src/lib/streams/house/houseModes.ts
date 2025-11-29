@@ -16,7 +16,7 @@ import {
 
 const refreshIntervalSeconds = 63;
 
-export const getHouseMode = (
+const getHouseMode = (
   now: DateTime,
   lastButtonTime?: DateTime,
 ): HouseModeValue =>

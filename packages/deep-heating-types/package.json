@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.lib.json",
     "lint": "eslint .",
-    "test": "jest",
+    "test": "bun test",
     "format": "prettier --write ."
   },
   "dependencies": {

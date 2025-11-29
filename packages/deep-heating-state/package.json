@@ -8,8 +8,8 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@home-automation/deep-heating-rx": "*",
-    "@home-automation/deep-heating-types": "*",
+    "@home-automation/deep-heating-rx": "workspace:*",
+    "@home-automation/deep-heating-types": "workspace:*",
     "effect": "3.19.6",
     "rxjs": "6.6.7",
     "rxjs-multi-scan": "1.0.2"

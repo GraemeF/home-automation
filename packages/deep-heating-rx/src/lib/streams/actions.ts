@@ -4,10 +4,9 @@ import {
   TrvControlState,
   TrvScheduledTargetTemperature,
 } from '@home-automation/deep-heating-types';
-import { GroupedObservable, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import {
   filter,
-  groupBy,
   map,
   mergeAll,
   mergeMap,
@@ -16,11 +15,6 @@ import {
   withLatestFrom,
 } from 'rxjs/operators';
 import { MinimumTrvTargetTemperature } from './trvs/trvDecisionPoints';
-
-export const getTrvActionsByTrvId = (
-  trvActions: Observable<ClimateAction>,
-): Observable<GroupedObservable<string, ClimateAction>> =>
-  trvActions.pipe(groupBy((x) => x.climateEntityId));
 
 const getNextTrvControlState = (
   latest: TrvControlState,
