@@ -28,8 +28,7 @@ The resulting image is loaded into Docker via `docker load < result`.
 
 ### Development Tasks
 
-- `npm run build` - Build all packages
-- `npm run test` - Run all tests
-- `npm run lint` - Lint all packages
-- `npm run dev` - Start development servers
-- `npm run serve` - Serve built packages
+- `bun run build` - Build all packages
+- `bun run test` - Run all tests
+- `bun run lint` - Lint all packages
+- `bun run dev` - Start development servers
