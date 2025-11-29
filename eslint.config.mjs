@@ -76,6 +76,21 @@ export default [
       ...sveltePlugin.configs.recommended.rules,
     },
   },
+  // Source files - functional rules (excludes tests)
+  // Note: Rules requiring type info (immutable-data, prefer-immutable-types)
+  // need parserOptions.project - disabled for now, can enable with typed linting later
+  {
+    name: 'source-functional',
+    files: ['packages/*/src/**/*.ts'],
+    ignores: ['**/*.test.ts', '**/*.spec.ts', '**/*.stories.ts'],
+    plugins: {
+      functional: functionalPlugin,
+    },
+    rules: {
+      'functional/no-let': 'warn',
+      'functional/no-loop-statements': 'warn',
+    },
+  },
   // Stories files - functional rules
   {
     name: 'stories-functional',
