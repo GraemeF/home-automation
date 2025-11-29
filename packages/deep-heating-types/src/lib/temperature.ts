@@ -1,4 +1,4 @@
-import { Schema } from '@effect/schema';
+import { Schema } from 'effect';
 import { pipe } from 'effect';
 
 export const Temperature = pipe(

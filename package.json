@@ -18,16 +18,12 @@
     "format:check": "prettier --check .",
     "changeset": "changeset",
     "version": "changeset version && turbo run version:sync",
-    "release": "turbo run release",
-    "docker:build:deep-heating": "docker build -f packages/deep-heating/Dockerfile -t deep-heating:latest .",
-    "docker:build:socketio": "docker build -f packages/deep-heating-socketio/Dockerfile -t deep-heating-socketio:latest .",
-    "docker:build:web": "docker build -f packages/deep-heating-web/Dockerfile -t deep-heating-web:latest .",
-    "docker:build:all": "bun run docker:build:deep-heating && bun run docker:build:socketio && bun run docker:build:web"
+    "release": "turbo run release"
   },
   "private": true,
   "devDependencies": {
-    "@changesets/changelog-github": "^0.5.1",
-    "@changesets/cli": "^2.29.7",
+    "@changesets/changelog-github": "0.5.2",
+    "@changesets/cli": "2.29.8",
     "@testing-library/svelte": "5.2.9",
     "@tsconfig/svelte": "5.0.6",
     "@types/debug": "4.1.12",
@@ -70,15 +66,14 @@
     "webpack-merge": "6.0.1"
   },
   "dependencies": {
-    "@effect/platform": "0.59.1",
-    "@effect/platform-node": "0.54.2",
+    "@effect/platform": "0.93.3",
     "@sveltejs/adapter-node": "5.2.2",
     "@sveltejs/kit": "2.5.26",
     "amazon-user-pool-srp-client": "1.0.4",
     "axios": "1.13.2",
     "bufferutil": "4.0.9",
     "dotenv": "16.6.1",
-    "effect": "3.5.5",
+    "effect": "3.19.6",
     "express": "4.21.2",
     "jsonwebtoken": "9.0.2",
     "luxon": "3.7.2",

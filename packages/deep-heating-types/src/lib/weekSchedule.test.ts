@@ -1,4 +1,4 @@
-import { Schema } from '@effect/schema';
+import { Schema } from 'effect';
 import { DateTime } from 'luxon';
 import { WeekSchedule } from './schedule-types';
 import { toHeatingSchedule } from './weekSchedule';

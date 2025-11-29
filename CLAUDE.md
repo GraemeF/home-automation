@@ -20,9 +20,8 @@ bun run format         # Format code with Prettier
 bun test --filter deep-heating-rx
 bun test --filter deep-heating-rx -- --testNamePattern="pattern"
 
-# Docker builds
-bun run docker:build:deep-heating   # Combined image
-bun run docker:build:all            # All images
+# Docker image (via Nix)
+nix build .#dockerImage              # Build Docker image
 ```
 
 ## Architecture
@@ -74,8 +73,7 @@ deep-heating-home-assistant → deep-heating-types
 
 ## Tooling
 
-- **Node**: 20.19.5 (managed via mise in `.mise.toml`)
-- **Package manager**: Bun 1.3.2 (managed via mise in `.mise.toml`)
+- **Package manager**: Bun (managed via mise in `.mise.toml`)
 - **Build orchestration**: Turborepo with caching
 - **Pre-commit**: Husky runs Prettier on staged files
 

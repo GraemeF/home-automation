@@ -3,8 +3,8 @@ import { config } from 'dotenv';
 config();
 
 import { FileSystem } from '@effect/platform';
-import { NodeFileSystem } from '@effect/platform-node';
-import { Schema } from '@effect/schema';
+import { BunFileSystem } from '@effect/platform-bun';
+import { Schema } from 'effect';
 import { Home } from '@home-automation/deep-heating-types';
 import { Effect, pipe } from 'effect';
 import { readFileSync, writeFileSync } from 'fs';
@@ -61,7 +61,7 @@ export const handler = (
     ),
     Effect.tap((server) => server.logConnections()),
     Effect.tap(() => Effect.log('Socket.io server started')),
-    Effect.provide(NodeFileSystem.layer),
+    Effect.provide(BunFileSystem.layer),
     Effect.runPromise,
   );
 };

@@ -10,7 +10,7 @@
   "dependencies": {
     "@home-automation/deep-heating-rx": "*",
     "@home-automation/deep-heating-types": "*",
-    "effect": "3.5.5",
+    "effect": "3.19.6",
     "rxjs": "6.6.7",
     "rxjs-multi-scan": "1.0.2"
   }

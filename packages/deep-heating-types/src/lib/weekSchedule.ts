@@ -1,7 +1,8 @@
-import { Array, Record, pipe } from 'effect';
+import { Array, pipe } from 'effect';
 import { DateTime, Duration } from 'luxon';
 import { HeatingSchedule, HeatingScheduleEntry } from './deep-heating-types';
-import { WeekSchedule } from './schedule-types';
+import { DaySchedule, WeekSchedule } from './schedule-types';
+import { Temperature } from './temperature';
 
 function toStartOfDay(
   day: string,
@@ -27,11 +28,10 @@ export const toHeatingSchedule = (
   now: DateTime,
 ): HeatingSchedule => {
   const today = now.startOf('day');
-  const futureSlots = Record.toEntries(schedule)
+  const futureSlots = (Object.entries(schedule) as [string, DaySchedule][])
     .flatMap(([dayName, slots]) =>
       pipe(
-        slots,
-        Record.toEntries,
+        Object.entries(slots) as [string, Temperature][],
         Array.map(([start, target]) => ({
           start: Duration.fromISOTime(start),
           target,

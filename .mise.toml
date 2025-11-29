@@ -1,6 +1,5 @@
 [tools]
-nodejs = "20.19.5"
-bun = "1.3.2"
+bun = "1.3.3"
 
 [env]
 _.path = ["./node_modules/.bin"]

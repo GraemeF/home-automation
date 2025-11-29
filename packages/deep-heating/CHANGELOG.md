@@ -1,5 +1,17 @@
 # @home-automation/deep-heating
 
+## 0.0.5
+
+### Patch Changes
+
+- [#1069](https://github.com/GraemeF/home-automation/pull/1069) [`4edf11f`](https://github.com/GraemeF/home-automation/commit/4edf11fe43e50a13b8fff7862fc10b325b05f03f) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix Docker image path in Home Assistant addon config
+
+## 0.0.4
+
+### Patch Changes
+
+- [#1061](https://github.com/GraemeF/home-automation/pull/1061) [`cca2604`](https://github.com/GraemeF/home-automation/commit/cca2604d1dfb2df3b64088a0182a3ddda853cfdd) Thanks [@GraemeF](https://github.com/GraemeF)! - Add GitHub releases to release workflow with changelog and Docker image links
+
 ## 0.0.3
 
 ### Patch Changes

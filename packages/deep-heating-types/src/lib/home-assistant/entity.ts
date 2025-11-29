@@ -1,4 +1,4 @@
-import { Schema } from '@effect/schema';
+import { Schema } from 'effect';
 import { pipe } from 'effect/Function';
 import {
   ClimateEntityId,
@@ -106,7 +106,11 @@ export const UnavailableClimateEntity = pipe(
       state: Schema.Literal('unavailable'),
       attributes: Schema.Struct({
         friendly_name: Schema.String,
-      }).pipe(Schema.extend(Schema.Record(Schema.String, Schema.Unknown))),
+      }).pipe(
+        Schema.extend(
+          Schema.Record({ key: Schema.String, value: Schema.Unknown }),
+        ),
+      ),
     }),
   ),
 );
