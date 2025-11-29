@@ -2,7 +2,7 @@
   "name": "dictionary",
   "version": "0.0.1",
   "scripts": {
-    "lint": "eslint .",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint .",
     "format": "prettier --write ."
   }
 }
