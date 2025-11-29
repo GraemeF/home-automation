@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@effect/platform": "0.93.3",
-    "@effect/platform-node": "0.101.1",
+    "@effect/platform-bun": "0.84.0",
     "@home-automation/deep-heating-rx": "*",
     "@home-automation/deep-heating-state": "*",
     "@home-automation/deep-heating-types": "*",
