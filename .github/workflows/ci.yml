@@ -19,8 +19,16 @@ jobs:
     outputs:
       should_build: ${{ steps.filter.outputs.should_build }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout [main]
+        if: github.event_name != 'pull_request'
+        uses: actions/checkout@v4
         with:
+          fetch-depth: 0
+      - name: Checkout [pr]
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
       - name: Check for non-beads changes
@@ -76,8 +84,16 @@ jobs:
     runs-on: ubuntu-latest
     if: github.head_ref != 'changeset-release/main' && needs.check-changes.outputs.should_build == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout [main]
+        if: github.event_name != 'pull_request'
+        uses: actions/checkout@v4
         with:
+          fetch-depth: 0
+      - name: Checkout [pr]
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
       - name: Check if lockfile changed
