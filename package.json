@@ -29,7 +29,6 @@
     "@testing-library/svelte": "5.2.9",
     "@tsconfig/svelte": "5.0.6",
     "@types/debug": "4.1.12",
-    "@types/jsonwebtoken": "9.0.10",
     "@types/luxon": "3.7.1",
     "@types/node": "20.19.25",
     "@typescript-eslint/eslint-plugin": "8.47.0",
@@ -62,22 +61,6 @@
     "webpack-merge": "6.0.1"
   },
   "dependencies": {
-    "@effect/platform": "0.93.3",
-    "@sveltejs/adapter-node": "5.2.2",
-    "@sveltejs/kit": "2.5.26",
-    "amazon-user-pool-srp-client": "1.0.4",
-    "axios": "1.13.2",
-    "bufferutil": "4.0.9",
-    "dotenv": "16.6.1",
-    "effect": "3.19.6",
-    "express": "4.21.2",
-    "jsonwebtoken": "9.0.2",
-    "luxon": "3.7.2",
-    "rxjs-multi-scan": "1.0.2",
-    "socket.io": "4.8.1",
-    "socket.io-client": "4.8.1",
-    "svelte-material-icons": "3.0.5",
-    "tslib": "2.8.1",
-    "utf-8-validate": "6.0.5"
+    "tslib": "2.8.1"
   }
 }

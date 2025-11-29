@@ -5,28 +5,10 @@ const config: KnipConfig = {
     // Root workspace - the monorepo itself
     '.': {
       ignore: ['dist/**'],
-      // These dependencies are hoisted and used by workspaces
+      // DevDeps used by workspace packages or tooling
       ignoreDependencies: [
-        // Root deps used by workspace packages
-        '@effect/platform',
-        '@sveltejs/adapter-node',
-        '@sveltejs/kit',
-        'amazon-user-pool-srp-client',
-        'axios',
-        'bufferutil',
-        'dotenv',
-        'effect',
-        'express',
-        'jsonwebtoken',
-        'luxon',
-        'rxjs-multi-scan',
-        'socket.io-client',
-        'svelte-material-icons',
-        'utf-8-validate',
-        // DevDeps used by workspace packages or tooling
         '@testing-library/svelte',
         '@tsconfig/svelte',
-        '@types/jsonwebtoken',
         'prettier-plugin-svelte',
       ],
     },
@@ -72,6 +54,8 @@ const config: KnipConfig = {
         'src/app.d.ts',
       ],
       ignore: ['dist/**', '.svelte-kit/**'],
+      // Used via $packages path alias (resolves to node_modules)
+      ignoreDependencies: ['svelte-material-icons'],
     },
 
     // Combined deployment package
