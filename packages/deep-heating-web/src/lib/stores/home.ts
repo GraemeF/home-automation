@@ -1,4 +1,4 @@
-import { Schema } from '@effect/schema';
+import { Schema } from 'effect';
 import { DeepHeatingState } from '@home-automation/deep-heating-types';
 import { Option } from 'effect';
 import type { Socket } from 'socket.io-client';

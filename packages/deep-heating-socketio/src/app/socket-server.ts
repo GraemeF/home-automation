@@ -1,4 +1,4 @@
-import { Schema } from '@effect/schema';
+import { Schema } from 'effect';
 import { DeepHeating } from '@home-automation/deep-heating-rx';
 import { maintainState } from '@home-automation/deep-heating-state';
 import {

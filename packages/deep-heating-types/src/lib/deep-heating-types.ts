@@ -1,4 +1,4 @@
-import { Schema } from '@effect/schema';
+import { Schema } from 'effect';
 import { ClimateEntityId, GoodnightEntityId, SensorEntityId } from './entities';
 import { ClimateMode, OperationalClimateMode } from './home-assistant';
 import { WeekSchedule } from './schedule-types';

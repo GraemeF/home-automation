@@ -1,3 +1,4 @@
+import { FetchHttpClient } from '@effect/platform';
 import {
   createHomeAssistantButtonEventProvider,
   createHomeAssistantHeatingProvider,
@@ -144,7 +145,10 @@ export class DeepHeating {
     roomAdjustmentCommands$: Observable<RoomAdjustment>,
   ) {
     const runtime = pipe(
-      HomeAssistantApiLive.pipe(Layer.provide(HomeAssistantConfigLive)),
+      HomeAssistantApiLive.pipe(
+        Layer.provide(HomeAssistantConfigLive),
+        Layer.provide(FetchHttpClient.layer),
+      ),
       Layer.toRuntime,
       Effect.scoped,
       Effect.runSync,

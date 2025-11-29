@@ -4,7 +4,7 @@
   import ColderIcon from '$packages/svelte-material-icons/MinusCircleOutline.svelte';
   import WarmerActiveIcon from '$packages/svelte-material-icons/PlusCircle.svelte';
   import WarmerIcon from '$packages/svelte-material-icons/PlusCircleOutline.svelte';
-  import { Schema } from '@effect/schema';
+  import { Schema } from 'effect';
   import {
     Temperature,
     type RoomState,

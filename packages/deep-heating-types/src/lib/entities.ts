@@ -1,9 +1,9 @@
-import { Schema } from '@effect/schema';
+import { Schema } from 'effect';
 import { pipe } from 'effect';
 
 export const EntityId = pipe(
   Schema.String,
-  Schema.nonEmpty(),
+  Schema.nonEmptyString(),
   Schema.brand('EntityId'),
 );
 export type EntityId = typeof EntityId.Type;
