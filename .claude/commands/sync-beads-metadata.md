@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git fetch:*), Bash(git merge:*), Bash(git push:*), Bash(git log:*), Bash(git status:*), Bash(gh pr:*), Bash(cd:*), Bash(pwd:*)
+allowed-tools: Bash(git fetch:*), Bash(git pull:*), Bash(git merge:*), Bash(git push:*), Bash(git log:*), Bash(git status:*), Bash(gh pr list:*), Bash(gh pr create:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(gh pr view:*)
 description: Merge latest origin/main into beads-metadata branch and create automerging PR
 ---
 
@@ -25,11 +25,13 @@ The beads-metadata branch lives in a worktree at `.git/beads-worktrees/beads-met
 
    - If no commits, report "beads-metadata is already in sync with main" and exit
 
-3. **Update beads-metadata with latest main** (in the worktree)
+3. **Update local branches in the worktree**
+
+   In the worktree directory, pull both branches to ensure we're up-to-date (the daemon may have pushed new commits since the worktree was last used):
 
    ```bash
-   cd .git/beads-worktrees/beads-metadata
-   git merge origin/main --no-edit
+   git pull origin beads-metadata --no-edit
+   git pull origin main --no-edit
    ```
 
    - The `bd merge` driver (configured in .gitattributes) handles issues.jsonl merges automatically
@@ -71,9 +73,6 @@ The beads-metadata branch lives in a worktree at `.git/beads-worktrees/beads-met
 
    - After checks pass, verify merge completed
    - Report success or failure
-
-9. **Return to original directory**
-   - Make sure to cd back to the repo root before finishing
 
 ### Important notes
 
