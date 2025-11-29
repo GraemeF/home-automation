@@ -5,9 +5,13 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '.beads/**'
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - '.beads/**'
 
 env:
   PRISMA_HIDE_UPDATE_MESSAGE: 'true'
