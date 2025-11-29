@@ -73,8 +73,7 @@ deep-heating-home-assistant → deep-heating-types
 
 ## Tooling
 
-- **Node**: 20.19.5 (managed via mise in `.mise.toml`)
-- **Package manager**: Bun 1.3.2 (managed via mise in `.mise.toml`)
+- **Package manager**: Bun (managed via mise in `.mise.toml`)
 - **Build orchestration**: Turborepo with caching
 - **Pre-commit**: Husky runs Prettier on staged files
 
