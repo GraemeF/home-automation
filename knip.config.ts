@@ -5,11 +5,13 @@ const config: KnipConfig = {
     // Root workspace - the monorepo itself
     '.': {
       ignore: ['dist/**'],
-      // DevDeps used by workspace packages or tooling
       ignoreDependencies: [
+        // DevDeps used by workspace packages or tooling
         '@testing-library/svelte',
         '@tsconfig/svelte',
         'prettier-plugin-svelte',
+        // Used by deep-heating-web via $packages path alias (must be at root for hoisting)
+        'svelte-material-icons',
       ],
     },
 
@@ -54,8 +56,6 @@ const config: KnipConfig = {
         'src/app.d.ts',
       ],
       ignore: ['dist/**', '.svelte-kit/**'],
-      // Used via $packages path alias (resolves to node_modules)
-      ignoreDependencies: ['svelte-material-icons'],
     },
 
     // Combined deployment package
