@@ -88,6 +88,10 @@ export default [
     plugins: functionalPluginOnly,
     rules: {
       ...effectPlugin.configs.functionalImmutabilityRules,
+      // Disable type-declaration-immutability - the I.+ heuristic (assuming I = Interface)
+      // is too blunt and triggers false positives on Input*, Item*, Index*, etc.
+      // Schema-derived types are already immutable at runtime anyway.
+      'functional/type-declaration-immutability': 'off',
       // Override prefer-immutable-types to include RxJS patterns
       'functional/prefer-immutable-types': [
         'error',

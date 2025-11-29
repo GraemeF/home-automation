@@ -154,7 +154,6 @@ export const InputButtonEntity = pipe(
     }),
   ),
 );
-// eslint-disable-next-line functional/type-declaration-immutability
 export type InputButtonEntity = typeof InputButtonEntity.Type;
 
 export const GoodnightEventEntity = Schema.Union(
