@@ -1,12 +1,11 @@
 name: 'Deep Heating'
 description: 'Cleverer climate control'
-version: '0.0.2'
+version: '0.0.3'
 slug: 'deep_heating'
 image: 'ghcr.io/graemef/home-automation/deep-heating'
 arch:
   - amd64
-  - armhf
-  - armv7
+  - aarch64
 homeassistant_api: true
 ingress: true
 ports:

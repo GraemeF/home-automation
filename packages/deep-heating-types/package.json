@@ -1,6 +1,7 @@
 {
   "name": "@home-automation/deep-heating-types",
-  "version": "0.0.2",
+  "version": "0.0.3",
+  "description": "Core TypeScript types and schemas for Deep Heating",
   "main": "dist/src/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.lib.json",
