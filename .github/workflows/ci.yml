@@ -5,8 +5,6 @@ on:
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - '.beads/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -16,9 +14,40 @@ env:
   PRISMA_HIDE_UPDATE_MESSAGE: 'true'
 
 jobs:
-  build:
+  check-changes:
     runs-on: ubuntu-latest
-    if: github.head_ref != 'changeset-release/main'
+    outputs:
+      should_build: ${{ steps.filter.outputs.should_build }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for non-beads changes
+        id: filter
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+          fi
+
+          # Get changed files, excluding .beads/
+          NON_BEADS_CHANGES=$(git diff --name-only "$BASE_SHA" HEAD | grep -v '^\.beads/' || true)
+
+          if [ -z "$NON_BEADS_CHANGES" ]; then
+            echo "Only .beads/ changes detected, skipping build"
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          else
+            echo "Non-beads changes detected:"
+            echo "$NON_BEADS_CHANGES"
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    needs: check-changes
+    runs-on: ubuntu-latest
+    if: github.head_ref != 'changeset-release/main' && needs.check-changes.outputs.should_build == 'true'
     steps:
       - name: Checkout [main]
         if: github.event_name != 'pull_request'
@@ -43,8 +72,9 @@ jobs:
 
   validate-nix:
     name: Validate bun.nix files
+    needs: check-changes
     runs-on: ubuntu-latest
-    if: github.head_ref != 'changeset-release/main'
+    if: github.head_ref != 'changeset-release/main' && needs.check-changes.outputs.should_build == 'true'
     steps:
       - uses: actions/checkout@v4
         with:
