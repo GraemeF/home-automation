@@ -18,8 +18,7 @@
     "format:check": "prettier --check .",
     "unused:check": "knip-bun",
     "changeset": "changeset",
-    "version": "changeset version && turbo run version:sync",
-    "release": "turbo run release"
+    "version": "changeset version && turbo run version:sync"
   },
   "private": true,
   "devDependencies": {

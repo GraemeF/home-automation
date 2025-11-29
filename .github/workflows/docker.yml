@@ -2,9 +2,6 @@
 name: Docker
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_call:
     inputs:
       version:
@@ -49,8 +46,7 @@ jobs:
         run: |
           SOURCE_IMAGE=$(docker load < result | grep "Loaded image:" | sed 's/Loaded image: //')
           echo "Loaded image: $SOURCE_IMAGE"
-          VERSION="${{ inputs.version || format('{0}', github.ref_name) }}"
-          VERSION="${VERSION#v}"
+          VERSION="${{ inputs.version }}"
           OWNER_LC="${{ github.repository_owner }}"
           OWNER_LC="${OWNER_LC,,}"
 
@@ -96,8 +92,7 @@ jobs:
         run: |
           SOURCE_IMAGE=$(docker load < result | grep "Loaded image:" | sed 's/Loaded image: //')
           echo "Loaded image: $SOURCE_IMAGE"
-          VERSION="${{ inputs.version || format('{0}', github.ref_name) }}"
-          VERSION="${VERSION#v}"
+          VERSION="${{ inputs.version }}"
           OWNER_LC="${{ github.repository_owner }}"
           OWNER_LC="${OWNER_LC,,}"
 
@@ -131,8 +126,7 @@ jobs:
 
       - name: Create and push multi-arch manifest
         run: |
-          VERSION="${{ inputs.version || format('{0}', github.ref_name) }}"
-          VERSION="${VERSION#v}"
+          VERSION="${{ inputs.version }}"
           OWNER_LC="${{ github.repository_owner }}"
           OWNER_LC="${OWNER_LC,,}"
 
@@ -171,8 +165,7 @@ jobs:
       - name: Get version
         id: version
         run: |
-          VERSION="${{ inputs.version || format('{0}', github.ref_name) }}"
-          VERSION="${VERSION#v}"
+          VERSION="${{ inputs.version }}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
 
