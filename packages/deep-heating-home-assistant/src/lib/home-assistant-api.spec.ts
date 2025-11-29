@@ -1,3 +1,4 @@
+import { beforeAll, describe, expect, it } from 'bun:test';
 import {
   ButtonPressEventEntity,
   ClimateEntity,
