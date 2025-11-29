@@ -69,15 +69,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - name: Install tools
-        uses: jdx/mise-action@v2
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: bun install --frozen-lockfile
-      - run: bun run format:check
-      - run: bun run build
-      - run: bun run lint
-      - run: bun run test
-      - run: bun run unused:check
+      - run: nix develop --command bun install --frozen-lockfile
+      - run: nix develop --command bun run format:check
+      - run: nix develop --command bun run build
+      - run: nix develop --command bun run lint
+      - run: nix develop --command bun run test
+      - run: nix develop --command bun run unused:check
 
   validate-nix:
     name: Validate bun.nix files
@@ -121,19 +123,15 @@ jobs:
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install tools
-        if: steps.changes.outputs.lockfile_changed == 'true'
-        uses: jdx/mise-action@v2
-
       - name: Install dependencies
         if: steps.changes.outputs.lockfile_changed == 'true'
-        run: bun install --frozen-lockfile
+        run: nix develop --command bun install --frozen-lockfile
 
       - name: Validate bun-deep-heating.nix is in sync
         if: steps.changes.outputs.lockfile_changed == 'true'
         run: |
           echo "Pruning workspace with turbo..."
-          bunx turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker --out-dir=pruned
+          nix develop --command bunx turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker --out-dir=pruned
 
           echo "Generating fresh bun-deep-heating.nix from pruned lockfile..."
           nix run github:nix-community/bun2nix -- \
