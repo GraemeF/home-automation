@@ -70,7 +70,7 @@ jobs:
 
           # Build JSON payload using --rawfile to read base64 content
           jq -n \
-            --arg message "chore(nix): regenerate bun-deep-heating.nix [skip ci]" \
+            --arg message "chore(nix): regenerate bun-deep-heating.nix" \
             --rawfile content content.b64 \
             --arg branch "${{ github.ref_name }}" \
             --arg sha "$FILE_SHA" \

@@ -257,6 +257,10 @@
      url = "https://registry.npmjs.org/@effect/experimental/-/experimental-0.57.4.tgz";
      hash = "sha512-1qbOGSugeDoCoXGdIsTBk53pKwk4aImmPIghhya1MBUSSExHi9YRn6u0PNQecungNyeKDz6A8k1+rZIbsMQy4g==";
   };
+  "@effect/language-service@0.56.0" = fetchurl {
+     url = "https://registry.npmjs.org/@effect/language-service/-/language-service-0.56.0.tgz";
+     hash = "sha512-gvJaHoeXMHAoA6+Xyj9Vdq52yDCs+ECLbKpHvxHtdJP/C0D9b3JFEfLjdVuw37zoWcYS856um4rgEYHlW2LSEQ==";
+  };
   "@effect/platform-bun@0.84.0" = fetchurl {
      url = "https://registry.npmjs.org/@effect/platform-bun/-/platform-bun-0.84.0.tgz";
      hash = "sha512-UscfsMYuc95jyjjii/waWtgRzncWtRlpj64vCwwAdA4LxKgflYFE5lqvrUEgB55s8DNLM/Gi2m0tWb7AHWmhOA==";
