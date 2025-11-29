@@ -4,7 +4,8 @@ import { DateTime } from 'luxon';
 import { WeekSchedule } from './schedule-types';
 import { toHeatingSchedule } from './weekSchedule';
 
-const exampleSchedule = Schema.decodeSync(WeekSchedule)({
+const decodeWeekSchedule = Schema.decodeSync(WeekSchedule);
+const exampleSchedule = decodeWeekSchedule({
   monday: { '09:24': 20, '10:00:00.000': 22 },
   tuesday: { '09:25': 21 },
   wednesday: {},

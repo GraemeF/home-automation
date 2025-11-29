@@ -45,10 +45,10 @@ export function shareReplayLatest<T>() {
   return (source: Observable<T>): Observable<T> => source.pipe(shareReplay(1));
 }
 
-export function logRoom<T extends { roomName: string }>(
+export function logRoom<T extends { readonly roomName: string }>(
   roomName: string,
   title?: string,
-): (source: Observable<T>) => Observable<T> {
+) {
   return (source: Observable<T>): Observable<T> =>
     source.pipe(
       tap((x) => {
@@ -58,10 +58,10 @@ export function logRoom<T extends { roomName: string }>(
     );
 }
 
-export function logTrv<T extends { trvId: string }>(
+export function logTrv<T extends { readonly trvId: string }>(
   trvId: string,
   title?: string,
-): (source: Observable<T>) => Observable<T> {
+) {
   return (source: Observable<T>): Observable<T> =>
     source.pipe(
       tap((x) => {

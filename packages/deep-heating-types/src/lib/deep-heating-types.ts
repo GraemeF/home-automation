@@ -148,8 +148,8 @@ export const RoomState = Schema.Struct({
 export type RoomState = typeof RoomState.Type;
 
 export interface RoomTemperature {
-  roomName: string;
-  temperatureReading: TemperatureReading;
+  readonly roomName: string;
+  readonly temperatureReading: TemperatureReading;
 }
 
 const RoomSensors = Schema.Struct({
@@ -169,8 +169,8 @@ export const RoomDecisionPoint = Schema.Struct({
 export type RoomDecisionPoint = typeof RoomDecisionPoint.Type;
 
 export interface RoomAdjustment {
-  roomName: string;
-  adjustment: number;
+  readonly roomName: string;
+  readonly adjustment: number;
 }
 
 export const DeepHeatingState = Schema.Struct({
@@ -187,8 +187,8 @@ export const Home = Schema.Struct({
 export type Home = typeof Home.Type;
 
 export interface TrvScheduledTargetTemperature {
-  climateEntityId: ClimateEntityId;
-  scheduledTargetTemperature: Temperature;
+  readonly climateEntityId: ClimateEntityId;
+  readonly scheduledTargetTemperature: Temperature;
 }
 
 export const UpdateSource = Schema.Literal('Device', 'Synthesised');

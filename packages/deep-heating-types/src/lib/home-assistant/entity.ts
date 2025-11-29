@@ -154,6 +154,7 @@ export const InputButtonEntity = pipe(
     }),
   ),
 );
+// eslint-disable-next-line functional/type-declaration-immutability
 export type InputButtonEntity = typeof InputButtonEntity.Type;
 
 export const GoodnightEventEntity = Schema.Union(
@@ -170,7 +171,4 @@ export const HomeAssistantEntity = Schema.Union(
 );
 export type HomeAssistantEntity = typeof HomeAssistantEntity.Type;
 
-export const isSchema =
-  <A, I>(schema: Schema.Schema<A, I>) =>
-  (e: unknown): e is A =>
-    Schema.is(schema)(e);
+export const isSchema = Schema.is;

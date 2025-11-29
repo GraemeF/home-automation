@@ -11,6 +11,7 @@
       "devDependencies": {
         "@changesets/changelog-github": "0.5.2",
         "@changesets/cli": "2.29.8",
+        "@codeforbreakfast/eslint-effect": "^0.8.4",
         "@effect/language-service": "^0.56.0",
         "@testing-library/svelte": "5.2.9",
         "@tsconfig/svelte": "5.0.6",
@@ -225,6 +226,8 @@
     "@changesets/types": ["@changesets/types@6.1.0", "", {}, "sha512-rKQcJ+o1nKNgeoYRHKOS07tAMNd3YSN0uHaJOZYjBAgxfV7TUE7JE+z4BzZdQwb5hKaYbayKN5KrYV7ODb2rAA=="],
 
     "@changesets/write": ["@changesets/write@0.4.0", "", { "dependencies": { "@changesets/types": "^6.1.0", "fs-extra": "^7.0.1", "human-id": "^4.1.1", "prettier": "^2.7.1" } }, "sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q=="],
+
+    "@codeforbreakfast/eslint-effect": ["@codeforbreakfast/eslint-effect@0.8.4", "", { "peerDependencies": { "eslint": ">=8.0.0" } }, "sha512-dm0mUDrTIg5sA4lOre96cJIJjgzw6M2WJ/YP2MhFT7oeJO5+DeE/rk1NUH9+Qb9OaKR1zBetR26QHuz32tqjuw=="],
 
     "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
 
