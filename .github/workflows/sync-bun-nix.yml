@@ -60,8 +60,8 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.github-app-token.outputs.token }}
         run: |
-          # Get the current file's SHA (needed for update)
-          FILE_SHA=$(gh api repos/${{ github.repository }}/contents/bun-deep-heating.nix --jq '.sha' 2>/dev/null || echo "")
+          # Get the current file's SHA from the target branch (needed for update)
+          FILE_SHA=$(gh api "repos/${{ github.repository }}/contents/bun-deep-heating.nix?ref=${{ github.ref_name }}" --jq '.sha' 2>/dev/null || echo "")
 
           # Base64 encode to file first (avoids ARG_MAX limit for large files)
           base64 -w 0 bun-deep-heating.nix > content.b64
