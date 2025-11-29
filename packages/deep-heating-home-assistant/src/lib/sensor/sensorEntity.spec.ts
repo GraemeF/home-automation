@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'bun:test';
 import { Schema } from 'effect';
 import { TemperatureSensorEntity } from '@home-automation/deep-heating-types';
 import { Effect } from 'effect';

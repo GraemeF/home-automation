@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'bun:test';
 import { Schema } from 'effect';
 import { Effect } from 'effect';
 import { pipe } from 'effect/Function';
