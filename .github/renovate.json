@@ -1,6 +1,7 @@
 {
   "extends": ["config:js-app", ":semanticCommits"],
   "prConcurrentLimit": 1,
+  "minimumReleaseAge": "5 days",
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch"],
