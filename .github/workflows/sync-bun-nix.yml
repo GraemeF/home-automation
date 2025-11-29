@@ -13,13 +13,22 @@ jobs:
       contents: write
 
     steps:
+      - name: Generate GitHub App Token
+        id: github-app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ steps.github-app-token.outputs.token }}
 
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          github_access_token: ${{ steps.github-app-token.outputs.token }}
 
       - name: Install tools
         uses: jdx/mise-action@v2
@@ -48,12 +57,14 @@ jobs:
 
       - name: Commit and push regenerated bun-deep-heating.nix
         if: steps.regenerate.outputs.needs_commit == 'true'
+        env:
+          GH_TOKEN: ${{ steps.github-app-token.outputs.token }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Get the current file's SHA (needed for update)
+          FILE_SHA=$(gh api repos/${{ github.repository }}/contents/bun-deep-heating.nix --jq '.sha' 2>/dev/null || echo "")
 
-          git add bun-deep-heating.nix
-          git commit -m "chore(nix): regenerate bun-deep-heating.nix [skip ci]"
-          git push origin HEAD:${{ github.ref_name }}
-
-          echo "Committed and pushed regenerated bun-deep-heating.nix"
+          gh api --method PUT repos/${{ github.repository }}/contents/bun-deep-heating.nix \
+            -f message="chore(nix): regenerate bun-deep-heating.nix [skip ci]" \
+            -f content="$(base64 -w 0 bun-deep-heating.nix)" \
+            -f branch="${{ github.ref_name }}" \
+            ${FILE_SHA:+-f sha="$FILE_SHA"}
