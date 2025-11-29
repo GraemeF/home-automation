@@ -10,9 +10,9 @@
   },
   "dependencies": {
     "@effect/platform": "0.93.3",
-    "@home-automation/deep-heating-home-assistant": "*",
-    "@home-automation/deep-heating-types": "*",
-    "@home-automation/rxx": "*",
+    "@home-automation/deep-heating-home-assistant": "workspace:*",
+    "@home-automation/deep-heating-types": "workspace:*",
+    "@home-automation/rxx": "workspace:*",
     "debug": "4.4.3",
     "effect": "3.19.6",
     "luxon": "3.7.2",
