@@ -10,9 +10,9 @@
   "dependencies": {
     "@effect/platform": "0.93.3",
     "@effect/platform-bun": "0.84.0",
-    "@home-automation/deep-heating-rx": "*",
-    "@home-automation/deep-heating-state": "*",
-    "@home-automation/deep-heating-types": "*",
+    "@home-automation/deep-heating-rx": "workspace:*",
+    "@home-automation/deep-heating-state": "workspace:*",
+    "@home-automation/deep-heating-types": "workspace:*",
     "debug": "4.4.3",
     "dotenv": "16.6.1",
     "effect": "3.19.6",

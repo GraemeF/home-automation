@@ -16,7 +16,7 @@
     "serve": "bun run dev"
   },
   "dependencies": {
-    "@home-automation/deep-heating-types": "*",
+    "@home-automation/deep-heating-types": "workspace:*",
     "effect": "3.19.6",
     "socket.io-client": "4.8.1"
   },
