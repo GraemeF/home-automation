@@ -56,6 +56,8 @@ const config: KnipConfig = {
         'src/app.d.ts',
       ],
       ignore: ['dist/**', '.svelte-kit/**'],
+      // socket.io is imported for type-only usage (DefaultEventsMap)
+      ignoreDependencies: ['socket.io'],
     },
 
     // Combined deployment package
