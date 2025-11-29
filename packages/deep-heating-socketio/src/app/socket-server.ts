@@ -22,7 +22,7 @@ import * as SocketIO from 'socket.io';
 import { ServerOptions } from 'socket.io';
 import { isDeepStrictEqual } from 'util';
 
-export interface SocketEvent<T> {
+interface SocketEvent<T> {
   io: SocketIO.Server;
   client: SocketIO.Socket;
   data: T;
