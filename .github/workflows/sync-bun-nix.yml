@@ -63,8 +63,17 @@ jobs:
           # Get the current file's SHA (needed for update)
           FILE_SHA=$(gh api repos/${{ github.repository }}/contents/bun-deep-heating.nix --jq '.sha' 2>/dev/null || echo "")
 
+          # Base64 encode to file first (avoids ARG_MAX limit for large files)
+          base64 -w 0 bun-deep-heating.nix > content.b64
+
+          # Build JSON payload using --rawfile to read base64 content
+          jq -n \
+            --arg message "chore(nix): regenerate bun-deep-heating.nix [skip ci]" \
+            --rawfile content content.b64 \
+            --arg branch "${{ github.ref_name }}" \
+            --arg sha "$FILE_SHA" \
+            '{message: $message, content: $content, branch: $branch} + (if $sha != "" then {sha: $sha} else {} end)' \
+            > payload.json
+
           gh api --method PUT repos/${{ github.repository }}/contents/bun-deep-heating.nix \
-            -f message="chore(nix): regenerate bun-deep-heating.nix [skip ci]" \
-            -f content="$(base64 -w 0 bun-deep-heating.nix)" \
-            -f branch="${{ github.ref_name }}" \
-            ${FILE_SHA:+-f sha="$FILE_SHA"}
+            --input payload.json
