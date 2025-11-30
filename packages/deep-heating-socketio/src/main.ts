@@ -3,15 +3,34 @@ import { config } from 'dotenv';
 config();
 
 import { BunContext, BunRuntime } from '@effect/platform-bun';
-import { Effect, pipe } from 'effect';
+import { Config, Effect, pipe } from 'effect';
+// eslint-disable-next-line effect/prefer-effect-platform -- socket.io server being migrated away
 import { createServer } from 'http';
-import { runServer } from './server';
+import { tmpdir } from 'os';
+import { runServer, ServerConfig } from './server';
 
-const port = Number(process.env['PORT']) || 5123;
+const loadConfig = Config.all({
+  port: Config.integer('PORT').pipe(Config.withDefault(5123)),
+  homeConfigPath: Config.string('HOME_CONFIG_PATH').pipe(
+    Config.withDefault('./home.json'),
+  ),
+  roomAdjustmentsPath: Config.string('ROOM_ADJUSTMENTS_PATH').pipe(
+    Config.withDefault(`${tmpdir()}/deep-heating-room-adjustments.json`),
+  ),
+  socketioPath: Config.string('SOCKETIO_PATH').pipe(
+    Config.withDefault('/socket.io'),
+  ),
+  corsOrigins: Config.string('CORS_ORIGINS').pipe(
+    Config.withDefault(''),
+    Config.map((s) => s.split(',').filter((x) => x.length > 0)),
+  ),
+}) satisfies Config.Config<ServerConfig>;
+
 const httpServer = createServer();
 
 const program = pipe(
-  runServer(httpServer, port),
+  loadConfig,
+  Effect.andThen((serverConfig) => runServer(httpServer, serverConfig)),
   Effect.provide(BunContext.layer),
 );
 

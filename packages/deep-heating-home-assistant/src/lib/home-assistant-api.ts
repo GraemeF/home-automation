@@ -26,17 +26,16 @@ export class HomeAssistantConfig extends Context.Tag('HomeAssistantConfig')<
   }
 >() {}
 
+const supervisorUrlConfig = pipe(
+  'SUPERVISOR_URL',
+  Config.string,
+  Config.withDefault('http://supervisor'),
+);
+
 export const HomeAssistantConfigLive = Layer.effect(
   HomeAssistantConfig,
   pipe(
-    [
-      pipe(
-        'SUPERVISOR_URL',
-        Config.string,
-        Config.withDefault('http://supervisor'),
-      ),
-      Config.string('SUPERVISOR_TOKEN'),
-    ],
+    [supervisorUrlConfig, Config.string('SUPERVISOR_TOKEN')],
     Config.all,
     Effect.map(([url, token]) => ({ url, token })),
   ),
@@ -72,12 +71,15 @@ export class HomeAssistantApi extends Context.Tag('HomeAssistantApi')<
   }
 >() {}
 
-export const HomeAssistantApiLive = Layer.effect(
-  HomeAssistantApi,
-  Effect.gen(function* () {
-    const { url, token } = yield* HomeAssistantConfig;
-    const httpClient = yield* HttpClient.HttpClient;
+const createHomeAssistantApi =
+  (config: { readonly url: string; readonly token: string }) =>
+  (httpClient: HttpClient.HttpClient) => {
     const client = httpClient.pipe(HttpClient.filterStatusOk);
+    const { url, token } = config;
+
+    const parseStatesResponse = HttpClientResponse.schemaBodyJson(
+      Schema.Unknown,
+    );
 
     return {
       getStates: () =>
@@ -86,7 +88,7 @@ export const HomeAssistantApiLive = Layer.effect(
             headers: { Authorization: `Bearer ${token}` },
           }),
           Effect.withSpan('fetch_states'),
-          Effect.flatMap(HttpClientResponse.schemaBodyJson(Schema.Unknown)),
+          Effect.flatMap(parseStatesResponse),
           Effect.scoped,
           Effect.mapError(
             (cause) =>
@@ -138,7 +140,15 @@ export const HomeAssistantApiLive = Layer.effect(
           ),
         ),
     };
-  }),
+  };
+
+const buildApiWithHttpClient = (
+  config: Context.Tag.Service<typeof HomeAssistantConfig>,
+) => pipe(HttpClient.HttpClient, Effect.map(createHomeAssistantApi(config)));
+
+export const HomeAssistantApiLive = Layer.effect(
+  HomeAssistantApi,
+  pipe(HomeAssistantConfig, Effect.flatMap(buildApiWithHttpClient)),
 );
 
 export const HomeAssistantApiTest = (
@@ -155,16 +165,24 @@ export const HomeAssistantApiTest = (
     }),
   );
 
-export const getEntities = pipe(
-  HomeAssistantApi,
-  Effect.flatMap((api) =>
-    pipe(
-      api.getStates(),
-      Effect.map(Schema.decodeUnknownSync(Schema.Array(HomeAssistantEntity))),
-      Effect.withLogSpan(`fetch_entities`),
-    ),
-  ),
-);
+const decodeEntitiesFromStates = (
+  api: Context.Tag.Service<typeof HomeAssistantApi>,
+) =>
+  pipe(
+    api.getStates(),
+    Effect.map(Schema.decodeUnknownSync(Schema.Array(HomeAssistantEntity))),
+    Effect.withLogSpan(`fetch_entities`),
+  );
+
+/**
+ * Fetches all entities from Home Assistant and decodes them.
+ * Requires HomeAssistantApi to be provided via Layer.
+ */
+export const getEntities: Effect.Effect<
+  readonly HomeAssistantEntity[],
+  HomeAssistantConnectionError,
+  HomeAssistantApi
+> = pipe(HomeAssistantApi, Effect.flatMap(decodeEntitiesFromStates));
 
 const refreshInterval = Duration.minutes(1);
 
@@ -180,7 +198,8 @@ export const getEntityUpdatesStream: Stream.Stream<
   HomeAssistantConnectionError,
   HomeAssistantApi
 > = pipe(
-  getEntities,
+  HomeAssistantApi,
+  Effect.flatMap(decodeEntitiesFromStates),
   Stream.fromEffect,
   Stream.flatMap(Stream.fromIterable),
   Stream.repeat(Schedule.fixed(refreshInterval)),

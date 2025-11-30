@@ -8,7 +8,7 @@ import {
   TemperatureSensorEntity,
   isSchema,
 } from '@home-automation/deep-heating-types';
-import { Array, Effect, pipe } from 'effect';
+import { Effect, pipe } from 'effect';
 import { HomeAssistantConnectionError } from './errors';
 import { HomeAssistantApiTest, getEntities } from './home-assistant-api';
 
@@ -224,60 +224,70 @@ const withTestApi = layer(HomeAssistantApiTest(Effect.succeed(exampleStates)));
 describe('home-assistant-api', () => {
   withTestApi('getEntities', ({ effect }) => {
     effect('parses all entities', () =>
-      Effect.gen(function* () {
-        const entities = yield* getEntities;
-        expect(entities).toHaveLength(10);
-      }),
+      pipe(
+        getEntities,
+        Effect.map((entities) => {
+          expect(entities).toHaveLength(10);
+        }),
+      ),
     );
 
     effect('parses climate entities', () =>
-      Effect.gen(function* () {
-        const entities = yield* getEntities;
-        expect(
-          pipe(entities, Array.filter(isSchema(ClimateEntity))),
-        ).toHaveLength(3);
-      }),
+      pipe(
+        getEntities,
+        Effect.map((entities) => {
+          expect(entities.filter(isSchema(ClimateEntity))).toHaveLength(3);
+        }),
+      ),
     );
 
     effect('parses sensor entities', () =>
-      Effect.gen(function* () {
-        const entities = yield* getEntities;
-        expect(
-          pipe(entities, Array.filter(isSchema(SensorEntity))),
-        ).toHaveLength(3);
-      }),
+      pipe(
+        getEntities,
+        Effect.map((entities) => {
+          expect(entities.filter(isSchema(SensorEntity))).toHaveLength(3);
+        }),
+      ),
     );
 
     effect('parses temperature sensor entities', () =>
-      Effect.gen(function* () {
-        const entities = yield* getEntities;
-        expect(entities.filter(isSchema(TemperatureSensorEntity))).toHaveLength(
-          2,
-        );
-      }),
+      pipe(
+        getEntities,
+        Effect.map((entities) => {
+          expect(
+            entities.filter(isSchema(TemperatureSensorEntity)),
+          ).toHaveLength(2);
+        }),
+      ),
     );
 
     effect('parses button press event entities', () =>
-      Effect.gen(function* () {
-        const entities = yield* getEntities;
-        expect(entities.filter(isSchema(ButtonPressEventEntity))).toHaveLength(
-          2,
-        );
-      }),
+      pipe(
+        getEntities,
+        Effect.map((entities) => {
+          expect(
+            entities.filter(isSchema(ButtonPressEventEntity)),
+          ).toHaveLength(2);
+        }),
+      ),
     );
 
     effect('parses input button entities', () =>
-      Effect.gen(function* () {
-        const entities = yield* getEntities;
-        expect(entities.filter(isSchema(InputButtonEntity))).toHaveLength(1);
-      }),
+      pipe(
+        getEntities,
+        Effect.map((entities) => {
+          expect(entities.filter(isSchema(InputButtonEntity))).toHaveLength(1);
+        }),
+      ),
     );
 
     effect('parses other entities', () =>
-      Effect.gen(function* () {
-        const entities = yield* getEntities;
-        expect(entities.filter(isSchema(OtherEntity))).toHaveLength(5);
-      }),
+      pipe(
+        getEntities,
+        Effect.map((entities) => {
+          expect(entities.filter(isSchema(OtherEntity))).toHaveLength(5);
+        }),
+      ),
     );
   });
 
@@ -294,16 +304,17 @@ describe('home-assistant-api', () => {
 
   withFailingApi('error handling', ({ effect }) => {
     effect('returns HomeAssistantConnectionError on connection failure', () =>
-      Effect.gen(function* () {
-        const result = yield* pipe(
-          getEntities,
-          Effect.catchTag('HomeAssistantConnectionError', Effect.succeed),
-        );
-
-        expect(result).toBeInstanceOf(HomeAssistantConnectionError);
-        expect(result.message).toBe('Connection failed');
-        expect(result._tag).toBe('HomeAssistantConnectionError');
-      }),
+      pipe(
+        getEntities,
+        Effect.catchTag('HomeAssistantConnectionError', Effect.succeed),
+        Effect.map((result) => {
+          expect(result).toBeInstanceOf(HomeAssistantConnectionError);
+          expect(result.message).toBe('Connection failed');
+          expect(result).toMatchObject({
+            _tag: 'HomeAssistantConnectionError',
+          });
+        }),
+      ),
     );
   });
 });
