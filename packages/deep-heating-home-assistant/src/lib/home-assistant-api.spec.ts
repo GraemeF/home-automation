@@ -1,8 +1,7 @@
-import { beforeAll, describe, expect, it } from 'bun:test';
+import { describe, expect, layer } from '@codeforbreakfast/bun-test-effect';
 import {
   ButtonPressEventEntity,
   ClimateEntity,
-  HomeAssistantEntity,
   InputButtonEntity,
   OtherEntity,
   SensorEntity,
@@ -219,48 +218,65 @@ const exampleStates = [
   },
 ];
 
+const withTestApi = layer(HomeAssistantApiTest(Effect.succeed(exampleStates)));
+
 describe('home-assistant-api', () => {
-  describe('getEntities', () => {
-    let entities: ReadonlyArray<HomeAssistantEntity>;
-    beforeAll(async () => {
-      entities = await pipe(
-        getEntities,
-        Effect.provide(HomeAssistantApiTest(Effect.succeed(exampleStates))),
-        Effect.runPromise,
-      );
-    });
-    it('parses all entities', async () => {
-      expect(entities).toHaveLength(10);
-    });
+  withTestApi('getEntities', ({ effect }) => {
+    effect('parses all entities', () =>
+      Effect.gen(function* () {
+        const entities = yield* getEntities;
+        expect(entities).toHaveLength(10);
+      }),
+    );
 
-    it('parses climate entities', async () => {
-      expect(
-        pipe(entities, Array.filter(isSchema(ClimateEntity))),
-      ).toHaveLength(3);
-    });
+    effect('parses climate entities', () =>
+      Effect.gen(function* () {
+        const entities = yield* getEntities;
+        expect(
+          pipe(entities, Array.filter(isSchema(ClimateEntity))),
+        ).toHaveLength(3);
+      }),
+    );
 
-    it('parses sensor entities', async () => {
-      expect(pipe(entities, Array.filter(isSchema(SensorEntity)))).toHaveLength(
-        3,
-      );
-    });
+    effect('parses sensor entities', () =>
+      Effect.gen(function* () {
+        const entities = yield* getEntities;
+        expect(
+          pipe(entities, Array.filter(isSchema(SensorEntity))),
+        ).toHaveLength(3);
+      }),
+    );
 
-    it('parses temperature sensor entities', async () => {
-      expect(entities.filter(isSchema(TemperatureSensorEntity))).toHaveLength(
-        2,
-      );
-    });
+    effect('parses temperature sensor entities', () =>
+      Effect.gen(function* () {
+        const entities = yield* getEntities;
+        expect(entities.filter(isSchema(TemperatureSensorEntity))).toHaveLength(
+          2,
+        );
+      }),
+    );
 
-    it('parses button press event entities', async () => {
-      expect(entities.filter(isSchema(ButtonPressEventEntity))).toHaveLength(2);
-    });
+    effect('parses button press event entities', () =>
+      Effect.gen(function* () {
+        const entities = yield* getEntities;
+        expect(entities.filter(isSchema(ButtonPressEventEntity))).toHaveLength(
+          2,
+        );
+      }),
+    );
 
-    it('parses input button entities', async () => {
-      expect(entities.filter(isSchema(InputButtonEntity))).toHaveLength(1);
-    });
+    effect('parses input button entities', () =>
+      Effect.gen(function* () {
+        const entities = yield* getEntities;
+        expect(entities.filter(isSchema(InputButtonEntity))).toHaveLength(1);
+      }),
+    );
 
-    it('parses other entities', async () => {
-      expect(entities.filter(isSchema(OtherEntity))).toHaveLength(5);
-    });
+    effect('parses other entities', () =>
+      Effect.gen(function* () {
+        const entities = yield* getEntities;
+        expect(entities.filter(isSchema(OtherEntity))).toHaveLength(5);
+      }),
+    );
   });
 });
