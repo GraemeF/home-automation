@@ -1,11 +1,9 @@
 import {
-  HttpBody,
   HttpClient,
-  HttpClientError,
   HttpClientRequest,
   HttpClientResponse,
 } from '@effect/platform';
-import { ParseResult, Schema } from 'effect';
+import { Schema } from 'effect';
 import {
   ClimateEntityId,
   HomeAssistantEntity,
@@ -16,6 +14,11 @@ import { Config, Context, Effect, Layer, Runtime } from 'effect';
 import { pipe } from 'effect/Function';
 import { Observable, from, timer } from 'rxjs';
 import { mergeAll, shareReplay, switchMap, throttleTime } from 'rxjs/operators';
+import {
+  HomeAssistantConnectionError,
+  SetHvacModeError,
+  SetTemperatureError,
+} from './errors';
 
 export class HomeAssistantConfig extends Context.Tag('HomeAssistantConfig')<
   HomeAssistantConfig,
@@ -46,7 +49,7 @@ export class HomeAssistantApi extends Context.Tag('HomeAssistantApi')<
   {
     readonly getStates: () => Effect.Effect<
       unknown,
-      HttpClientError.HttpClientError | ParseResult.ParseError
+      HomeAssistantConnectionError
     >;
     readonly setTemperature: (
       entityId: ClimateEntityId,
@@ -56,7 +59,7 @@ export class HomeAssistantApi extends Context.Tag('HomeAssistantApi')<
         readonly entityId: ClimateEntityId;
         readonly targetTemperature: Temperature;
       },
-      HttpClientError.HttpClientError | HttpBody.HttpBodyError
+      SetTemperatureError
     >;
     readonly setHvacMode: (
       entityId: ClimateEntityId,
@@ -66,7 +69,7 @@ export class HomeAssistantApi extends Context.Tag('HomeAssistantApi')<
         readonly entityId: ClimateEntityId;
         readonly mode: OperationalClimateMode;
       },
-      HttpClientError.HttpClientError | HttpBody.HttpBodyError
+      SetHvacModeError
     >;
   }
 >() {}
@@ -87,6 +90,13 @@ export const HomeAssistantApiLive = Layer.effect(
           Effect.withSpan('fetch_states'),
           Effect.flatMap(HttpClientResponse.schemaBodyJson(Schema.Unknown)),
           Effect.scoped,
+          Effect.mapError(
+            (cause) =>
+              new HomeAssistantConnectionError({
+                message: 'Failed to fetch states from Home Assistant',
+                cause,
+              }),
+          ),
         ),
       setTemperature: (entityId: ClimateEntityId, temperature: Temperature) =>
         pipe(
@@ -98,6 +108,14 @@ export const HomeAssistantApiLive = Layer.effect(
           Effect.withSpan('set_temperature'),
           Effect.as({ entityId, targetTemperature: temperature }),
           Effect.scoped,
+          Effect.mapError(
+            (cause) =>
+              new SetTemperatureError({
+                entityId,
+                targetTemperature: temperature,
+                cause,
+              }),
+          ),
         ),
       setHvacMode: (entityId: ClimateEntityId, mode: OperationalClimateMode) =>
         pipe(
@@ -112,16 +130,21 @@ export const HomeAssistantApiLive = Layer.effect(
           Effect.withSpan('set_hvac_mode'),
           Effect.as({ entityId, mode }),
           Effect.scoped,
+          Effect.mapError(
+            (cause) =>
+              new SetHvacModeError({
+                entityId,
+                mode,
+                cause,
+              }),
+          ),
         ),
     };
   }),
 );
 
 export const HomeAssistantApiTest = (
-  states: Effect.Effect<
-    unknown,
-    HttpClientError.HttpClientError | ParseResult.ParseError
-  >,
+  states: Effect.Effect<unknown, HomeAssistantConnectionError>,
 ) =>
   Layer.effect(
     HomeAssistantApi,

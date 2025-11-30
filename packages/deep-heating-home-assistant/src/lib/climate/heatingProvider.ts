@@ -6,6 +6,7 @@ import {
 import { Effect, Runtime, pipe } from 'effect';
 import { Observable, Subject, merge } from 'rxjs';
 import { debounceTime, groupBy, mergeMap } from 'rxjs/operators';
+import { SetHvacModeError, SetTemperatureError } from '../errors';
 import { HomeAssistantApi } from '../home-assistant-api';
 import {
   getClimateEntityUpdates,
@@ -39,22 +40,25 @@ export const createHomeAssistantHeatingProvider = (
         ),
       ],
       Effect.all,
-      Effect.tapBoth({
-        onSuccess: () =>
-          Effect.log(
-            `${action.climateEntityId} has been changed to ${
-              (action.mode ?? '', action.targetTemperature)
-            }`,
-          ),
-        onFailure: () =>
+      Effect.tap(() =>
+        Effect.log(
+          `${action.climateEntityId} has been changed to ${
+            (action.mode ?? '', action.targetTemperature)
+          }`,
+        ),
+      ),
+      Effect.catchTag(
+        'SetTemperatureError',
+        (error: Readonly<SetTemperatureError>) =>
           Effect.logError(
-            `Failed to change ${action.climateEntityId} to ${
-              (action.mode ?? '', action.targetTemperature)
-            }`,
+            `Failed to set temperature for ${error.entityId} to ${error.targetTemperature}`,
           ),
-      }),
-      Effect.sandbox,
-      Effect.catchAll(Effect.logError),
+      ),
+      Effect.catchTag('SetHvacModeError', (error: Readonly<SetHvacModeError>) =>
+        Effect.logError(
+          `Failed to set HVAC mode for ${error.entityId} to ${error.mode}`,
+        ),
+      ),
       Effect.as('done'),
       Runtime.runPromise(runtime),
     ),
