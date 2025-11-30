@@ -3,10 +3,12 @@ import { createDeepHeating } from '@home-automation/deep-heating-rx';
 import { HomeAssistantApi } from '@home-automation/deep-heating-home-assistant';
 import { maintainState } from '@home-automation/deep-heating-state';
 import {
+  ClientToServerEvents,
   DeepHeatingState,
   Home,
   HomeAssistantEntity,
   RoomAdjustment,
+  ServerToClientEvents,
 } from '@home-automation/deep-heating-types';
 // eslint-disable-next-line effect/prefer-effect-platform -- socket.io server being migrated away
 import { Server } from 'http';
@@ -25,19 +27,22 @@ import * as SocketIO from 'socket.io';
 import { ServerOptions } from 'socket.io';
 import { isDeepStrictEqual } from 'util';
 
+type TypedServer = SocketIO.Server<ClientToServerEvents, ServerToClientEvents>;
+type TypedSocket = SocketIO.Socket<ClientToServerEvents, ServerToClientEvents>;
+
 interface SocketEvent<T> {
-  io: SocketIO.Server;
-  client: SocketIO.Socket;
+  io: TypedServer;
+  client: TypedSocket;
   data: T;
 }
 
 export class SocketServer {
-  private readonly io$: Observable<SocketIO.Server>;
+  private readonly io$: Observable<TypedServer>;
   private readonly connection$: Observable<{
-    io: SocketIO.Server;
-    client: SocketIO.Socket;
+    io: TypedServer;
+    client: TypedSocket;
   }>;
-  private readonly disconnect$: Observable<SocketIO.Socket>;
+  private readonly disconnect$: Observable<TypedSocket>;
   private readonly subscription: Subscription;
   private readonly saveRoomAdjustmentsSubscription: Subscription;
   private readonly state$: Observable<DeepHeatingState>;
@@ -51,12 +56,17 @@ export class SocketServer {
     homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
     opts?: Partial<ServerOptions>,
   ) {
-    this.io$ = of(new SocketIO.Server(server, opts));
+    this.io$ = of(
+      new SocketIO.Server<ClientToServerEvents, ServerToClientEvents>(
+        server,
+        opts,
+      ),
+    );
 
     this.connection$ = this.io$.pipe(
       switchMap((io) =>
         fromEvent(io, 'connection').pipe(
-          map((client) => ({ io, client: client as SocketIO.Socket })),
+          map((client) => ({ io, client: client as TypedSocket })),
         ),
       ),
     );
@@ -91,7 +101,8 @@ export class SocketServer {
       });
 
     this.subscription = combineLatest([this.state$, this.io$]).subscribe(
-      ([state, io]) => io.emit('State', state),
+      ([state, io]) =>
+        io.emit('State', Schema.encodeSync(DeepHeatingState)(state)),
     );
 
     this.saveRoomAdjustmentsSubscription = this.state$
