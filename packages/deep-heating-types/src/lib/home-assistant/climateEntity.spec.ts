@@ -1,7 +1,5 @@
-import { describe, expect, it } from 'bun:test';
-import { Schema } from 'effect';
-import { Effect } from 'effect';
-import { pipe } from 'effect/Function';
+import { describe, expect, it } from '@codeforbreakfast/bun-test-effect';
+import { Effect, pipe, Schema } from 'effect';
 import { ClimateEntity } from './entity';
 
 const exampleClimateEntity = {
@@ -30,18 +28,18 @@ const exampleClimateEntity = {
 
 describe('climate', () => {
   describe('schema', () => {
-    it('decodes a climate entity', () => {
-      expect(
-        pipe(
-          exampleClimateEntity,
-          Schema.decodeUnknown(ClimateEntity),
-          Effect.runSync,
-        ),
-      ).toStrictEqual({
-        ...exampleClimateEntity,
-        last_changed: new Date('2023-09-30T16:18:33.488Z'),
-        last_updated: new Date('2023-09-30T16:18:33.488Z'),
-      });
-    });
+    it.effect('decodes a climate entity', () =>
+      pipe(
+        exampleClimateEntity,
+        Schema.decodeUnknown(ClimateEntity),
+        Effect.map((result) => {
+          expect(result).toStrictEqual({
+            ...exampleClimateEntity,
+            last_changed: new Date('2023-09-30T16:18:33.488Z'),
+            last_updated: new Date('2023-09-30T16:18:33.488Z'),
+          });
+        }),
+      ),
+    );
   });
 });
