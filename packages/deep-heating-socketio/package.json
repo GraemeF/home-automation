@@ -17,7 +17,7 @@
     "debug": "4.4.3",
     "dotenv": "16.6.1",
     "effect": "3.19.6",
-    "rxjs": "6.6.7",
+    "rxjs": "7.8.2",
     "socket.io": "4.8.1"
   },
   "optionalDependencies": {

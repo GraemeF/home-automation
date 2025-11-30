@@ -63,10 +63,10 @@
       "version": "0.0.1",
       "dependencies": {
         "@effect/platform": "0.93.3",
-        "@home-automation/deep-heating-types": "*",
-        "@home-automation/rxx": "*",
+        "@home-automation/deep-heating-types": "workspace:*",
+        "@home-automation/rxx": "workspace:*",
         "effect": "3.19.6",
-        "rxjs": "6.6.7",
+        "rxjs": "7.8.2",
       },
     },
     "packages/deep-heating-rx": {
@@ -74,13 +74,13 @@
       "version": "0.0.1",
       "dependencies": {
         "@effect/platform": "0.93.3",
-        "@home-automation/deep-heating-home-assistant": "*",
-        "@home-automation/deep-heating-types": "*",
-        "@home-automation/rxx": "*",
+        "@home-automation/deep-heating-home-assistant": "workspace:*",
+        "@home-automation/deep-heating-types": "workspace:*",
+        "@home-automation/rxx": "workspace:*",
         "debug": "4.4.3",
         "effect": "3.19.6",
         "luxon": "3.7.2",
-        "rxjs": "6.6.7",
+        "rxjs": "7.8.2",
       },
     },
     "packages/deep-heating-socketio": {
@@ -89,13 +89,13 @@
       "dependencies": {
         "@effect/platform": "0.93.3",
         "@effect/platform-bun": "0.84.0",
-        "@home-automation/deep-heating-rx": "*",
-        "@home-automation/deep-heating-state": "*",
-        "@home-automation/deep-heating-types": "*",
+        "@home-automation/deep-heating-rx": "workspace:*",
+        "@home-automation/deep-heating-state": "workspace:*",
+        "@home-automation/deep-heating-types": "workspace:*",
         "debug": "4.4.3",
         "dotenv": "16.6.1",
         "effect": "3.19.6",
-        "rxjs": "6.6.7",
+        "rxjs": "7.8.2",
         "socket.io": "4.8.1",
       },
       "optionalDependencies": {
@@ -107,10 +107,10 @@
       "name": "@home-automation/deep-heating-state",
       "version": "0.0.1",
       "dependencies": {
-        "@home-automation/deep-heating-rx": "*",
-        "@home-automation/deep-heating-types": "*",
+        "@home-automation/deep-heating-rx": "workspace:*",
+        "@home-automation/deep-heating-types": "workspace:*",
         "effect": "3.19.6",
-        "rxjs": "6.6.7",
+        "rxjs": "7.8.2",
         "rxjs-multi-scan": "1.0.2",
       },
     },
@@ -120,7 +120,7 @@
       "dependencies": {
         "effect": "3.19.6",
         "luxon": "3.7.2",
-        "rxjs": "6.6.7",
+        "rxjs": "7.8.2",
       },
     },
     "packages/deep-heating-web": {
@@ -146,7 +146,7 @@
       "name": "@home-automation/rxx",
       "version": "0.0.1",
       "dependencies": {
-        "rxjs": "6.6.7",
+        "rxjs": "7.8.2",
       },
     },
   },
@@ -1237,7 +1237,7 @@
 
     "run-parallel": ["run-parallel@1.2.0", "", { "dependencies": { "queue-microtask": "^1.2.2" } }, "sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA=="],
 
-    "rxjs": ["rxjs@6.6.7", "", { "dependencies": { "tslib": "^1.9.0" } }, "sha512-hTdwr+7yYNIT5n4AMYp85KA6yw2Va0FLa3Rguvbpa4W3I5xynaBZo41cM3XM+4Q6fRMj3sBYIR1VAmZMXYJvRQ=="],
+    "rxjs": ["rxjs@7.8.2", "", { "dependencies": { "tslib": "^2.1.0" } }, "sha512-dhKf903U/PQZY6boNNtAGdWbG85WAbjT/1xYoZIC7FAY0yWapOBQVsVrDl58W86//e1VpMNBtRV4MaXfdMySFA=="],
 
     "rxjs-multi-scan": ["rxjs-multi-scan@1.0.2", "", { "dependencies": { "tslib": "^1.9.0" }, "peerDependencies": { "rxjs": "^6.0.0" } }, "sha512-ClKvo7K66uDAPMZXCjk/zbBRKwUqKAri3juGmC3Da4oTeoimLpmBEq5zOakBzm0lZRnNYOG+GwRvJb0Ptvqvcw=="],
 
@@ -1587,7 +1587,7 @@
 
     "read-yaml-file/js-yaml": ["js-yaml@3.14.2", "", { "dependencies": { "argparse": "^1.0.7", "esprima": "^4.0.0" }, "bin": { "js-yaml": "bin/js-yaml.js" } }, "sha512-PMSmkqxr106Xa156c2M265Z+FTrPl+oxd/rgOQy2tijQeK5TxQ43psO1ZCwhVOSdnn+RzkzlRz/eY4BgJBYVpg=="],
 
-    "rxjs/tslib": ["tslib@1.14.1", "", {}, "sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg=="],
+    "rxjs-multi-scan/rxjs": ["rxjs@6.6.7", "", { "dependencies": { "tslib": "^1.9.0" } }, "sha512-hTdwr+7yYNIT5n4AMYp85KA6yw2Va0FLa3Rguvbpa4W3I5xynaBZo41cM3XM+4Q6fRMj3sBYIR1VAmZMXYJvRQ=="],
 
     "rxjs-multi-scan/tslib": ["tslib@1.14.1", "", {}, "sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg=="],
 
