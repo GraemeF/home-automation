@@ -1,17 +1,14 @@
-import { FetchHttpClient } from '@effect/platform';
 import {
   createHomeAssistantButtonEventProvider,
   createHomeAssistantHeatingProvider,
   createHomeAssistantSensorProvider,
-  getEntityUpdatesStream,
-  HomeAssistantApiLive,
-  HomeAssistantConfigLive,
+  HomeAssistantApi,
 } from '@home-automation/deep-heating-home-assistant';
-import { streamToObservable } from '@home-automation/rxx';
 import {
   ClimateAction,
   ClimateEntityId,
   ClimateEntityStatus,
+  HomeAssistantEntity,
   ClimateTargetTemperature,
   ClimateTemperatureReading,
   getHeatingActions,
@@ -42,7 +39,7 @@ import {
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import debug from 'debug';
-import { Effect, HashSet, Layer, Predicate, Stream } from 'effect';
+import { HashSet, Predicate, Runtime } from 'effect';
 import { from, GroupedObservable, Observable, Subject } from 'rxjs';
 import {
   distinctUntilChanged,
@@ -141,6 +138,8 @@ export function createDeepHeating(
   home: Home,
   initialRoomAdjustments: readonly RoomAdjustment[],
   roomAdjustmentCommands$: Observable<RoomAdjustment>,
+  entityUpdates$: Observable<HomeAssistantEntity>,
+  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
 ): DeepHeating {
   const trvControlStateSubject: Subject<TrvControlState> =
     new Subject<TrvControlState>();
@@ -161,25 +160,10 @@ export function createDeepHeating(
     heatingStatusSubject.next(newStatus);
   };
 
-  const homeAssistantLayer = HomeAssistantApiLive.pipe(
-    Layer.provide(HomeAssistantConfigLive),
-    Layer.provide(FetchHttpClient.layer),
-  );
-
-  const runtime = homeAssistantLayer.pipe(
-    Layer.toRuntime,
-    Effect.scoped,
-    Effect.runSync,
-  );
-
-  const entityUpdates$ = streamToObservable(
-    getEntityUpdatesStream.pipe(Stream.provideLayer(homeAssistantLayer)),
-  );
-
   const heatingProvider = createHomeAssistantHeatingProvider(
     home,
     entityUpdates$,
-    runtime,
+    homeAssistantRuntime,
   );
 
   const temperatureSensorUpdate$ =
