@@ -9,6 +9,7 @@ import {
   isSchema,
 } from '@home-automation/deep-heating-types';
 import { Array, Effect, pipe } from 'effect';
+import { HomeAssistantConnectionError } from './errors';
 import { HomeAssistantApiTest, getEntities } from './home-assistant-api';
 
 const exampleStates = [
@@ -276,6 +277,32 @@ describe('home-assistant-api', () => {
       Effect.gen(function* () {
         const entities = yield* getEntities;
         expect(entities.filter(isSchema(OtherEntity))).toHaveLength(5);
+      }),
+    );
+  });
+
+  const withFailingApi = layer(
+    HomeAssistantApiTest(
+      Effect.fail(
+        new HomeAssistantConnectionError({
+          message: 'Connection failed',
+          cause: new Error('Network error'),
+        }),
+      ),
+    ),
+  );
+
+  withFailingApi('error handling', ({ effect }) => {
+    effect('returns HomeAssistantConnectionError on connection failure', () =>
+      Effect.gen(function* () {
+        const result = yield* pipe(
+          getEntities,
+          Effect.catchTag('HomeAssistantConnectionError', Effect.succeed),
+        );
+
+        expect(result).toBeInstanceOf(HomeAssistantConnectionError);
+        expect(result.message).toBe('Connection failed');
+        expect(result._tag).toBe('HomeAssistantConnectionError');
       }),
     );
   });
