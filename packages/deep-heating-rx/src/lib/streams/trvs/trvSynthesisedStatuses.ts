@@ -9,7 +9,7 @@ import { Observable, combineLatest } from 'rxjs';
 import { filter, map, mergeAll, mergeMap } from 'rxjs/operators';
 
 export const getTrvSynthesisedStatuses = (
-  trvIds$: Observable<ClimateEntityId[]>,
+  trvIds$: Observable<readonly ClimateEntityId[]>,
   trvTemperatures$: Observable<ClimateTemperatureReading>,
   trvControlStates$: Observable<TrvControlState>,
 ): Observable<ClimateEntityStatus> =>

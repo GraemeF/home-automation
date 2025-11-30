@@ -1,5 +1,5 @@
 import { Schema } from 'effect';
-import { DeepHeating } from '@home-automation/deep-heating-rx';
+import { createDeepHeating } from '@home-automation/deep-heating-rx';
 import { maintainState } from '@home-automation/deep-heating-state';
 import {
   DeepHeatingState,
@@ -67,7 +67,7 @@ export class SocketServer {
       distinctUntilChanged<RoomAdjustment>(isDeepStrictEqual),
       share(),
     );
-    const deepHeating = new DeepHeating(
+    const deepHeating = createDeepHeating(
       home,
       initialRoomAdjustments,
       roomAdjustments$,

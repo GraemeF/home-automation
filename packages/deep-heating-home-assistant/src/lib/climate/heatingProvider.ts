@@ -61,10 +61,11 @@ export const createHomeAssistantHeatingProvider = (
   );
 
   const climateEntityUpdates$ = getClimateEntityUpdates(entityUpdates$);
+  const trvApiUpdatesForHome = getTrvApiUpdates(home);
   return {
     trvActions,
     heatingActions,
-    trvApiUpdates$: getTrvApiUpdates(home)(climateEntityUpdates$),
+    trvApiUpdates$: trvApiUpdatesForHome(climateEntityUpdates$),
     heatingApiUpdates$: getHeatingApiUpdates(climateEntityUpdates$),
   };
 };

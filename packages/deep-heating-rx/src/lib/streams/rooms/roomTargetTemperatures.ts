@@ -1,10 +1,9 @@
-import { Schema } from 'effect';
 import {
+  decodeTemperature,
   RoomAdjustment,
   RoomDefinition,
   RoomMode,
   RoomTargetTemperature,
-  Temperature,
 } from '@home-automation/deep-heating-types';
 import {
   shareReplayLatestDistinct,
@@ -31,7 +30,7 @@ const getTargetTemperature = (
     case 'Off':
       return MinimumTrvTargetTemperature;
     default:
-      return Schema.decodeUnknownSync(Temperature)(
+      return decodeTemperature(
         Math.max(
           MinimumRoomTargetTemperature,
           roomScheduledTargetTemperature.targetTemperature +

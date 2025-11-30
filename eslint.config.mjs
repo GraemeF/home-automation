@@ -6,6 +6,7 @@ import functionalPlugin from 'eslint-plugin-functional';
 import sveltePlugin from 'eslint-plugin-svelte';
 import svelteParser from 'svelte-eslint-parser';
 import compatPlugin from 'eslint-plugin-compat';
+import effectPlugin from '@codeforbreakfast/eslint-effect';
 
 // Shared parser configuration
 const commonLanguageOptions = {
@@ -16,10 +17,25 @@ const commonLanguageOptions = {
   },
 };
 
+const commonLanguageOptionsWithProject = {
+  ...commonLanguageOptions,
+  parserOptions: {
+    ...commonLanguageOptions.parserOptions,
+    projectService: true,
+  },
+};
+
 // Common plugins for TypeScript files
 const commonPlugins = {
   '@typescript-eslint': typescript,
   'unused-imports': unusedImports,
+  effect: {
+    rules: effectPlugin.rules,
+  },
+};
+
+const functionalPluginOnly = {
+  functional: functionalPlugin,
 };
 
 // TypeScript base rules
@@ -30,6 +46,14 @@ const typescriptBaseRules = {
   '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
   '@typescript-eslint/explicit-function-return-type': 'off',
   '@typescript-eslint/explicit-module-boundary-types': 'off',
+};
+
+// Test functional rules - relaxed for test files
+const testFunctionalRules = {
+  'functional/no-let': 'off',
+  'functional/immutable-data': 'off',
+  'functional/prefer-readonly-type': 'error',
+  'functional/no-loop-statements': 'error',
 };
 
 export default [
@@ -47,6 +71,59 @@ export default [
       '**/vite.config.js.timestamp-*.mjs',
     ],
   },
+  // Functional immutability rules (excludes tests)
+  // Based on effectPlugin's config but extended with RxJS patterns
+  {
+    name: 'functional-immutability',
+    files: ['**/*.ts', '**/*.tsx'],
+    ignores: [
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/*.spec.ts',
+      '**/*.spec.tsx',
+      '**/tests/**',
+      '**/testing/**',
+    ],
+    languageOptions: commonLanguageOptionsWithProject,
+    plugins: functionalPluginOnly,
+    rules: {
+      ...effectPlugin.configs.functionalImmutabilityRules,
+      // Disable type-declaration-immutability - the I.+ heuristic (assuming I = Interface)
+      // is too blunt and triggers false positives on Input*, Item*, Index*, etc.
+      // Schema-derived types are already immutable at runtime anyway.
+      'functional/type-declaration-immutability': 'off',
+      // Override prefer-immutable-types to include RxJS patterns
+      'functional/prefer-immutable-types': [
+        'error',
+        {
+          enforcement: 'ReadonlyShallow',
+          ignoreInferredTypes: true,
+          ignoreTypePattern: [
+            // Effect types (from effectPlugin config)
+            '^Ref\\.Ref<.*>$',
+            '^Queue\\.Queue<.*>$',
+            '^HashMap\\.HashMap<.*>$',
+            '^HashSet\\.HashSet<.*>$',
+            '^Stream\\.Stream<.*>$',
+            '^PubSub\\.PubSub<.*>$',
+            'ServerWebSocket<.*>$',
+            '^ReadonlyDeep<Date>$',
+            // RxJS types - Observable has methods but is functionally immutable
+            '^Observable<.*>$',
+            '^Subject<.*>$',
+            '^BehaviorSubject<.*>$',
+            '^ReplaySubject<.*>$',
+            '^MonoTypeOperatorFunction<.*>$',
+            '^OperatorFunction<.*>$',
+            '^UnaryFunction<.*>$',
+          ],
+          parameters: {
+            enforcement: 'ReadonlyShallow',
+          },
+        },
+      ],
+    },
+  },
   // TypeScript files (all packages)
   {
     name: 'typescript-base',
@@ -54,6 +131,21 @@ export default [
     languageOptions: commonLanguageOptions,
     plugins: commonPlugins,
     rules: typescriptBaseRules,
+  },
+  // Effect recommended rules for all TS files (excludes testing)
+  // Uses 'recommended' instead of 'strict' since this codebase uses RxJS heavily
+  {
+    name: 'effect-recommended',
+    files: ['**/*.ts', '**/*.tsx'],
+    ignores: ['**/testing/**'],
+    languageOptions: commonLanguageOptions,
+    plugins: commonPlugins,
+    rules: {
+      ...effectPlugin.configs.recommended.rules,
+      // Disable rules that conflict with RxJS patterns
+      'effect/no-method-pipe': 'off', // RxJS uses Observable.pipe()
+      'effect/no-if-statement': 'off', // Too strict for RxJS-heavy codebase
+    },
   },
   // Svelte files (web package)
   {
@@ -76,26 +168,73 @@ export default [
       ...sveltePlugin.configs.recommended.rules,
     },
   },
-  // Source files - functional rules (excludes tests)
-  // Uses projectService for type-aware rules in monorepo with project references
+  // Test files - relax certain Effect rules
   {
-    name: 'source-functional',
-    files: ['packages/*/src/**/*.ts'],
-    ignores: ['**/*.test.ts', '**/*.spec.ts', '**/*.stories.ts'],
-    languageOptions: {
-      parser,
-      parserOptions: {
-        projectService: true,
-      },
-    },
+    name: 'test-files',
+    files: [
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/*.spec.ts',
+      '**/*.spec.tsx',
+      '**/testing/**/*.ts',
+    ],
+    languageOptions: commonLanguageOptions,
     plugins: {
+      ...commonPlugins,
       functional: functionalPlugin,
     },
     rules: {
-      'functional/no-let': 'warn',
-      'functional/no-loop-statements': 'warn',
-      'functional/immutable-data': 'warn',
-      'functional/prefer-immutable-types': 'warn',
+      // Override runPromise/runSync rules - tests may use these directly
+      'effect/no-runPromise': 'off',
+      'effect/no-runSync': 'off',
+      // Allow if statements in test code where side effects (assertions) are expected
+      'effect/no-if-statement': 'off',
+      ...testFunctionalRules,
+    },
+  },
+  // Scripts - allow runPromise/runSync as entry points
+  {
+    name: 'scripts',
+    files: ['scripts/**/*.ts'],
+    languageOptions: commonLanguageOptions,
+    rules: {
+      // Allow runPromise/runSync in scripts as they are application entry points
+      'effect/no-runPromise': 'off',
+      'effect/no-runSync': 'off',
+    },
+  },
+  // Web package - relaxed Effect rules (SvelteKit app, not Effect-based)
+  {
+    name: 'web-package',
+    files: ['packages/deep-heating-web/**/*.ts'],
+    rules: {
+      // SvelteKit SSR uses process.env directly, not Effect's platform abstraction
+      'effect/prefer-effect-platform': 'off',
+      // Simple ternaries are fine in UI code
+      'effect/prefer-match-over-ternary': 'off',
+      // Svelte stores are inherently mutable
+      'functional/prefer-immutable-types': 'off',
+      'functional/prefer-readonly-type': 'off',
+    },
+  },
+  // SocketIO package - relaxed Effect rules (Express/Socket.IO app, not Effect-based)
+  {
+    name: 'socketio-package',
+    files: ['packages/deep-heating-socketio/**/*.ts'],
+    rules: {
+      // Express/Socket.IO uses Node.js APIs directly
+      'effect/prefer-effect-platform': 'off',
+      // Classes are used for Socket.IO server
+      'effect/no-classes': 'off',
+      // Simple ternaries are fine
+      'effect/prefer-match-over-ternary': 'off',
+      // Express handlers use mutable patterns
+      'functional/prefer-immutable-types': 'off',
+      'functional/prefer-readonly-type': 'off',
+      // Allow curried calls in non-Effect code
+      'effect/no-curried-calls': 'off',
+      // Allow eta-expansion in non-Effect code
+      'effect/no-eta-expansion': 'off',
     },
   },
   // Stories files - functional rules

@@ -4,9 +4,8 @@
   import ColderIcon from '$packages/svelte-material-icons/MinusCircleOutline.svelte';
   import WarmerActiveIcon from '$packages/svelte-material-icons/PlusCircle.svelte';
   import WarmerIcon from '$packages/svelte-material-icons/PlusCircleOutline.svelte';
-  import { Schema } from 'effect';
   import {
-    Temperature,
+    decodeTemperature,
     type RoomState,
   } from '@home-automation/deep-heating-types';
   import { Option, pipe } from 'effect';
@@ -41,9 +40,7 @@
   </p>
   {#if adjustment}
     <p class="stat-desc">
-      {`(${formatTemperature(
-        Option.some(Schema.decodeUnknownSync(Temperature)(adjustment))
-      )})`}
+      {`(${formatTemperature(Option.some(decodeTemperature(adjustment)))})`}
     </p>
   {/if}
 </div>

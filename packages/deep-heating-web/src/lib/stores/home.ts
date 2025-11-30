@@ -1,6 +1,6 @@
 import { Schema } from 'effect';
 import { DeepHeatingState } from '@home-automation/deep-heating-types';
-import { Option } from 'effect';
+import { Option, pipe } from 'effect';
 import type { Socket } from 'socket.io-client';
 import type { DefaultEventsMap } from 'socket.io/dist/typed-events';
 import type { Readable } from 'svelte/store';
@@ -36,8 +36,10 @@ export const homeStore = derived<
         .on('State', (state) => {
           home.update((home) => ({
             ...home,
-            state: Option.some(
-              Schema.decodeUnknownSync(DeepHeatingState)(state),
+            state: pipe(
+              state,
+              Schema.decodeUnknownSync(DeepHeatingState),
+              Option.some,
             ),
           }));
           set(get(home));

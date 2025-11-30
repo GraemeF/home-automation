@@ -117,6 +117,10 @@
      url = "https://registry.npmjs.org/@changesets/write/-/write-0.4.0.tgz";
      hash = "sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q==";
   };
+  "@codeforbreakfast/eslint-effect@0.8.4" = fetchurl {
+     url = "https://registry.npmjs.org/@codeforbreakfast/eslint-effect/-/eslint-effect-0.8.4.tgz";
+     hash = "sha512-dm0mUDrTIg5sA4lOre96cJIJjgzw6M2WJ/YP2MhFT7oeJO5+DeE/rk1NUH9+Qb9OaKR1zBetR26QHuz32tqjuw==";
+  };
   "@cspotcode/source-map-support@0.8.1" = fetchurl {
      url = "https://registry.npmjs.org/@cspotcode/source-map-support/-/source-map-support-0.8.1.tgz";
      hash = "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==";

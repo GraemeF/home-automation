@@ -1,4 +1,3 @@
-import { Array, pipe } from 'effect';
 import { DateTime, Duration } from 'luxon';
 import { HeatingSchedule, HeatingScheduleEntry } from './deep-heating-types';
 import { DaySchedule, WeekSchedule } from './schedule-types';
@@ -10,8 +9,12 @@ function toStartOfDay(
   offset: Duration,
   notBeforeTime: DateTime,
 ): DateTime {
-  return startOfDay.toFormat('cccc').toLowerCase() !== day ||
-    startOfDay.plus(offset) < notBeforeTime
+  // Recursively find the next occurrence of this day that's after notBeforeTime
+  const isDifferentDay = startOfDay.toFormat('cccc').toLowerCase() !== day;
+  const isBeforeNotBeforeTime = startOfDay.plus(offset) < notBeforeTime;
+
+  // eslint-disable-next-line effect/prefer-match-over-ternary -- Not Effect code, ternary is appropriate
+  return isDifferentDay || isBeforeNotBeforeTime
     ? toStartOfDay(day, startOfDay.plus({ days: 1 }), offset, notBeforeTime)
     : startOfDay.startOf('day');
 }
@@ -23,30 +26,34 @@ const byStart = (a: HeatingScheduleEntry, b: HeatingScheduleEntry) =>
       ? 1
       : 0;
 
+type SlotEntry = readonly [string, Temperature];
+
+function getSlotEntries(slots: DaySchedule): ReadonlyArray<SlotEntry> {
+  return Object.entries(slots) as ReadonlyArray<SlotEntry>;
+}
+
 export const toHeatingSchedule = (
   schedule: WeekSchedule,
   now: DateTime,
 ): HeatingSchedule => {
   const today = now.startOf('day');
-  const futureSlots = (Object.entries(schedule) as [string, DaySchedule][])
-    .flatMap(([dayName, slots]) =>
-      pipe(
-        Object.entries(slots) as [string, Temperature][],
-        Array.map(([start, target]) => ({
-          start: Duration.fromISOTime(start),
-          target,
-        })),
-        Array.map(({ start, target }) => ({
-          start: toStartOfDay(dayName, today, start, now)
-            .plus(start)
-            .toJSDate(),
-          targetTemperature: target,
-        })),
-      ),
-    )
-    .sort(byStart);
+  const scheduleEntries = Object.entries(schedule) as ReadonlyArray<
+    readonly [string, DaySchedule]
+  >;
 
-  const currentSlot = futureSlots[futureSlots.length - 1];
+  const futureSlots = scheduleEntries.flatMap(([dayName, slots]) => {
+    const slotEntries = getSlotEntries(slots);
+
+    return slotEntries.map(([start, target]) => ({
+      start: toStartOfDay(dayName, today, Duration.fromISOTime(start), now)
+        .plus(Duration.fromISOTime(start))
+        .toJSDate(),
+      targetTemperature: target,
+    }));
+  });
+  const futureSlotsSorted = [...futureSlots].sort(byStart);
+
+  const currentSlot = futureSlotsSorted[futureSlotsSorted.length - 1];
   return [
     {
       start: DateTime.fromJSDate(currentSlot.start)
@@ -54,6 +61,6 @@ export const toHeatingSchedule = (
         .toJSDate(),
       targetTemperature: currentSlot.targetTemperature,
     },
-    ...futureSlots,
+    ...futureSlotsSorted,
   ];
 };

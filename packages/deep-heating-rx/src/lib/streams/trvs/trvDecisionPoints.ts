@@ -2,6 +2,7 @@ import { Schema } from 'effect';
 import {
   ClimateEntityId,
   ClimateMode,
+  decodeTemperature,
   RoomDecisionPoint,
   Temperature,
 } from '@home-automation/deep-heating-types';
@@ -34,12 +35,9 @@ export const getTrvDecisionPoints = (
     share(),
   );
 
-export const MinimumRoomTargetTemperature =
-  Schema.decodeUnknownSync(Temperature)(15);
-export const MinimumTrvTargetTemperature =
-  Schema.decodeUnknownSync(Temperature)(7);
-export const MaximumTrvTargetTemperature =
-  Schema.decodeUnknownSync(Temperature)(32);
+export const MinimumRoomTargetTemperature = decodeTemperature(15);
+export const MinimumTrvTargetTemperature = decodeTemperature(7);
+export const MaximumTrvTargetTemperature = decodeTemperature(32);
 
 export const TrvDecisionPoint = Schema.Struct({
   climateEntityId: ClimateEntityId,
