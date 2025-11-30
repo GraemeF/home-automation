@@ -1,5 +1,11 @@
 # @home-automation/deep-heating-types
 
+## 0.1.1
+
+### Patch Changes
+
+- [#1137](https://github.com/GraemeF/home-automation/pull/1137) [`b65e00e`](https://github.com/GraemeF/home-automation/commit/b65e00e577d409d6f61173d514dcd6aed3863c7f) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix Socket.IO state encoding to properly serialize Effect Option types for client consumption
+
 ## 0.1.0
 
 ### Minor Changes
