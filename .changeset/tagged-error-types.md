@@ -2,4 +2,4 @@
 '@home-automation/deep-heating-home-assistant': patch
 ---
 
-Add typed error handling with Effect.catchTag for Home Assistant API operations. Errors now include HomeAssistantConnectionError, SetTemperatureError, and SetHvacModeError with detailed context for debugging.
+Improve error messages for Home Assistant API operations. Connection failures, temperature changes, and HVAC mode changes now report specific error types with detailed context for easier troubleshooting.
