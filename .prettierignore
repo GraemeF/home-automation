@@ -8,6 +8,7 @@
 /.nx/cache
 /.nx/workspace-data
 .beads/*.jsonl
+.beads/*.json
 
 # Vite temp files
 *.timestamp-*.mjs
