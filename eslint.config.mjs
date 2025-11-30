@@ -221,8 +221,6 @@ export default [
     name: 'socketio-package',
     files: ['packages/deep-heating-socketio/**/*.ts'],
     rules: {
-      // Express/Socket.IO uses Node.js APIs directly
-      'effect/prefer-effect-platform': 'off',
       // Classes are used for Socket.IO server
       'effect/no-classes': 'off',
       // Simple ternaries are fine
