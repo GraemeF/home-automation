@@ -1,6 +1,6 @@
 {
   "name": "deep-heating-socketio",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "scripts": {
     "build": "tsc -p tsconfig.app.json",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",

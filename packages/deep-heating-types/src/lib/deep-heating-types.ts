@@ -178,6 +178,15 @@ export const DeepHeatingState = Schema.Struct({
   isHeating: Schema.Option(Schema.Boolean),
 });
 export type DeepHeatingState = typeof DeepHeatingState.Type;
+export type DeepHeatingStateEncoded = typeof DeepHeatingState.Encoded;
+
+export interface ServerToClientEvents {
+  readonly State: (state: DeepHeatingStateEncoded) => void;
+}
+
+export interface ClientToServerEvents {
+  readonly adjust_room: (adjustment: RoomAdjustment) => void;
+}
 
 export const Home = Schema.Struct({
   rooms: Schema.Array(RoomDefinition),

@@ -1,5 +1,20 @@
 # @home-automation/deep-heating
 
+## 0.0.10
+
+### Patch Changes
+
+- Updated dependencies [[`b65e00e`](https://github.com/GraemeF/home-automation/commit/b65e00e577d409d6f61173d514dcd6aed3863c7f)]:
+  - deep-heating-socketio@0.1.2
+  - @home-automation/deep-heating-web@0.0.4
+
+## 0.0.9
+
+### Patch Changes
+
+- Updated dependencies [[`d92bd4e`](https://github.com/GraemeF/home-automation/commit/d92bd4ef37126aeaa16f3e1c63d6796f67919496)]:
+  - @home-automation/deep-heating-web@0.0.3
+
 ## 0.0.8
 
 ### Patch Changes

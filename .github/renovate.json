@@ -12,16 +12,8 @@
       "automerge": true
     },
     {
-      "extends": ["monorepo:nrwl"],
-      "automerge": false
-    },
-    {
-      "matchPackagePrefixes": ["effect", "@effect/"],
-      "groupName": "effect"
-    },
-    {
-      "matchPackagePatterns": ["@nx-tools/*"],
-      "groupName": "nx-tools"
+      "groupName": "effect",
+      "matchPackageNames": ["effect{/,}**", "@effect/{/,}**"]
     },
     {
       "matchPackageNames": ["node.js", "node"],

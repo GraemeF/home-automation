@@ -41,13 +41,9 @@ Thumbs.db
 /home
 /data
 /.env
-.nx-container
 /migrations.json
 /packages/*/.env
 .env.local
-
-.nx/cache
-.nx/workspace-data
 
 # Turbo
 .turbo
