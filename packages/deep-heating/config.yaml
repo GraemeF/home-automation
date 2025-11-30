@@ -1,16 +1,17 @@
 name: 'Deep Heating'
 description: 'Cleverer climate control'
-version: '0.0.7'
+version: '0.0.8'
 slug: 'deep_heating'
 image: 'ghcr.io/graemef/deep-heating'
 arch:
   - amd64
   - aarch64
 homeassistant_api: true
+init: false
 ingress: true
 ports:
-  8503/tcp: 8503
-webui: 'http://[HOST]:[PORT:8503]/'
+  8099/tcp: 8099
+webui: 'http://[HOST]:[PORT:8099]/'
 map:
   - addon_config:rw
 environment:

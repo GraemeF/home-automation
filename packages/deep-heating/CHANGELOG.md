@@ -1,5 +1,14 @@
 # @home-automation/deep-heating
 
+## 0.0.8
+
+### Patch Changes
+
+- [#1128](https://github.com/GraemeF/home-automation/pull/1128) [`a3a54a0`](https://github.com/GraemeF/home-automation/commit/a3a54a0ba6360947a680f9f5186718be9b8b30f0) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix Home Assistant add-on ingress 502 error and follow HA best practices
+  - Switch to HA default ingress port 8099 (was using non-standard 8503)
+  - Add `init: false` for s6 custom init system
+  - Enable `deny all` in nginx to only accept ingress proxy connections
+
 ## 0.0.7
 
 ### Patch Changes
