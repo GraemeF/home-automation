@@ -1,6 +1,6 @@
 {
   "name": "@home-automation/deep-heating-state",
-  "version": "0.0.1",
+  "version": "0.1.1",
   "main": "dist/src/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.lib.json",
@@ -12,7 +12,6 @@
     "@home-automation/deep-heating-rx": "workspace:*",
     "@home-automation/deep-heating-types": "workspace:*",
     "effect": "3.19.6",
-    "rxjs": "7.8.2",
-    "rxjs-multi-scan": "1.0.2"
+    "rxjs": "7.8.2"
   }
 }

@@ -1,9 +1,11 @@
-import { Schema } from 'effect';
+import { Runtime, Schema } from 'effect';
 import { createDeepHeating } from '@home-automation/deep-heating-rx';
+import { HomeAssistantApi } from '@home-automation/deep-heating-home-assistant';
 import { maintainState } from '@home-automation/deep-heating-state';
 import {
   DeepHeatingState,
   Home,
+  HomeAssistantEntity,
   RoomAdjustment,
 } from '@home-automation/deep-heating-types';
 // eslint-disable-next-line effect/prefer-effect-platform -- socket.io server being migrated away
@@ -45,6 +47,8 @@ export class SocketServer {
     home: Home,
     initialRoomAdjustments: RoomAdjustment[],
     saveRoomAdjustments: (roomAdjustments: RoomAdjustment[]) => void,
+    entityUpdates$: Observable<HomeAssistantEntity>,
+    homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
     opts?: Partial<ServerOptions>,
   ) {
     this.io$ = of(new SocketIO.Server(server, opts));
@@ -72,6 +76,8 @@ export class SocketServer {
       home,
       initialRoomAdjustments,
       roomAdjustments$,
+      entityUpdates$,
+      homeAssistantRuntime,
     );
 
     this.state$ = maintainState(deepHeating).pipe(

@@ -88,6 +88,14 @@ const config: KnipConfig = {
   // SvelteKit path aliases - resolved at build time
   ignoreUnresolved: [/^\$lib\//, /^\$packages\//, /^\.\/\$types$/],
 
+  // Rules configuration
+  rules: {
+    // Package entry files (main/exports in package.json) point to dist/ which only exists after build
+    // Don't fail on missing dist files - we analyze source, not built output
+    unlisted: 'error',
+    unresolved: 'error',
+  },
+
   // Ignore dependencies that should be cleaned up separately (tracked as future work)
   ignoreDependencies: [
     'c8', // Old coverage tool

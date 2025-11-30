@@ -2076,14 +2076,6 @@
      url = "https://registry.npmjs.org/run-parallel/-/run-parallel-1.2.0.tgz";
      hash = "sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==";
   };
-  "rxjs-multi-scan@1.0.2" = fetchurl {
-     url = "https://registry.npmjs.org/rxjs-multi-scan/-/rxjs-multi-scan-1.0.2.tgz";
-     hash = "sha512-ClKvo7K66uDAPMZXCjk/zbBRKwUqKAri3juGmC3Da4oTeoimLpmBEq5zOakBzm0lZRnNYOG+GwRvJb0Ptvqvcw==";
-  };
-  "rxjs@6.6.7" = fetchurl {
-     url = "https://registry.npmjs.org/rxjs/-/rxjs-6.6.7.tgz";
-     hash = "sha512-hTdwr+7yYNIT5n4AMYp85KA6yw2Va0FLa3Rguvbpa4W3I5xynaBZo41cM3XM+4Q6fRMj3sBYIR1VAmZMXYJvRQ==";
-  };
   "rxjs@7.8.2" = fetchurl {
      url = "https://registry.npmjs.org/rxjs/-/rxjs-7.8.2.tgz";
      hash = "sha512-dhKf903U/PQZY6boNNtAGdWbG85WAbjT/1xYoZIC7FAY0yWapOBQVsVrDl58W86//e1VpMNBtRV4MaXfdMySFA==";

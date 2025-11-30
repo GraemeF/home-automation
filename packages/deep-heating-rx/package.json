@@ -1,6 +1,6 @@
 {
   "name": "@home-automation/deep-heating-rx",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "main": "dist/src/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.lib.json",
@@ -10,7 +10,6 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@effect/platform": "0.93.3",
     "@home-automation/deep-heating-home-assistant": "workspace:*",
     "@home-automation/deep-heating-types": "workspace:*",
     "@home-automation/rxx": "workspace:*",

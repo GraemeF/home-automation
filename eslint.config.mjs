@@ -167,7 +167,7 @@ export default [
       ...sveltePlugin.configs.recommended.rules,
     },
   },
-  // Test files - relax certain Effect rules
+  // Test files - same Effect rules as production, use bun-test-effect instead of runPromise/runSync
   {
     name: 'test-files',
     files: [
@@ -183,11 +183,8 @@ export default [
       functional: functionalPlugin,
     },
     rules: {
-      // Override runPromise/runSync rules - tests may use these directly
-      'effect/no-runPromise': 'off',
-      'effect/no-runSync': 'off',
-      // Allow if statements in test code where side effects (assertions) are expected
-      'effect/no-if-statement': 'off',
+      // Tests should use bun-test-effect (effect(), layer()) instead of runPromise/runSync
+      // This keeps test code consistent with production patterns
       ...testFunctionalRules,
     },
   },

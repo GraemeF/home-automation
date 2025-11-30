@@ -1,11 +1,16 @@
-import { FileSystem } from '@effect/platform';
+import { FetchHttpClient, FileSystem } from '@effect/platform';
 import { BunFileSystem } from '@effect/platform-bun';
-import { Effect, pipe, Schema } from 'effect';
-import { Home } from '@home-automation/deep-heating-types';
-// eslint-disable-next-line effect/prefer-effect-platform -- socket.io server being migrated away
-import { readFileSync, writeFileSync } from 'fs';
-// eslint-disable-next-line effect/prefer-effect-platform -- socket.io server being migrated away
-import { IncomingMessage, Server, ServerResponse } from 'http';
+import { Effect, Layer, pipe, Runtime, Schema, Scope, Stream } from 'effect';
+import {
+  getEntityUpdatesStream,
+  HomeAssistantApi,
+  HomeAssistantApiLive,
+  HomeAssistantConfigLive,
+} from '@home-automation/deep-heating-home-assistant';
+import { streamToObservable } from '@home-automation/rxx';
+import { Home, RoomAdjustment } from '@home-automation/deep-heating-types';
+// eslint-disable-next-line effect/prefer-effect-platform -- socket.io requires Node http.Server, cannot migrate to Effect Platform HttpServer
+import { createServer, IncomingMessage, Server, ServerResponse } from 'http';
 import { SocketServer } from './app/socket-server';
 
 export interface ServerConfig {
@@ -16,42 +21,77 @@ export interface ServerConfig {
   readonly corsOrigins: readonly string[];
 }
 
-const JsonHomeData = Schema.parseJson(Home);
+const RoomAdjustmentSchema = Schema.Struct({
+  roomName: Schema.String,
+  adjustment: Schema.Number,
+}) satisfies Schema.Schema<RoomAdjustment, RoomAdjustment>;
 
-const loadRoomAdjustments = (roomAdjustmentsPath: string): string => {
-  try {
-    return readFileSync(roomAdjustmentsPath).toString();
-  } catch {
-    return '[]';
-  }
-};
+const JsonHomeData = Schema.parseJson(Home);
+const JsonRoomAdjustments = Schema.parseJson(
+  Schema.Array(RoomAdjustmentSchema),
+);
+
+/**
+ * Layer that provides HomeAssistantApi with all required dependencies.
+ * Composed at the application level for proper Effect lifecycle management.
+ */
+const HomeAssistantLayer = HomeAssistantApiLive.pipe(
+  Layer.provide(HomeAssistantConfigLive),
+  Layer.provide(FetchHttpClient.layer),
+);
+
+const loadRoomAdjustments = (
+  fs: FileSystem.FileSystem,
+  roomAdjustmentsPath: string,
+): Effect.Effect<readonly RoomAdjustment[]> =>
+  pipe(
+    roomAdjustmentsPath,
+    fs.readFileString,
+    Effect.flatMap(Schema.decode(JsonRoomAdjustments)),
+    Effect.catchAll(() => Effect.succeed([] as readonly RoomAdjustment[])),
+  );
 
 const createSocketServer = (
+  fs: FileSystem.FileSystem,
   httpServer: Server<typeof IncomingMessage, typeof ServerResponse>,
   home: Home,
+  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
   config: ServerConfig,
-) => {
-  const initialRoomAdjustments = loadRoomAdjustments(
-    config.roomAdjustmentsPath,
+): Effect.Effect<SocketServer, never, Scope.Scope> =>
+  pipe(
+    loadRoomAdjustments(fs, config.roomAdjustmentsPath),
+    Effect.map((initialRoomAdjustments) => {
+      // Convert the Effect Stream to RxJS Observable for the heating system
+      const entityUpdates$ = streamToObservable(
+        getEntityUpdatesStream.pipe(Stream.provideLayer(HomeAssistantLayer)),
+      );
+
+      const socketServer = new SocketServer(
+        httpServer,
+        home,
+        [...initialRoomAdjustments],
+        // Fire-and-forget async write using Bun native API
+        // Note: callback is invoked from RxJS, not Effect context
+        (roomAdjustments) =>
+          // eslint-disable-next-line effect/prefer-effect-platform -- callback called from RxJS subscription, not Effect context
+          void Bun.write(
+            config.roomAdjustmentsPath,
+            JSON.stringify(roomAdjustments),
+          ),
+        entityUpdates$,
+        homeAssistantRuntime,
+        {
+          path: config.socketioPath,
+          cors: {
+            origin: [...config.corsOrigins],
+            methods: ['GET', 'POST', 'OPTIONS'],
+          },
+        },
+      );
+      return socketServer;
+    }),
+    Effect.tap(() => Effect.addFinalizer(() => Effect.void)),
   );
-  return new SocketServer(
-    httpServer,
-    home,
-    JSON.parse(initialRoomAdjustments),
-    (roomAdjustments) =>
-      writeFileSync(
-        config.roomAdjustmentsPath,
-        JSON.stringify(roomAdjustments),
-      ),
-    {
-      path: config.socketioPath,
-      cors: {
-        origin: [...config.corsOrigins],
-        methods: ['GET', 'POST', 'OPTIONS'],
-      },
-    },
-  );
-};
 
 const shutdownServer = (
   socketServer: SocketServer,
@@ -92,9 +132,27 @@ const startHttpServer = (
     Effect.zipRight(Effect.never),
   );
 
+const startSocketServerAndListen = (
+  fs: FileSystem.FileSystem,
+  httpServer: Server<typeof IncomingMessage, typeof ServerResponse>,
+  home: Home,
+  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
+  config: ServerConfig,
+) =>
+  pipe(
+    createSocketServer(fs, httpServer, home, homeAssistantRuntime, config),
+    Effect.tap((socketServer) =>
+      Effect.sync(() => socketServer.logConnections()),
+    ),
+    Effect.andThen((socketServer) =>
+      startHttpServer(httpServer, config.port, socketServer),
+    ),
+  );
+
 const loadAndStartServer = (
   fs: FileSystem.FileSystem,
   httpServer: Server<typeof IncomingMessage, typeof ServerResponse>,
+  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
   config: ServerConfig,
 ) =>
   pipe(
@@ -104,24 +162,46 @@ const loadAndStartServer = (
     Effect.tap((home) =>
       Effect.log(`Home configuration loaded: ${home.rooms.length} rooms`),
     ),
-    Effect.andThen((home) => {
-      const socketServer = createSocketServer(httpServer, home, config);
-      socketServer.logConnections();
-      return startHttpServer(httpServer, config.port, socketServer);
-    }),
+    Effect.andThen((home) =>
+      startSocketServerAndListen(
+        fs,
+        httpServer,
+        home,
+        homeAssistantRuntime,
+        config,
+      ),
+    ),
   );
 
 /**
  * Runs the Socket.IO server as an Effect application with proper lifecycle management.
  * The server will run until interrupted (e.g., SIGINT/SIGTERM).
  */
-export const runServer = (
-  httpServer: Server<typeof IncomingMessage, typeof ServerResponse>,
-  config: ServerConfig,
-) =>
+export const runServer = (config: ServerConfig) =>
   pipe(
-    FileSystem.FileSystem,
-    Effect.andThen((fs) => loadAndStartServer(fs, httpServer, config)),
+    Effect.void,
+    Effect.andThen(() =>
+      Effect.all({
+        fs: FileSystem.FileSystem,
+        // Creates http.Server with Effect lifecycle - closed when scope finalizes
+        httpServer: Effect.acquireRelease(
+          Effect.sync(() => createServer()),
+          (server) =>
+            Effect.async<void>((resume) => {
+              if (!server.listening) {
+                resume(Effect.void);
+              } else {
+                server.close(() => resume(Effect.void));
+              }
+            }),
+        ),
+        // Creates HomeAssistantApi runtime with proper Effect lifecycle
+        homeAssistantRuntime: Layer.toRuntime(HomeAssistantLayer),
+      }),
+    ),
+    Effect.andThen(({ fs, httpServer, homeAssistantRuntime }) =>
+      loadAndStartServer(fs, httpServer, homeAssistantRuntime, config),
+    ),
     Effect.scoped,
     Effect.provide(BunFileSystem.layer),
   );

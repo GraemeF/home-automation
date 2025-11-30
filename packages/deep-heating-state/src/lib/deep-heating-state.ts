@@ -6,9 +6,15 @@ import {
   RoomState,
 } from '@home-automation/deep-heating-types';
 import { Array, Option, pipe } from 'effect';
-import { Observable } from 'rxjs';
-import { multiScan } from 'rxjs-multi-scan';
-import { filter, mergeAll, mergeMap, startWith } from 'rxjs/operators';
+import { merge, Observable } from 'rxjs';
+import {
+  filter,
+  map,
+  mergeAll,
+  mergeMap,
+  scan,
+  startWith,
+} from 'rxjs/operators';
 
 const replaceAtIndex =
   <T>(array: ReadonlyArray<T>, element: T) =>
@@ -45,45 +51,57 @@ function maintainTrvState(
     targetTemperature: Option.none(),
     temperature: Option.none(),
   };
-  return multiScan(
+  return merge(
     deepHeating.trvTemperatures$.pipe(
       filter((x) => x.climateEntityId === trvId),
+      map(
+        (update) => (state: RadiatorState) =>
+          ({
+            ...state,
+            temperature: Option.some(update.temperatureReading),
+          }) as const,
+      ),
     ),
-    (state, update) => ({
-      ...state,
-      temperature: Option.some(update.temperatureReading),
-    }),
-
     deepHeating.trvTargetTemperatures$.pipe(
       filter((x) => x.climateEntityId === trvId),
+      map(
+        (update) => (state: RadiatorState) =>
+          ({
+            ...state,
+            targetTemperature: Option.some({
+              temperature: update.targetTemperature,
+              time: new Date(),
+            }),
+          }) as const,
+      ),
     ),
-    (state, update) => ({
-      ...state,
-      targetTemperature: Option.some({
-        temperature: update.targetTemperature,
-        time: new Date(),
-      }),
-    }),
-
-    deepHeating.trvStatuses$.pipe(filter((x) => x.climateEntityId === trvId)),
-    (state, update) => ({
-      ...state,
-      isHeating: Option.some(update.isHeating),
-    }),
-
+    deepHeating.trvStatuses$.pipe(
+      filter((x) => x.climateEntityId === trvId),
+      map(
+        (update) => (state: RadiatorState) =>
+          ({
+            ...state,
+            isHeating: Option.some(update.isHeating),
+          }) as const,
+      ),
+    ),
     deepHeating.trvDesiredTargetTemperatures$.pipe(
       filter((x) => x.climateEntityId === trvId),
+      map(
+        (desired) => (state: RadiatorState) =>
+          ({
+            ...state,
+            desiredTargetTemperature: Option.some({
+              temperature: desired.targetTemperature,
+              time: new Date(),
+            }),
+          }) as const,
+      ),
     ),
-    (state, desired) => ({
-      ...state,
-      desiredTargetTemperature: Option.some({
-        temperature: desired.targetTemperature,
-        time: new Date(),
-      }),
-    }),
-
-    initialState,
-  ).pipe(startWith<RadiatorState>(initialState));
+  ).pipe(
+    scan((state, reducer) => reducer(state), initialState),
+    startWith(initialState),
+  );
 }
 
 function maintainRoomState(
@@ -99,53 +117,75 @@ function maintainRoomState(
     targetTemperature: Option.none(),
     temperature: Option.none(),
   };
-  return multiScan(
-    deepHeating.roomTemperatures$.pipe(filter((x) => x.roomName === room.name)),
-    (state, update) => ({
-      ...state,
-      temperature: Option.some(update.temperatureReading),
-    }),
-
+  return merge(
+    deepHeating.roomTemperatures$.pipe(
+      filter((x) => x.roomName === room.name),
+      map(
+        (update) => (state: RoomState) =>
+          ({
+            ...state,
+            temperature: Option.some(update.temperatureReading),
+          }) as const,
+      ),
+    ),
     deepHeating.roomTargetTemperatures$.pipe(
       filter((x) => x.roomName === room.name),
+      map(
+        (update) => (state: RoomState) =>
+          ({
+            ...state,
+            targetTemperature: Option.some(update.targetTemperature),
+          }) as const,
+      ),
     ),
-    (state, update) => ({
-      ...state,
-      targetTemperature: Option.some(update.targetTemperature),
-    }),
-
-    deepHeating.roomModes$.pipe(filter((x) => x.roomName === room.name)),
-    (state, update) => ({
-      ...state,
-      mode: Option.some(update.mode),
-    }),
-
-    deepHeating.roomStatuses$.pipe(filter((x) => x.roomName === room.name)),
-    (state, update) => ({
-      ...state,
-      isHeating: Option.some(update.isHeating),
-    }),
-
-    deepHeating.roomAdjustments$.pipe(filter((x) => x.roomName === room.name)),
-    (state, update) => ({
-      ...state,
-      adjustment: update.adjustment,
-    }),
-
+    deepHeating.roomModes$.pipe(
+      filter((x) => x.roomName === room.name),
+      map(
+        (update) => (state: RoomState) =>
+          ({
+            ...state,
+            mode: Option.some(update.mode),
+          }) as const,
+      ),
+    ),
+    deepHeating.roomStatuses$.pipe(
+      filter((x) => x.roomName === room.name),
+      map(
+        (update) => (state: RoomState) =>
+          ({
+            ...state,
+            isHeating: Option.some(update.isHeating),
+          }) as const,
+      ),
+    ),
+    deepHeating.roomAdjustments$.pipe(
+      filter((x) => x.roomName === room.name),
+      map(
+        (update) => (state: RoomState) =>
+          ({
+            ...state,
+            adjustment: update.adjustment,
+          }) as const,
+      ),
+    ),
     deepHeating.roomTrvs$.pipe(
       filter((x) => x.roomName === room.name),
       mergeMap((x) =>
         x.climateEntityIds.map((y) => maintainTrvState(deepHeating, y)),
       ),
       mergeAll(),
+      map(
+        (radiatorState) => (state: RoomState) =>
+          ({
+            ...state,
+            radiators: addOrReplace(state.radiators, radiatorState, 'name'),
+          }) as const,
+      ),
     ),
-    (state, _update) => ({
-      ...state,
-      radiators: addOrReplace(state.radiators, _update, 'name'),
-    }),
-
-    initialRoomState,
-  ).pipe(startWith<RoomState>(initialRoomState));
+  ).pipe(
+    scan((state, reducer) => reducer(state), initialRoomState),
+    startWith(initialRoomState),
+  );
 }
 
 const emptyState: DeepHeatingState = {
@@ -156,7 +196,7 @@ const emptyState: DeepHeatingState = {
 export function maintainState(
   deepHeating: DeepHeating,
 ): Observable<DeepHeatingState> {
-  return multiScan(
+  return merge(
     deepHeating.rooms$.pipe(
       mergeMap((x) =>
         x.pipe(
@@ -165,18 +205,25 @@ export function maintainState(
           ),
         ),
       ),
+      map(
+        (roomState) => (state: DeepHeatingState) =>
+          ({
+            ...state,
+            rooms: addOrReplace(state.rooms, roomState, 'name'),
+          }) as const,
+      ),
     ),
-    (state, roomState) => ({
-      ...state,
-      rooms: addOrReplace(state.rooms, roomState, 'name'),
-    }),
-
-    deepHeating.heatingStatuses$,
-    (state, heatingStatus) => ({
-      ...state,
-      isHeating: Option.some(heatingStatus.isHeating),
-    }),
-
-    emptyState,
+    deepHeating.heatingStatuses$.pipe(
+      map(
+        (heatingStatus) => (state: DeepHeatingState) =>
+          ({
+            ...state,
+            isHeating: Option.some(heatingStatus.isHeating),
+          }) as const,
+      ),
+    ),
+  ).pipe(
+    scan((state, reducer) => reducer(state), emptyState),
+    startWith(emptyState),
   );
 }
