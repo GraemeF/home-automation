@@ -2,18 +2,17 @@ import { config } from 'dotenv';
 
 config();
 
-import debug from 'debug';
+import { BunContext, BunRuntime } from '@effect/platform-bun';
+import { Effect, pipe } from 'effect';
 import { createServer } from 'http';
-import { handler } from './server';
+import { runServer } from './server';
 
-const log = debug('app');
-
+const port = Number(process.env['PORT']) || 5123;
 const httpServer = createServer();
 
-handler(httpServer);
+const program = pipe(
+  runServer(httpServer, port),
+  Effect.provide(BunContext.layer),
+);
 
-const port = process.env['PORT'] || 5123;
-
-httpServer.listen(port);
-
-log('Listening on port %d', port);
+BunRuntime.runMain(program);
