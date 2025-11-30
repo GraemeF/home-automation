@@ -6,9 +6,11 @@
     "build": "tsc -p tsconfig.lib.json",
     "typecheck": "tsc --noEmit -p tsconfig.lib.json",
     "lint": "eslint .",
+    "test": "bun test",
     "format": "prettier --write ."
   },
   "dependencies": {
+    "effect": "3.19.6",
     "rxjs": "7.8.2"
   }
 }

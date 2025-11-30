@@ -146,6 +146,7 @@
       "name": "@home-automation/rxx",
       "version": "0.0.1",
       "dependencies": {
+        "effect": "3.19.6",
         "rxjs": "7.8.2",
       },
     },
