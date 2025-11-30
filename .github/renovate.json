@@ -12,16 +12,16 @@
       "automerge": true
     },
     {
-      "extends": ["monorepo:nrwl"],
+      "extends": ["monorepo:nx"],
       "automerge": false
     },
     {
-      "matchPackagePrefixes": ["effect", "@effect/"],
-      "groupName": "effect"
+      "groupName": "effect",
+      "matchPackageNames": ["effect{/,}**", "@effect/{/,}**"]
     },
     {
-      "matchPackagePatterns": ["@nx-tools/*"],
-      "groupName": "nx-tools"
+      "groupName": "nx-tools",
+      "matchPackageNames": ["/@nx-tools/*/"]
     },
     {
       "matchPackageNames": ["node.js", "node"],
