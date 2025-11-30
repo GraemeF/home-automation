@@ -4,8 +4,6 @@ config();
 
 import { BunContext, BunRuntime } from '@effect/platform-bun';
 import { Config, Effect, pipe } from 'effect';
-// eslint-disable-next-line effect/prefer-effect-platform -- socket.io server being migrated away
-import { createServer } from 'http';
 import { tmpdir } from 'os';
 import { runServer, ServerConfig } from './server';
 
@@ -26,11 +24,9 @@ const loadConfig = Config.all({
   ),
 }) satisfies Config.Config<ServerConfig>;
 
-const httpServer = createServer();
-
 const program = pipe(
   loadConfig,
-  Effect.andThen((serverConfig) => runServer(httpServer, serverConfig)),
+  Effect.andThen(runServer),
   Effect.provide(BunContext.layer),
 );
 
