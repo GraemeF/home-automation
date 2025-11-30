@@ -117,6 +117,10 @@
      url = "https://registry.npmjs.org/@changesets/write/-/write-0.4.0.tgz";
      hash = "sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q==";
   };
+  "@codeforbreakfast/bun-test-effect@0.4.0" = fetchurl {
+     url = "https://registry.npmjs.org/@codeforbreakfast/bun-test-effect/-/bun-test-effect-0.4.0.tgz";
+     hash = "sha512-0Klmd8nmKACTEo7DCIDBvxdNOVG1rXJVvqUETZrkSYomUL2hH9KsNkqzjPHpuyge0OKALSlo1msR0lVcxLgP5g==";
+  };
   "@codeforbreakfast/eslint-effect@0.8.4" = fetchurl {
      url = "https://registry.npmjs.org/@codeforbreakfast/eslint-effect/-/eslint-effect-0.8.4.tgz";
      hash = "sha512-dm0mUDrTIg5sA4lOre96cJIJjgzw6M2WJ/YP2MhFT7oeJO5+DeE/rk1NUH9+Qb9OaKR1zBetR26QHuz32tqjuw==";
