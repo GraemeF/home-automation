@@ -4,6 +4,7 @@
   "main": "dist/src/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.lib.json",
+    "typecheck": "tsc --noEmit -p tsconfig.lib.json",
     "lint": "eslint .",
     "test": "bun test",
     "format": "prettier --write ."

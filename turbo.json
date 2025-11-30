@@ -3,7 +3,10 @@
   "globalDependencies": ["eslint.config.mjs", "tsconfig.base.json"],
   "tasks": {
     "all": {
-      "dependsOn": ["build", "lint", "test"]
+      "dependsOn": ["ci"]
+    },
+    "ci": {
+      "dependsOn": ["build", "lint", "test", "//#deps:check", "//#format:check"]
     },
     "build": {
       "dependsOn": ["^build"],
@@ -13,8 +16,21 @@
       "dependsOn": ["^build", "lint"],
       "outputs": ["coverage/**"]
     },
+    "typecheck": {
+      "dependsOn": ["^build", "^typecheck"],
+      "outputs": [],
+      "inputs": [
+        "src/**/*.ts",
+        "src/**/*.svelte",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "tsconfig*.json",
+        "package.json"
+      ],
+      "cache": true
+    },
     "lint": {
-      "dependsOn": ["^build", "format"]
+      "dependsOn": ["typecheck", "format"]
     },
     "check": {
       "dependsOn": ["^build", "lint"]
@@ -38,6 +54,31 @@
     "version:sync": {
       "inputs": ["package.json"],
       "outputs": ["config.yaml"]
+    },
+    "//#deps:check": {
+      "dependsOn": [],
+      "outputs": [],
+      "inputs": [
+        "packages/*/src/**/*.ts",
+        "packages/*/src/**/*.svelte",
+        "packages/*/package.json",
+        "knip.json",
+        "knip.config.*"
+      ],
+      "cache": true
+    },
+    "//#format:check": {
+      "dependsOn": [],
+      "outputs": [],
+      "inputs": [
+        "packages/**/*.ts",
+        "packages/**/*.svelte",
+        "packages/**/*.json",
+        "packages/**/*.md",
+        ".prettierrc*",
+        "prettier.config.*"
+      ],
+      "cache": true
     }
   }
 }
