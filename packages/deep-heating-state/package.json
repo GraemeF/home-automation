@@ -1,6 +1,6 @@
 {
   "name": "@home-automation/deep-heating-state",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "dist/src/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.lib.json",
