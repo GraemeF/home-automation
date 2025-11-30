@@ -13,8 +13,21 @@
       "dependsOn": ["^build", "lint"],
       "outputs": ["coverage/**"]
     },
+    "typecheck": {
+      "dependsOn": ["^build", "^typecheck"],
+      "outputs": [],
+      "inputs": [
+        "src/**/*.ts",
+        "src/**/*.svelte",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "tsconfig*.json",
+        "package.json"
+      ],
+      "cache": true
+    },
     "lint": {
-      "dependsOn": ["^build", "format"]
+      "dependsOn": ["typecheck", "format"]
     },
     "check": {
       "dependsOn": ["^build", "lint"]
