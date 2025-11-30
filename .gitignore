@@ -58,3 +58,6 @@ out/
 
 # Nix
 result
+
+# Vite temp files
+*.timestamp-*.mjs

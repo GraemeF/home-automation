@@ -13,6 +13,7 @@ import {
   startWith,
   withLatestFrom,
 } from 'rxjs/operators';
+import { localNow } from '../../utils/datetime';
 
 const refreshIntervalSeconds = 63;
 
@@ -33,11 +34,7 @@ export const getHouseModes = (
   sleepSwitchId: GoodnightEntityId,
 ): Observable<HouseModeValue> =>
   timer(0, refreshIntervalSeconds * 1000)
-    .pipe(
-      // eslint-disable-next-line effect/no-eta-expansion
-      map(() => DateTime.local()),
-      shareReplay(1),
-    )
+    .pipe(map(localNow), shareReplay(1))
     .pipe(
       withLatestFrom(
         buttonEvents$.pipe(

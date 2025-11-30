@@ -41,7 +41,7 @@ export const handler = (
   return pipe(
     FileSystem.FileSystem,
     Effect.flatMap((fs) => readDataFromFile(fs)),
-    Effect.tap((data) => Effect.log(data)),
+    Effect.tap(Effect.log),
     Effect.map(
       (data) =>
         new SocketServer(

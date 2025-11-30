@@ -3,9 +3,8 @@
   "compilerOptions": {
     "composite": true,
     "outDir": "../../dist/out-tsc",
-    "module": "esnext",
-    "types": ["jest", "node"]
+    "module": "esnext"
   },
   "files": [],
-  "include": ["**/*.spec.ts", "**/*.spec.js", "**/*.d.ts"]
+  "include": ["**/*.spec.ts", "**/*.test.ts", "**/*.d.ts"]
 }

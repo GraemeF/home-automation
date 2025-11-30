@@ -5,9 +5,9 @@ import {
   toHeatingSchedule,
 } from '@home-automation/deep-heating-types';
 import { Array, pipe } from 'effect';
-import { DateTime } from 'luxon';
 import { Observable, combineLatest, timer } from 'rxjs';
 import { filter, map, mergeMap, shareReplay } from 'rxjs/operators';
+import { localNow } from '../../utils/datetime';
 
 const refreshIntervalSeconds = 60;
 
@@ -19,8 +19,7 @@ export const getRoomSchedules = (
     mergeMap((room) =>
       combineLatest([
         timer(0, refreshIntervalSeconds * 1000).pipe(
-          // eslint-disable-next-line effect/no-eta-expansion
-          map(() => DateTime.local()),
+          map(localNow),
           shareReplay(1),
         ),
         roomHiveHeatingSchedules.pipe(filter((x) => x.roomName === room.name)),
