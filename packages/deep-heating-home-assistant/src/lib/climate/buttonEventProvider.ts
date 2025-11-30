@@ -12,7 +12,7 @@ import { filter } from 'rxjs/operators';
 export const createHomeAssistantButtonEventProvider: (
   home: Home,
   entityUpdates$: Observable<HomeAssistantEntity>,
-) => { buttonPressEvents$: Observable<GoodnightEventEntity> } = (
+) => { readonly buttonPressEvents$: Observable<GoodnightEventEntity> } = (
   home: Home,
   entityUpdates$: Observable<HomeAssistantEntity>,
 ) => ({

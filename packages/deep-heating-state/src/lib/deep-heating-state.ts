@@ -19,8 +19,8 @@ export const addOrReplace = <T>(
     array,
     Array.findFirstIndex((f) => f[idKey] === element[idKey]),
     Option.match({
-      onSome: (index) => Array.replace(index, element)(array),
-      onNone: () => Array.append(element)(array),
+      onSome: (index) => pipe(array, Array.replace(index, element)),
+      onNone: () => pipe(array, Array.append(element)),
     }),
   );
 

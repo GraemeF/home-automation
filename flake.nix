@@ -24,6 +24,10 @@
           # Git commit timestamp for reproducible builds
           lastModified = builtins.toString (self.lastModified or 1);
 
+          # Paths to exclude from source filtering (build outputs, metadata, etc.)
+          excludedPathPrefixes = [ "node_modules" ".git" "result" ".beads" ];
+          excludedFileNames = [ ".turbo" ];
+
           # Filtered source - exclude build outputs and metadata
           depSource = pkgs.lib.cleanSourceWith {
             src = ./.;
@@ -31,13 +35,10 @@
               let
                 baseName = baseNameOf path;
                 relPath = pkgs.lib.removePrefix (toString ./. + "/") (toString path);
+                hasExcludedPrefix = builtins.any (prefix: pkgs.lib.hasPrefix prefix relPath) excludedPathPrefixes;
+                hasExcludedName = builtins.elem baseName excludedFileNames;
               in
-              # Exclude build outputs and git metadata
-              !(pkgs.lib.hasPrefix "node_modules" relPath ||
-                pkgs.lib.hasPrefix ".git" relPath ||
-                pkgs.lib.hasPrefix "result" relPath ||
-                pkgs.lib.hasPrefix ".beads" relPath ||
-                baseName == ".turbo");
+              !(hasExcludedPrefix || hasExcludedName);
           };
 
           # Pruned workspace - only packages needed for deep-heating apps
@@ -242,6 +243,43 @@ EOF
           # in /etc/s6/services and copy to /run/service at container start.
           #
           # Reference: https://skarnet.org/software/s6/servicedir.html
+
+          # Service definitions - data structure for s6 services
+          # Each service has: command (required), env (optional map)
+          s6ServiceDefs = {
+            nginx = {
+              command = ''${pkgs.nginx}/bin/nginx -g "daemon off;" -c /etc/nginx/nginx.conf'';
+            };
+            socketio = {
+              env = { PORT = "3002"; };
+              command = "${deep-heating}/bin/deep-heating-socketio";
+            };
+            web = {
+              env = { PORT = "3001"; };
+              command = "${deep-heating}/bin/deep-heating-web";
+            };
+          };
+
+          # Helper to generate s6 run script content for a service
+          mkS6RunScript = def:
+            let
+              envLines = pkgs.lib.concatStringsSep "\n"
+                (pkgs.lib.mapAttrsToList (k: v: "export ${k}=${v}") (def.env or {}));
+            in ''
+#!/bin/sh
+exec 2>&1
+${envLines}
+exec ${def.command}
+'';
+
+          # Helper to generate install commands for a service directory
+          mkS6ServiceInstall = name: def: ''
+              mkdir -p $out/etc/s6/services/${name}
+              cat > $out/etc/s6/services/${name}/run <<'RUNSCRIPT'
+${mkS6RunScript def}RUNSCRIPT
+              chmod +x $out/etc/s6/services/${name}/run
+          '';
+
           s6Services = pkgs.stdenv.mkDerivation {
             pname = "deep-heating-s6-services";
             version = "0.1.0";
@@ -251,42 +289,10 @@ EOF
               echo "Creating s6 service definitions..."
               mkdir -p $out/etc/s6/services
 
-              # NGINX SERVICE
-              # =============
-              mkdir -p $out/etc/s6/services/nginx
-              cat > $out/etc/s6/services/nginx/run <<EOF
-#!/bin/sh
-exec 2>&1
-exec ${pkgs.nginx}/bin/nginx -g "daemon off;" -c /etc/nginx/nginx.conf
-EOF
-              chmod +x $out/etc/s6/services/nginx/run
-
-              # SOCKETIO SERVICE (backend on port 3002)
-              # ========================================
-              mkdir -p $out/etc/s6/services/socketio
-              cat > $out/etc/s6/services/socketio/run <<EOF
-#!/bin/sh
-exec 2>&1
-export PORT=3002
-exec ${deep-heating}/bin/deep-heating-socketio
-EOF
-              chmod +x $out/etc/s6/services/socketio/run
-
-              # WEB SERVICE (SvelteKit frontend on port 3001)
-              # ==============================================
-              mkdir -p $out/etc/s6/services/web
-              cat > $out/etc/s6/services/web/run <<EOF
-#!/bin/sh
-exec 2>&1
-export PORT=3001
-exec ${deep-heating}/bin/deep-heating-web
-EOF
-              chmod +x $out/etc/s6/services/web/run
+              ${pkgs.lib.concatStringsSep "\n" (pkgs.lib.mapAttrsToList mkS6ServiceInstall s6ServiceDefs)}
 
               echo "s6 services created in /etc/s6/services:"
-              echo "  - nginx"
-              echo "  - socketio"
-              echo "  - web"
+              ${pkgs.lib.concatStringsSep "\n" (map (name: ''echo "  - ${name}"'') (builtins.attrNames s6ServiceDefs))}
             '';
           };
 

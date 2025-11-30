@@ -18,7 +18,8 @@ import { Observable } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 import { HomeAssistantApi } from '../home-assistant-api';
 
-const heatingEntityId = Schema.decodeSync(ClimateEntityId)('climate.main');
+const decodeClimateEntityId = Schema.decodeSync(ClimateEntityId);
+const heatingEntityId = decodeClimateEntityId('climate.main');
 
 const isAvailableClimateEntity = (
   entity: ClimateEntity,
@@ -30,11 +31,12 @@ export const getTrvApiUpdates =
     p$.pipe(
       filter((entity) => entity.entity_id !== home.heatingId),
       filter(isAvailableClimateEntity),
-      map((response: AvailableClimateEntity) =>
-        pipe(
-          home.rooms.find((room) =>
-            room.climateEntityIds.includes(response.entity_id),
-          ),
+      map((response: AvailableClimateEntity) => {
+        const room = home.rooms.find((room) =>
+          room.climateEntityIds.includes(response.entity_id),
+        );
+        return pipe(
+          room,
           Option.fromNullable,
           Option.flatMap((room) => room.schedule),
           Option.map((schedule) => ({
@@ -53,8 +55,8 @@ export const getTrvApiUpdates =
             },
           })),
           Option.getOrNull,
-        ),
-      ),
+        );
+      }),
       filter(isNotNull),
       shareReplayLatestByKey((x) => x.climateEntityId),
     );

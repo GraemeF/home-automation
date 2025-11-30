@@ -1,6 +1,6 @@
-import { Schema } from 'effect';
 import {
   ClimateEntityId,
+  decodeTemperature,
   Temperature,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
@@ -15,8 +15,8 @@ import {
 const refreshIntervalSeconds = 60;
 
 export interface TrvDesiredTargetTemperature {
-  climateEntityId: ClimateEntityId;
-  targetTemperature: Temperature;
+  readonly climateEntityId: ClimateEntityId;
+  readonly targetTemperature: Temperature;
 }
 
 function getTrvDesiredTargetTemperature({
@@ -34,7 +34,7 @@ function getTrvDesiredTargetTemperature({
     ),
   );
 
-  const roundedTargetTemperature = Schema.decodeUnknownSync(Temperature)(
+  const roundedTargetTemperature = decodeTemperature(
     0.5 *
       (heatingRequired
         ? Math.ceil(trvTargetTemperature * 2.0)

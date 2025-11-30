@@ -32,17 +32,14 @@ jobs:
         with:
           github_access_token: ${{ steps.github-app-token.outputs.token }}
 
-      - name: Install tools
-        uses: jdx/mise-action@v2
-
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: nix develop --command bun install --frozen-lockfile
 
       - name: Regenerate bun-deep-heating.nix
         id: regenerate
         run: |
           echo "Pruning workspace with turbo..."
-          bunx turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker --out-dir=pruned
+          nix develop --command bunx turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker --out-dir=pruned
 
           echo "Generating bun-deep-heating.nix from pruned lockfile..."
           nix run github:nix-community/bun2nix -- \

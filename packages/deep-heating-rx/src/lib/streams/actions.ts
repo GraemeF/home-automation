@@ -49,7 +49,7 @@ const getNextHeatingStatus = (action: ClimateAction): HeatingStatus => ({
 });
 
 export const applyTrvActions = (
-  trvIds$: Observable<string[]>,
+  trvIds$: Observable<readonly string[]>,
   trvActions: Observable<ClimateAction>,
   trvControlStates$: Observable<TrvControlState>,
   trvScheduledTargetTemperatures$: Observable<TrvScheduledTargetTemperature>,
@@ -82,6 +82,6 @@ export const applyHeatingActions = (
   publishHiveHeatingAction: (action: ClimateAction) => void,
 ): Observable<HeatingStatus> =>
   heatingActions$.pipe(
-    tap((action) => publishHiveHeatingAction(action)),
-    map((action) => getNextHeatingStatus(action)),
+    tap(publishHiveHeatingAction),
+    map(getNextHeatingStatus),
   );

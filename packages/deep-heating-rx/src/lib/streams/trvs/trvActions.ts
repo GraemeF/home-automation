@@ -21,14 +21,14 @@ import { isDeepStrictEqual } from 'util';
 import { TrvDesiredTargetTemperature } from './trvDesiredTargetTemperatures';
 
 function getTrvAction(new_target: Temperature): {
-  mode: OperationalClimateMode;
-  targetTemperature: Temperature;
+  readonly mode: OperationalClimateMode;
+  readonly targetTemperature: Temperature;
 } {
   return { mode: 'heat', targetTemperature: new_target };
 }
 
 export function determineAction(
-  trvDesiredTargetTemperature: TrvDesiredTargetTemperature,
+  trvDesiredTargetTemperature: Readonly<TrvDesiredTargetTemperature>,
   trvControlState: TrvControlState,
   trvTemperature: ClimateTemperatureReading,
   trvScheduledTargetTemperature: TrvScheduledTargetTemperature,
@@ -68,7 +68,7 @@ export function determineAction(
 }
 
 export const getTrvActions = (
-  trvIds$: Observable<ClimateEntityId[]>,
+  trvIds$: Observable<readonly ClimateEntityId[]>,
   trvDesiredTargetTemperatures: Observable<TrvDesiredTargetTemperature>,
   trvControlStates: Observable<TrvControlState>,
   trvTemperatures: Observable<ClimateTemperatureReading>,
@@ -88,7 +88,7 @@ export const getTrvActions = (
           ),
         ]).pipe(
           distinctUntilChanged<
-            [
+            readonly [
               TrvDesiredTargetTemperature,
               TrvControlState,
               ClimateTemperatureReading,

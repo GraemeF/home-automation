@@ -8,7 +8,7 @@ import { filter } from 'rxjs/operators';
 
 export const createHomeAssistantSensorProvider: (
   entityUpdates$: Observable<HomeAssistantEntity>,
-) => { sensorUpdates$: Observable<TemperatureSensorEntity> } = (
+) => { readonly sensorUpdates$: Observable<TemperatureSensorEntity> } = (
   entityUpdates$: Observable<HomeAssistantEntity>,
 ) => ({
   sensorUpdates$: entityUpdates$.pipe(

@@ -25,11 +25,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install tools
-        uses: jdx/mise-action@v2
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: nix develop --command bun install --frozen-lockfile
 
       - name: Generate GitHub App Token
         id: github-app-token
@@ -43,12 +45,11 @@ jobs:
           git config user.name "home-automation-releaser[bot]"
           git config user.email "home-automation-releaser[bot]@users.noreply.github.com"
 
-      - name: Create Release Pull Request or Tag Release
+      - name: Create Release Pull Request or Build Docker
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: bun run release
-          version: bun run version
+          version: nix develop --command bun run version
           commit: 'chore: version packages'
           title: 'chore: version packages'
           commitMode: 'github-api'

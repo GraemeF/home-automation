@@ -28,13 +28,15 @@ export class HomeAssistantConfig extends Context.Tag('HomeAssistantConfig')<
 export const HomeAssistantConfigLive = Layer.effect(
   HomeAssistantConfig,
   pipe(
-    Config.all([
+    [
       pipe(
-        Config.string('SUPERVISOR_URL'),
+        'SUPERVISOR_URL',
+        Config.string,
         Config.withDefault('http://supervisor'),
       ),
       Config.string('SUPERVISOR_TOKEN'),
-    ]),
+    ],
+    Config.all,
     Effect.map(([url, token]) => ({ url, token })),
   ),
 );
@@ -42,22 +44,28 @@ export const HomeAssistantConfigLive = Layer.effect(
 export class HomeAssistantApi extends Context.Tag('HomeAssistantApi')<
   HomeAssistantApi,
   {
-    getStates: () => Effect.Effect<
+    readonly getStates: () => Effect.Effect<
       unknown,
       HttpClientError.HttpClientError | ParseResult.ParseError
     >;
-    setTemperature: (
+    readonly setTemperature: (
       entityId: ClimateEntityId,
       targetTemperature: Temperature,
     ) => Effect.Effect<
-      { entityId: ClimateEntityId; targetTemperature: Temperature },
+      {
+        readonly entityId: ClimateEntityId;
+        readonly targetTemperature: Temperature;
+      },
       HttpClientError.HttpClientError | HttpBody.HttpBodyError
     >;
-    setHvacMode: (
+    readonly setHvacMode: (
       entityId: ClimateEntityId,
       mode: OperationalClimateMode,
     ) => Effect.Effect<
-      { entityId: ClimateEntityId; mode: OperationalClimateMode },
+      {
+        readonly entityId: ClimateEntityId;
+        readonly mode: OperationalClimateMode;
+      },
       HttpClientError.HttpClientError | HttpBody.HttpBodyError
     >;
   }
@@ -82,25 +90,27 @@ export const HomeAssistantApiLive = Layer.effect(
         ),
       setTemperature: (entityId: ClimateEntityId, temperature: Temperature) =>
         pipe(
-          HttpClientRequest.post(url + '/api/services/climate/set_temperature'),
+          url + '/api/services/climate/set_temperature',
+          HttpClientRequest.post,
           HttpClientRequest.setHeader('Authorization', `Bearer ${token}`),
           HttpClientRequest.bodyJson({ entity_id: entityId, temperature }),
-          Effect.flatMap((request) => client.execute(request)),
+          Effect.flatMap(client.execute),
           Effect.withSpan('set_temperature'),
-          Effect.map(() => ({ entityId, targetTemperature: temperature })),
+          Effect.as({ entityId, targetTemperature: temperature }),
           Effect.scoped,
         ),
       setHvacMode: (entityId: ClimateEntityId, mode: OperationalClimateMode) =>
         pipe(
-          HttpClientRequest.post(url + '/api/services/climate/set_hvac_mode'),
+          url + '/api/services/climate/set_hvac_mode',
+          HttpClientRequest.post,
           HttpClientRequest.setHeader('Authorization', `Bearer ${token}`),
           HttpClientRequest.bodyJson({
             entity_id: entityId,
             hvac_mode: mode,
           }),
-          Effect.flatMap((request) => client.execute(request)),
+          Effect.flatMap(client.execute),
           Effect.withSpan('set_hvac_mode'),
-          Effect.map(() => ({ entityId, mode })),
+          Effect.as({ entityId, mode }),
           Effect.scoped,
         ),
     };

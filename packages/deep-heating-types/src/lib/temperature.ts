@@ -1,5 +1,4 @@
-import { Schema } from 'effect';
-import { pipe } from 'effect';
+import { pipe, Schema } from 'effect';
 
 export const Temperature = pipe(
   Schema.Number,
@@ -7,3 +6,5 @@ export const Temperature = pipe(
   Schema.brand('ºC'),
 );
 export type Temperature = typeof Temperature.Type;
+
+export const decodeTemperature = Schema.decodeUnknownSync(Temperature);
