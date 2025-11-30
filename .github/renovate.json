@@ -12,16 +12,8 @@
       "automerge": true
     },
     {
-      "extends": ["monorepo:nx"],
-      "automerge": false
-    },
-    {
       "groupName": "effect",
       "matchPackageNames": ["effect{/,}**", "@effect/{/,}**"]
-    },
-    {
-      "groupName": "nx-tools",
-      "matchPackageNames": ["/@nx-tools/*/"]
     },
     {
       "matchPackageNames": ["node.js", "node"],
