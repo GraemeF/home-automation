@@ -16,6 +16,7 @@
     "baseUrl": ".",
     "strict": true,
     "exactOptionalPropertyTypes": true,
+    "types": ["bun-types"],
     "plugins": [{ "name": "@effect/language-service" }],
     "paths": {
       "@home-automation/deep-heating-home-assistant": [

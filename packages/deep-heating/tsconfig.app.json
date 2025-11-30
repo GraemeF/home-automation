@@ -4,10 +4,9 @@
     "target": "ESNext",
     "outDir": "../../dist/out-tsc",
     "module": "ESNext",
-    "types": ["node"],
     "esModuleInterop": true,
     "allowJs": true
   },
-  "exclude": ["**/*.spec.ts", "**/*.test.ts", "jest.config.ts"],
+  "exclude": ["**/*.spec.ts", "**/*.test.ts"],
   "include": ["**/*.ts"]
 }
