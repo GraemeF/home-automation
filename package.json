@@ -16,6 +16,7 @@
     "serve": "turbo run serve",
     "format": "turbo run format",
     "format:check": "prettier --check .",
+    "ci": "turbo run ci",
     "deps:check": "knip-bun",
     "changeset": "changeset",
     "version": "changeset version && turbo run version:sync"

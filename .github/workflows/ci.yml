@@ -76,10 +76,7 @@ jobs:
 
       - run: nix develop --command bun install --frozen-lockfile
       - run: nix develop --command bun run format:check
-      - run: nix develop --command bun run build
-      - run: nix develop --command bun run lint
-      - run: nix develop --command bun run test
-      - run: nix develop --command bun run unused:check
+      - run: nix develop --command bun run ci
 
   validate-nix:
     name: Validate bun.nix files
