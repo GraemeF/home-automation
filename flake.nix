@@ -369,7 +369,7 @@ ${mkS6RunScript def}RUNSCRIPT
               ];
 
               ExposedPorts = {
-                "8503/tcp" = {};  # nginx proxy port (from ingress.conf)
+                "8099/tcp" = {};  # nginx proxy port (HA ingress default)
               };
             };
           } else null;
