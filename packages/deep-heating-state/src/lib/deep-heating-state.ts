@@ -10,6 +10,16 @@ import { Observable } from 'rxjs';
 import { multiScan } from 'rxjs-multi-scan';
 import { filter, mergeAll, mergeMap, startWith } from 'rxjs/operators';
 
+const replaceAtIndex =
+  <T>(array: ReadonlyArray<T>, element: T) =>
+  (index: number): ReadonlyArray<T> =>
+    pipe(array, Array.replace(index, element));
+
+const appendToArray =
+  <T>(array: ReadonlyArray<T>, element: T) =>
+  (): ReadonlyArray<T> =>
+    pipe(array, Array.append(element));
+
 export const addOrReplace = <T>(
   array: ReadonlyArray<T>,
   element: T,
@@ -19,8 +29,8 @@ export const addOrReplace = <T>(
     array,
     Array.findFirstIndex((f) => f[idKey] === element[idKey]),
     Option.match({
-      onSome: (index) => pipe(array, Array.replace(index, element)),
-      onNone: () => pipe(array, Array.append(element)),
+      onSome: replaceAtIndex(array, element),
+      onNone: appendToArray(array, element),
     }),
   );
 

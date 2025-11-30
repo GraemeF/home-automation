@@ -1,8 +1,7 @@
 import { FileSystem } from '@effect/platform';
 import { BunFileSystem } from '@effect/platform-bun';
-import { Schema } from 'effect';
+import { Effect, pipe, Schema } from 'effect';
 import { Home } from '@home-automation/deep-heating-types';
-import { Effect } from 'effect';
 import { readFileSync, writeFileSync } from 'fs';
 import { IncomingMessage, Server, ServerResponse } from 'http';
 import { tmpdir } from 'os';
@@ -10,13 +9,6 @@ import * as path from 'path';
 import { SocketServer } from './app/socket-server';
 
 const JsonHomeData = Schema.parseJson(Home);
-
-const readHomeConfig = (fs: FileSystem.FileSystem) => {
-  const configPath = process.env['HOME_CONFIG_PATH'] || './home.json';
-  return fs
-    .readFileString(configPath)
-    .pipe(Effect.flatMap(Schema.decode(JsonHomeData)));
-};
 
 const loadRoomAdjustments = (roomAdjustmentsPath: string): string => {
   try {
@@ -48,6 +40,71 @@ const createSocketServer = (
   );
 };
 
+const shutdownServer = (
+  socketServer: SocketServer,
+  httpServer: Server<typeof IncomingMessage, typeof ServerResponse>,
+) =>
+  pipe(
+    Effect.void,
+    Effect.andThen(Effect.log('Shutting down server...')),
+    Effect.andThen(() => socketServer.dispose()),
+    Effect.zipRight(
+      Effect.async<void>((resume) => {
+        httpServer.close(() => {
+          resume(Effect.void);
+        });
+      }),
+    ),
+    Effect.andThen(Effect.log('Server shut down')),
+  );
+
+const startHttpServer = (
+  httpServer: Server<typeof IncomingMessage, typeof ServerResponse>,
+  port: number,
+  socketServer: SocketServer,
+) =>
+  pipe(
+    Effect.void,
+    Effect.zipRight(
+      Effect.async<void>((resume) => {
+        httpServer.listen(port, () => {
+          resume(Effect.void);
+        });
+      }),
+    ),
+    Effect.andThen(Effect.log(`Server listening on port ${port}`)),
+    Effect.zipRight(
+      Effect.addFinalizer(() => shutdownServer(socketServer, httpServer)),
+    ),
+    Effect.zipRight(Effect.never),
+  );
+
+const loadAndStartServer = (
+  fs: FileSystem.FileSystem,
+  httpServer: Server<typeof IncomingMessage, typeof ServerResponse>,
+  port: number,
+  roomAdjustmentsPath: string,
+) => {
+  const configPath = process.env['HOME_CONFIG_PATH'] || './home.json';
+  return pipe(
+    configPath,
+    fs.readFileString,
+    Effect.andThen(Schema.decode(JsonHomeData)),
+    Effect.tap((home) =>
+      Effect.log(`Home configuration loaded: ${home.rooms.length} rooms`),
+    ),
+    Effect.andThen((home) => {
+      const socketServer = createSocketServer(
+        httpServer,
+        home,
+        roomAdjustmentsPath,
+      );
+      socketServer.logConnections();
+      return startHttpServer(httpServer, port, socketServer);
+    }),
+  );
+};
+
 /**
  * Runs the Socket.IO server as an Effect application with proper lifecycle management.
  * The server will run until interrupted (e.g., SIGINT/SIGTERM).
@@ -60,43 +117,12 @@ export const runServer = (
     process.env['ROOM_ADJUSTMENTS_PATH'] ||
     path.join(tmpdir(), 'deep-heating-room-adjustments.json');
 
-  return Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const home = yield* readHomeConfig(fs);
-
-    yield* Effect.log(`Home configuration loaded: ${home.rooms.length} rooms`);
-
-    const socketServer = createSocketServer(
-      httpServer,
-      home,
-      roomAdjustmentsPath,
-    );
-    socketServer.logConnections();
-
-    // Start HTTP server
-    yield* Effect.async<void>((resume) => {
-      httpServer.listen(port, () => {
-        resume(Effect.void);
-      });
-    });
-
-    yield* Effect.log(`Server listening on port ${port}`);
-
-    // Add finalizer for graceful shutdown
-    yield* Effect.addFinalizer(() =>
-      Effect.gen(function* () {
-        yield* Effect.log('Shutting down server...');
-        socketServer.dispose();
-        yield* Effect.async<void>((resume) => {
-          httpServer.close(() => {
-            resume(Effect.void);
-          });
-        });
-        yield* Effect.log('Server shut down');
-      }),
-    );
-
-    // Keep the server running forever until interrupted
-    yield* Effect.never;
-  }).pipe(Effect.scoped, Effect.provide(BunFileSystem.layer));
+  return pipe(
+    FileSystem.FileSystem,
+    Effect.andThen((fs) =>
+      loadAndStartServer(fs, httpServer, port, roomAdjustmentsPath),
+    ),
+    Effect.scoped,
+    Effect.provide(BunFileSystem.layer),
+  );
 };

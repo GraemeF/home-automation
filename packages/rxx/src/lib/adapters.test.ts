@@ -103,10 +103,10 @@ describe('Effect/RxJS adapters', () => {
         };
       });
 
-      const stream = observableToStream(observable);
-
       // Take only one element, which should trigger cleanup
-      await Effect.runPromise(stream.pipe(Stream.take(1), Stream.runCollect));
+      await Effect.runPromise(
+        observableToStream(observable).pipe(Stream.take(1), Stream.runCollect),
+      );
 
       // Give a moment for cleanup
       await new Promise((resolve) => setTimeout(resolve, 50));

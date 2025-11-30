@@ -4,6 +4,7 @@ import {
   TrvControlState,
   TrvScheduledTargetTemperature,
 } from '@home-automation/deep-heating-types';
+import { Match } from 'effect';
 import { Observable } from 'rxjs';
 import {
   filter,
@@ -23,16 +24,19 @@ const getNextTrvControlState = (
 ): TrvControlState => {
   const mode = action.mode ?? latest.mode;
 
-  function getTargetTemperature() {
-    switch (mode) {
-      case 'off':
-        return MinimumTrvTargetTemperature;
-      case 'heat':
-        return action.targetTemperature ?? latest.targetTemperature;
-      case 'auto':
-        return scheduledTargetTemperature.scheduledTargetTemperature;
-    }
-  }
+  const getTargetTemperature = () =>
+    Match.value(mode).pipe(
+      Match.when('off', () => MinimumTrvTargetTemperature),
+      Match.when(
+        'heat',
+        () => action.targetTemperature ?? latest.targetTemperature,
+      ),
+      Match.when(
+        'auto',
+        () => scheduledTargetTemperature.scheduledTargetTemperature,
+      ),
+      Match.exhaustive,
+    );
 
   return {
     climateEntityId: latest.climateEntityId,
