@@ -1,10 +1,9 @@
-import { pipe, Schema } from 'effect';
 import {
+  decodeTemperature,
   HeatingSchedule,
   RoomDefinition,
   RoomSchedule,
   RoomTargetTemperature,
-  Temperature,
 } from '@home-automation/deep-heating-types';
 import {
   shareReplayLatestDistinct,
@@ -34,7 +33,7 @@ const getScheduledTargetTemperature = (
         ) / 10,
     ),
   );
-  return pipe(maxTemperature, Schema.decodeUnknownSync(Temperature));
+  return decodeTemperature(maxTemperature);
 };
 
 export const getRoomScheduledTargetTemperatures = (

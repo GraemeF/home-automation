@@ -4,14 +4,13 @@ import { filter, map, shareReplay } from 'rxjs/operators';
 import { ClimateAction, HeatingStatus } from './deep-heating-types';
 import { ClimateEntityId } from './entities';
 import { OperationalClimateMode } from './home-assistant';
-import { Temperature } from './temperature';
+import { decodeTemperature } from './temperature';
 
 const decodeOperationalClimateMode = Schema.decodeUnknownSync(
   OperationalClimateMode,
 );
 const Heat = decodeOperationalClimateMode('heat');
 
-const decodeTemperature = Schema.decodeUnknownSync(Temperature);
 const On = decodeTemperature(32);
 const Off = decodeTemperature(7);
 
