@@ -3,17 +3,15 @@ import {
   HttpClientRequest,
   HttpClientResponse,
 } from '@effect/platform';
-import { Schema } from 'effect';
+import { Duration, Schedule, Schema, Stream } from 'effect';
 import {
   ClimateEntityId,
   HomeAssistantEntity,
   OperationalClimateMode,
   Temperature,
 } from '@home-automation/deep-heating-types';
-import { Config, Context, Effect, Layer, Runtime } from 'effect';
+import { Config, Context, Effect, Layer } from 'effect';
 import { pipe } from 'effect/Function';
-import { Observable, from, timer } from 'rxjs';
-import { mergeAll, shareReplay, switchMap, throttleTime } from 'rxjs/operators';
 import {
   HomeAssistantConnectionError,
   SetHvacModeError,
@@ -168,14 +166,23 @@ export const getEntities = pipe(
   ),
 );
 
-const refreshIntervalMilliseconds = 60 * 1000;
+const refreshInterval = Duration.minutes(1);
 
-export const getEntityUpdates = (
-  runtime: Runtime.Runtime<HomeAssistantApi>,
-): Observable<HomeAssistantEntity> =>
-  timer(0, refreshIntervalMilliseconds).pipe(
-    throttleTime(refreshIntervalMilliseconds),
-    switchMap(() => from(pipe(getEntities, Runtime.runPromise(runtime)))),
-    mergeAll(),
-    shareReplay(1),
-  );
+/**
+ * Effect Stream that polls Home Assistant for entity updates.
+ * Emits each entity individually, flattening the arrays from each poll.
+ * Retries with exponential backoff on connection failures.
+ *
+ * Requires HomeAssistantApi to be provided via Layer at the composition root.
+ */
+export const getEntityUpdatesStream: Stream.Stream<
+  HomeAssistantEntity,
+  HomeAssistantConnectionError,
+  HomeAssistantApi
+> = pipe(
+  getEntities,
+  Stream.fromEffect,
+  Stream.flatMap(Stream.fromIterable),
+  Stream.repeat(Schedule.fixed(refreshInterval)),
+  Stream.retry(Schedule.exponential(Duration.seconds(1), 2)),
+);
