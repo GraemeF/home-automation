@@ -132,16 +132,15 @@ export default [
     plugins: commonPlugins,
     rules: typescriptBaseRules,
   },
-  // Effect recommended rules for all TS files (excludes testing)
-  // Uses 'recommended' instead of 'strict' since this codebase uses RxJS heavily
+  // Effect strict rules for all TS files (excludes testing)
   {
-    name: 'effect-recommended',
+    name: 'effect-strict',
     files: ['**/*.ts', '**/*.tsx'],
     ignores: ['**/testing/**'],
     languageOptions: commonLanguageOptions,
     plugins: commonPlugins,
     rules: {
-      ...effectPlugin.configs.recommended.rules,
+      ...effectPlugin.configs.strict.rules,
       // Disable rules that conflict with RxJS patterns
       'effect/no-method-pipe': 'off', // RxJS uses Observable.pipe()
       'effect/no-if-statement': 'off', // Too strict for RxJS-heavy codebase
@@ -222,8 +221,6 @@ export default [
     name: 'socketio-package',
     files: ['packages/deep-heating-socketio/**/*.ts'],
     rules: {
-      // Express/Socket.IO uses Node.js APIs directly
-      'effect/prefer-effect-platform': 'off',
       // Classes are used for Socket.IO server
       'effect/no-classes': 'off',
       // Simple ternaries are fine

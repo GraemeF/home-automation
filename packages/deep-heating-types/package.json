@@ -13,6 +13,6 @@
   "dependencies": {
     "effect": "3.19.6",
     "luxon": "3.7.2",
-    "rxjs": "6.6.7"
+    "rxjs": "7.8.2"
   }
 }

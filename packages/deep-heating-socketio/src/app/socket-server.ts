@@ -6,6 +6,7 @@ import {
   Home,
   RoomAdjustment,
 } from '@home-automation/deep-heating-types';
+// eslint-disable-next-line effect/prefer-effect-platform -- socket.io server being migrated away
 import { Server } from 'http';
 import { Observable, Subscription, combineLatest, fromEvent, of } from 'rxjs';
 import {

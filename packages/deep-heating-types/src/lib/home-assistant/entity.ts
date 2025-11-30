@@ -32,6 +32,7 @@ export const OtherEntity = pipe(
 );
 export type OtherEntity = BaseEntity;
 
+/* eslint-disable effect/no-intermediate-effect-variables -- SensorEntity is exported and used externally for type narrowing (isSchema) in tests */
 export const SensorEntity = pipe(
   BaseEntity,
   Schema.extend(
@@ -44,6 +45,7 @@ export type SensorEntity = typeof SensorEntity.Type;
 
 export const TemperatureSensorEntity = pipe(
   SensorEntity,
+  /* eslint-enable effect/no-intermediate-effect-variables */
   Schema.extend(
     Schema.Struct({
       state: Schema.compose(Schema.NumberFromString, Temperature),
@@ -77,22 +79,25 @@ const BaseClimateAttributes = Schema.Struct({
   restored: Schema.optional(Schema.Boolean),
 });
 
+const createAvailableClimateAttributes = () =>
+  pipe(
+    BaseClimateAttributes,
+    Schema.extend(
+      Schema.Struct({
+        current_temperature: Temperature,
+        temperature: Temperature,
+        hvac_action: Schema.optional(HassHvacAction),
+      }),
+    ),
+  );
+
 export const AvailableClimateEntity = pipe(
   BaseEntity,
   Schema.extend(
     Schema.Struct({
       entity_id: ClimateEntityId,
       state: OperationalClimateMode,
-      attributes: pipe(
-        BaseClimateAttributes,
-        Schema.extend(
-          Schema.Struct({
-            current_temperature: Temperature,
-            temperature: Temperature,
-            hvac_action: Schema.optional(HassHvacAction),
-          }),
-        ),
-      ),
+      attributes: createAvailableClimateAttributes(),
     }),
   ),
 );

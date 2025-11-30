@@ -9,6 +9,7 @@ import {
   shareReplayLatestDistinct,
   shareReplayLatestDistinctByKey,
 } from '@home-automation/rxx';
+import { Match } from 'effect';
 import { GroupedObservable, Observable, combineLatest } from 'rxjs';
 import { filter, map, mergeMap } from 'rxjs/operators';
 import {
@@ -24,20 +25,20 @@ const getTargetTemperature = (
   if (roomAdjustment.roomName !== roomScheduledTargetTemperature.roomName)
     throw Error('Mismatched rooms');
 
-  switch (roomMode.mode) {
-    case 'Sleeping':
-      return MinimumRoomTargetTemperature;
-    case 'Off':
-      return MinimumTrvTargetTemperature;
-    default:
-      return decodeTemperature(
+  return Match.value(roomMode.mode).pipe(
+    Match.when('Sleeping', () => MinimumRoomTargetTemperature),
+    Match.when('Off', () => MinimumTrvTargetTemperature),
+    Match.when('Auto', () =>
+      decodeTemperature(
         Math.max(
           MinimumRoomTargetTemperature,
           roomScheduledTargetTemperature.targetTemperature +
             roomAdjustment.adjustment,
         ),
-      );
-  }
+      ),
+    ),
+    Match.exhaustive,
+  );
 };
 
 export const getRoomTargetTemperatures = (

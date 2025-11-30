@@ -3,10 +3,11 @@ import {
   createHomeAssistantButtonEventProvider,
   createHomeAssistantHeatingProvider,
   createHomeAssistantSensorProvider,
-  getEntityUpdates,
+  getEntityUpdatesStream,
   HomeAssistantApiLive,
   HomeAssistantConfigLive,
 } from '@home-automation/deep-heating-home-assistant';
+import { streamToObservable } from '@home-automation/rxx';
 import {
   ClimateAction,
   ClimateEntityId,
@@ -41,7 +42,7 @@ import {
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import debug from 'debug';
-import { Effect, HashSet, Layer, Predicate } from 'effect';
+import { Effect, HashSet, Layer, Predicate, Stream } from 'effect';
 import { from, GroupedObservable, Observable, Subject } from 'rxjs';
 import {
   distinctUntilChanged,
@@ -160,15 +161,20 @@ export function createDeepHeating(
     heatingStatusSubject.next(newStatus);
   };
 
-  const runtime = HomeAssistantApiLive.pipe(
+  const homeAssistantLayer = HomeAssistantApiLive.pipe(
     Layer.provide(HomeAssistantConfigLive),
     Layer.provide(FetchHttpClient.layer),
+  );
+
+  const runtime = homeAssistantLayer.pipe(
     Layer.toRuntime,
     Effect.scoped,
     Effect.runSync,
   );
 
-  const entityUpdates$ = getEntityUpdates(runtime);
+  const entityUpdates$ = streamToObservable(
+    getEntityUpdatesStream.pipe(Stream.provideLayer(homeAssistantLayer)),
+  );
 
   const heatingProvider = createHomeAssistantHeatingProvider(
     home,

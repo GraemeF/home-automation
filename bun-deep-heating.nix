@@ -2084,6 +2084,10 @@
      url = "https://registry.npmjs.org/rxjs/-/rxjs-6.6.7.tgz";
      hash = "sha512-hTdwr+7yYNIT5n4AMYp85KA6yw2Va0FLa3Rguvbpa4W3I5xynaBZo41cM3XM+4Q6fRMj3sBYIR1VAmZMXYJvRQ==";
   };
+  "rxjs@7.8.2" = fetchurl {
+     url = "https://registry.npmjs.org/rxjs/-/rxjs-7.8.2.tgz";
+     hash = "sha512-dhKf903U/PQZY6boNNtAGdWbG85WAbjT/1xYoZIC7FAY0yWapOBQVsVrDl58W86//e1VpMNBtRV4MaXfdMySFA==";
+  };
   "sade@1.8.1" = fetchurl {
      url = "https://registry.npmjs.org/sade/-/sade-1.8.1.tgz";
      hash = "sha512-xal3CZX1Xlo/k4ApwCFrHVACi9fBqJ7V+mwhBsuf/1IOKbBy098Fex+Wa/5QMubw09pSZ/u8EY8PWgevJsXp1A==";
