@@ -38,6 +38,18 @@
     "version:sync": {
       "inputs": ["package.json"],
       "outputs": ["config.yaml"]
+    },
+    "//#deps:check": {
+      "dependsOn": [],
+      "outputs": [],
+      "inputs": [
+        "packages/*/src/**/*.ts",
+        "packages/*/src/**/*.svelte",
+        "packages/*/package.json",
+        "knip.json",
+        "knip.config.*"
+      ],
+      "cache": true
     }
   }
 }
