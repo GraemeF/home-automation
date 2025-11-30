@@ -3,7 +3,10 @@
   "globalDependencies": ["eslint.config.mjs", "tsconfig.base.json"],
   "tasks": {
     "all": {
-      "dependsOn": ["build", "lint", "test"]
+      "dependsOn": ["ci"]
+    },
+    "ci": {
+      "dependsOn": ["build", "lint", "test", "//#deps:check"]
     },
     "build": {
       "dependsOn": ["^build"],
