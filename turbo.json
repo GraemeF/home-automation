@@ -2,6 +2,9 @@
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["eslint.config.mjs", "tsconfig.base.json"],
   "tasks": {
+    "all": {
+      "dependsOn": ["build", "lint", "test"]
+    },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".svelte-kit/**", ".next/**", "../../dist/**"]

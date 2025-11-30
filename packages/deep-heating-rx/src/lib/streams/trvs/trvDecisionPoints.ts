@@ -1,4 +1,4 @@
-import { Schema } from 'effect';
+import { pipe, Schema } from 'effect';
 import {
   ClimateEntityId,
   ClimateMode,
@@ -34,12 +34,18 @@ export const getTrvDecisionPoints = (
     share(),
   );
 
-export const MinimumRoomTargetTemperature =
-  Schema.decodeUnknownSync(Temperature)(15);
-export const MinimumTrvTargetTemperature =
-  Schema.decodeUnknownSync(Temperature)(7);
-export const MaximumTrvTargetTemperature =
-  Schema.decodeUnknownSync(Temperature)(32);
+export const MinimumRoomTargetTemperature = pipe(
+  15,
+  Schema.decodeUnknownSync(Temperature),
+);
+export const MinimumTrvTargetTemperature = pipe(
+  7,
+  Schema.decodeUnknownSync(Temperature),
+);
+export const MaximumTrvTargetTemperature = pipe(
+  32,
+  Schema.decodeUnknownSync(Temperature),
+);
 
 export const TrvDecisionPoint = Schema.Struct({
   climateEntityId: ClimateEntityId,

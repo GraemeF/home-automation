@@ -1,4 +1,4 @@
-import { Schema } from 'effect';
+import { pipe, Schema } from 'effect';
 import {
   RoomAdjustment,
   RoomDefinition,
@@ -31,12 +31,13 @@ const getTargetTemperature = (
     case 'Off':
       return MinimumTrvTargetTemperature;
     default:
-      return Schema.decodeUnknownSync(Temperature)(
+      return pipe(
         Math.max(
           MinimumRoomTargetTemperature,
           roomScheduledTargetTemperature.targetTemperature +
             roomAdjustment.adjustment,
         ),
+        Schema.decodeUnknownSync(Temperature),
       );
   }
 };

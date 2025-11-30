@@ -1,4 +1,4 @@
-import { Schema } from 'effect';
+import { Schema, pipe } from 'effect';
 import {
   ClimateEntityId,
   Temperature,
@@ -15,8 +15,8 @@ import {
 const refreshIntervalSeconds = 60;
 
 export interface TrvDesiredTargetTemperature {
-  climateEntityId: ClimateEntityId;
-  targetTemperature: Temperature;
+  readonly climateEntityId: ClimateEntityId;
+  readonly targetTemperature: Temperature;
 }
 
 function getTrvDesiredTargetTemperature({
@@ -34,11 +34,12 @@ function getTrvDesiredTargetTemperature({
     ),
   );
 
-  const roundedTargetTemperature = Schema.decodeUnknownSync(Temperature)(
+  const roundedTargetTemperature = pipe(
     0.5 *
       (heatingRequired
         ? Math.ceil(trvTargetTemperature * 2.0)
         : Math.floor(trvTargetTemperature * 2.0)),
+    Schema.decodeUnknownSync(Temperature),
   );
 
   return {

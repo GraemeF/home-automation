@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { Schema } from 'effect';
+import { pipe, Schema } from 'effect';
 import {
   ClimateEntityId,
   Temperature,
@@ -9,30 +9,36 @@ import { determineAction } from './trvActions';
 
 describe('TRV action', () => {
   const daytime: DateTime = DateTime.fromISO('2020-01-01T12:00Z');
-  const trvId = Schema.decodeUnknownSync(ClimateEntityId)('climate.the_trv');
+  const trvId = pipe(
+    'climate.the_trv',
+    Schema.decodeUnknownSync(ClimateEntityId),
+  );
 
   it('off', () => {
     const action = determineAction(
       {
         climateEntityId: trvId,
-        targetTemperature: Schema.decodeUnknownSync(Temperature)(20),
+        targetTemperature: pipe(20, Schema.decodeUnknownSync(Temperature)),
       },
       {
         climateEntityId: trvId,
         mode: 'off',
         source: 'Device',
-        targetTemperature: Schema.decodeUnknownSync(Temperature)(7),
+        targetTemperature: pipe(7, Schema.decodeUnknownSync(Temperature)),
       },
       {
         climateEntityId: trvId,
         temperatureReading: {
           time: daytime.toJSDate(),
-          temperature: Schema.decodeUnknownSync(Temperature)(10),
+          temperature: pipe(10, Schema.decodeUnknownSync(Temperature)),
         },
       },
       {
         climateEntityId: trvId,
-        scheduledTargetTemperature: Schema.decodeUnknownSync(Temperature)(18),
+        scheduledTargetTemperature: pipe(
+          18,
+          Schema.decodeUnknownSync(Temperature),
+        ),
       },
     );
 
@@ -42,25 +48,28 @@ describe('TRV action', () => {
   it('should do something', () => {
     const action = determineAction(
       {
-        targetTemperature: Schema.decodeUnknownSync(Temperature)(23),
+        targetTemperature: pipe(23, Schema.decodeUnknownSync(Temperature)),
         climateEntityId: trvId,
       },
       {
         climateEntityId: trvId,
         mode: 'heat',
-        targetTemperature: Schema.decodeUnknownSync(Temperature)(18.5),
+        targetTemperature: pipe(18.5, Schema.decodeUnknownSync(Temperature)),
         source: 'Device',
       },
       {
         climateEntityId: trvId,
         temperatureReading: {
-          temperature: Schema.decodeUnknownSync(Temperature)(21),
+          temperature: pipe(21, Schema.decodeUnknownSync(Temperature)),
           time: daytime.toJSDate(),
         },
       },
       {
         climateEntityId: trvId,
-        scheduledTargetTemperature: Schema.decodeUnknownSync(Temperature)(18),
+        scheduledTargetTemperature: pipe(
+          18,
+          Schema.decodeUnknownSync(Temperature),
+        ),
       },
     );
 
@@ -74,25 +83,28 @@ describe('TRV action', () => {
   it('should not change from heat to auto', () => {
     const action = determineAction(
       {
-        targetTemperature: Schema.decodeUnknownSync(Temperature)(23),
+        targetTemperature: pipe(23, Schema.decodeUnknownSync(Temperature)),
         climateEntityId: trvId,
       },
       {
         climateEntityId: trvId,
         mode: 'heat',
-        targetTemperature: Schema.decodeUnknownSync(Temperature)(18.5),
+        targetTemperature: pipe(18.5, Schema.decodeUnknownSync(Temperature)),
         source: 'Device',
       },
       {
         climateEntityId: trvId,
         temperatureReading: {
-          temperature: Schema.decodeUnknownSync(Temperature)(18.5),
+          temperature: pipe(18.5, Schema.decodeUnknownSync(Temperature)),
           time: daytime.toJSDate(),
         },
       },
       {
         climateEntityId: trvId,
-        scheduledTargetTemperature: Schema.decodeUnknownSync(Temperature)(23),
+        scheduledTargetTemperature: pipe(
+          23,
+          Schema.decodeUnknownSync(Temperature),
+        ),
       },
     );
 
@@ -106,25 +118,28 @@ describe('TRV action', () => {
   it('should change from auto to heat', () => {
     const action = determineAction(
       {
-        targetTemperature: Schema.decodeUnknownSync(Temperature)(18.5),
+        targetTemperature: pipe(18.5, Schema.decodeUnknownSync(Temperature)),
         climateEntityId: trvId,
       },
       {
         climateEntityId: trvId,
         mode: 'auto',
-        targetTemperature: Schema.decodeUnknownSync(Temperature)(23),
+        targetTemperature: pipe(23, Schema.decodeUnknownSync(Temperature)),
         source: 'Device',
       },
       {
         climateEntityId: trvId,
         temperatureReading: {
-          temperature: Schema.decodeUnknownSync(Temperature)(18.5),
+          temperature: pipe(18.5, Schema.decodeUnknownSync(Temperature)),
           time: daytime.toJSDate(),
         },
       },
       {
         climateEntityId: trvId,
-        scheduledTargetTemperature: Schema.decodeUnknownSync(Temperature)(23),
+        scheduledTargetTemperature: pipe(
+          23,
+          Schema.decodeUnknownSync(Temperature),
+        ),
       },
     );
 
@@ -138,25 +153,28 @@ describe('TRV action', () => {
   it('should change heat target temperature', () => {
     const action = determineAction(
       {
-        targetTemperature: Schema.decodeUnknownSync(Temperature)(18.5),
+        targetTemperature: pipe(18.5, Schema.decodeUnknownSync(Temperature)),
         climateEntityId: trvId,
       },
       {
         climateEntityId: trvId,
         mode: 'heat',
-        targetTemperature: Schema.decodeUnknownSync(Temperature)(23),
+        targetTemperature: pipe(23, Schema.decodeUnknownSync(Temperature)),
         source: 'Device',
       },
       {
         climateEntityId: trvId,
         temperatureReading: {
-          temperature: Schema.decodeUnknownSync(Temperature)(18.5),
+          temperature: pipe(18.5, Schema.decodeUnknownSync(Temperature)),
           time: daytime.toJSDate(),
         },
       },
       {
         climateEntityId: trvId,
-        scheduledTargetTemperature: Schema.decodeUnknownSync(Temperature)(23),
+        scheduledTargetTemperature: pipe(
+          23,
+          Schema.decodeUnknownSync(Temperature),
+        ),
       },
     );
 

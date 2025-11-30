@@ -1,4 +1,4 @@
-import { Schema } from 'effect';
+import { pipe, Schema } from 'effect';
 import {
   HeatingSchedule,
   RoomDefinition,
@@ -19,23 +19,23 @@ const refreshIntervalSeconds = 60;
 const getScheduledTargetTemperature = (
   schedule: HeatingSchedule,
   time: DateTime,
-) =>
-  Schema.decodeUnknownSync(Temperature)(
-    Math.max(
-      ...schedule.map(
-        (entry) =>
-          Math.round(
-            (entry.targetTemperature -
-              0.5 *
-                Math.max(
-                  0.0,
-                  DateTime.fromJSDate(entry.start).diff(time).as('hours'),
-                )) *
-              10,
-          ) / 10,
-      ),
+) => {
+  const maxTemperature = Math.max(
+    ...schedule.map(
+      (entry) =>
+        Math.round(
+          (entry.targetTemperature -
+            0.5 *
+              Math.max(
+                0.0,
+                DateTime.fromJSDate(entry.start).diff(time).as('hours'),
+              )) *
+            10,
+        ) / 10,
     ),
   );
+  return pipe(maxTemperature, Schema.decodeUnknownSync(Temperature));
+};
 
 export const getRoomScheduledTargetTemperatures = (
   rooms$: Observable<GroupedObservable<string, RoomDefinition>>,
@@ -45,6 +45,7 @@ export const getRoomScheduledTargetTemperatures = (
     mergeMap((room) =>
       combineLatest([
         timer(0, refreshIntervalSeconds * 1000).pipe(
+          // eslint-disable-next-line effect/no-eta-expansion
           map(() => DateTime.local()),
           shareReplay(1),
         ),

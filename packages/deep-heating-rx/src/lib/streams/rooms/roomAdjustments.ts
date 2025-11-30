@@ -13,7 +13,7 @@ import {
 import { isDeepStrictEqual } from 'util';
 
 export const getRoomAdjustments = (
-  initialRoomAdjustments: RoomAdjustment[],
+  initialRoomAdjustments: readonly RoomAdjustment[],
   rooms$: Observable<GroupedObservable<string, RoomDefinition>>,
   roomAdjustmentCommands$: Observable<RoomAdjustment>,
 ): Observable<RoomAdjustment> =>

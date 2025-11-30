@@ -19,6 +19,7 @@ export const getRoomSchedules = (
     mergeMap((room) =>
       combineLatest([
         timer(0, refreshIntervalSeconds * 1000).pipe(
+          // eslint-disable-next-line effect/no-eta-expansion
           map(() => DateTime.local()),
           shareReplay(1),
         ),

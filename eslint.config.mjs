@@ -203,6 +203,40 @@ export default [
       'effect/no-runSync': 'off',
     },
   },
+  // Web package - relaxed Effect rules (SvelteKit app, not Effect-based)
+  {
+    name: 'web-package',
+    files: ['packages/deep-heating-web/**/*.ts'],
+    rules: {
+      // SvelteKit SSR uses process.env directly, not Effect's platform abstraction
+      'effect/prefer-effect-platform': 'off',
+      // Simple ternaries are fine in UI code
+      'effect/prefer-match-over-ternary': 'off',
+      // Svelte stores are inherently mutable
+      'functional/prefer-immutable-types': 'off',
+      'functional/prefer-readonly-type': 'off',
+    },
+  },
+  // SocketIO package - relaxed Effect rules (Express/Socket.IO app, not Effect-based)
+  {
+    name: 'socketio-package',
+    files: ['packages/deep-heating-socketio/**/*.ts'],
+    rules: {
+      // Express/Socket.IO uses Node.js APIs directly
+      'effect/prefer-effect-platform': 'off',
+      // Classes are used for Socket.IO server
+      'effect/no-classes': 'off',
+      // Simple ternaries are fine
+      'effect/prefer-match-over-ternary': 'off',
+      // Express handlers use mutable patterns
+      'functional/prefer-immutable-types': 'off',
+      'functional/prefer-readonly-type': 'off',
+      // Allow curried calls in non-Effect code
+      'effect/no-curried-calls': 'off',
+      // Allow eta-expansion in non-Effect code
+      'effect/no-eta-expansion': 'off',
+    },
+  },
   // Stories files - functional rules
   {
     name: 'stories-functional',
