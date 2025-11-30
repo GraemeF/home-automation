@@ -6,7 +6,7 @@
       "dependsOn": ["ci"]
     },
     "ci": {
-      "dependsOn": ["build", "lint", "test", "//#deps:check"]
+      "dependsOn": ["build", "lint", "test", "//#deps:check", "//#format:check"]
     },
     "build": {
       "dependsOn": ["^build"],
@@ -64,6 +64,19 @@
         "packages/*/package.json",
         "knip.json",
         "knip.config.*"
+      ],
+      "cache": true
+    },
+    "//#format:check": {
+      "dependsOn": [],
+      "outputs": [],
+      "inputs": [
+        "packages/**/*.ts",
+        "packages/**/*.svelte",
+        "packages/**/*.json",
+        "packages/**/*.md",
+        ".prettierrc*",
+        "prettier.config.*"
       ],
       "cache": true
     }

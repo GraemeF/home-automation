@@ -75,7 +75,6 @@ jobs:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - run: nix develop --command bun install --frozen-lockfile
-      - run: nix develop --command bun run format:check
       - run: nix develop --command bun run ci
 
   validate-nix:
