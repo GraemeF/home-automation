@@ -1,6 +1,13 @@
-import { FileSystem } from '@effect/platform';
+import { FetchHttpClient, FileSystem } from '@effect/platform';
 import { BunFileSystem } from '@effect/platform-bun';
-import { Effect, pipe, Schema, Scope } from 'effect';
+import { Effect, Layer, pipe, Runtime, Schema, Scope, Stream } from 'effect';
+import {
+  getEntityUpdatesStream,
+  HomeAssistantApi,
+  HomeAssistantApiLive,
+  HomeAssistantConfigLive,
+} from '@home-automation/deep-heating-home-assistant';
+import { streamToObservable } from '@home-automation/rxx';
 import { Home, RoomAdjustment } from '@home-automation/deep-heating-types';
 // eslint-disable-next-line effect/prefer-effect-platform -- socket.io requires Node http.Server, cannot migrate to Effect Platform HttpServer
 import { createServer, IncomingMessage, Server, ServerResponse } from 'http';
@@ -24,6 +31,15 @@ const JsonRoomAdjustments = Schema.parseJson(
   Schema.Array(RoomAdjustmentSchema),
 );
 
+/**
+ * Layer that provides HomeAssistantApi with all required dependencies.
+ * Composed at the application level for proper Effect lifecycle management.
+ */
+const HomeAssistantLayer = HomeAssistantApiLive.pipe(
+  Layer.provide(HomeAssistantConfigLive),
+  Layer.provide(FetchHttpClient.layer),
+);
+
 const loadRoomAdjustments = (
   fs: FileSystem.FileSystem,
   roomAdjustmentsPath: string,
@@ -39,11 +55,17 @@ const createSocketServer = (
   fs: FileSystem.FileSystem,
   httpServer: Server<typeof IncomingMessage, typeof ServerResponse>,
   home: Home,
+  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
   config: ServerConfig,
 ): Effect.Effect<SocketServer, never, Scope.Scope> =>
   pipe(
     loadRoomAdjustments(fs, config.roomAdjustmentsPath),
     Effect.map((initialRoomAdjustments) => {
+      // Convert the Effect Stream to RxJS Observable for the heating system
+      const entityUpdates$ = streamToObservable(
+        getEntityUpdatesStream.pipe(Stream.provideLayer(HomeAssistantLayer)),
+      );
+
       const socketServer = new SocketServer(
         httpServer,
         home,
@@ -56,6 +78,8 @@ const createSocketServer = (
             config.roomAdjustmentsPath,
             JSON.stringify(roomAdjustments),
           ),
+        entityUpdates$,
+        homeAssistantRuntime,
         {
           path: config.socketioPath,
           cors: {
@@ -112,10 +136,11 @@ const startSocketServerAndListen = (
   fs: FileSystem.FileSystem,
   httpServer: Server<typeof IncomingMessage, typeof ServerResponse>,
   home: Home,
+  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
   config: ServerConfig,
 ) =>
   pipe(
-    createSocketServer(fs, httpServer, home, config),
+    createSocketServer(fs, httpServer, home, homeAssistantRuntime, config),
     Effect.tap((socketServer) =>
       Effect.sync(() => socketServer.logConnections()),
     ),
@@ -127,6 +152,7 @@ const startSocketServerAndListen = (
 const loadAndStartServer = (
   fs: FileSystem.FileSystem,
   httpServer: Server<typeof IncomingMessage, typeof ServerResponse>,
+  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
   config: ServerConfig,
 ) =>
   pipe(
@@ -137,7 +163,13 @@ const loadAndStartServer = (
       Effect.log(`Home configuration loaded: ${home.rooms.length} rooms`),
     ),
     Effect.andThen((home) =>
-      startSocketServerAndListen(fs, httpServer, home, config),
+      startSocketServerAndListen(
+        fs,
+        httpServer,
+        home,
+        homeAssistantRuntime,
+        config,
+      ),
     ),
   );
 
@@ -163,10 +195,12 @@ export const runServer = (config: ServerConfig) =>
               }
             }),
         ),
+        // Creates HomeAssistantApi runtime with proper Effect lifecycle
+        homeAssistantRuntime: Layer.toRuntime(HomeAssistantLayer),
       }),
     ),
-    Effect.andThen(({ fs, httpServer }) =>
-      loadAndStartServer(fs, httpServer, config),
+    Effect.andThen(({ fs, httpServer, homeAssistantRuntime }) =>
+      loadAndStartServer(fs, httpServer, homeAssistantRuntime, config),
     ),
     Effect.scoped,
     Effect.provide(BunFileSystem.layer),

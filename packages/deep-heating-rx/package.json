@@ -10,7 +10,6 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@effect/platform": "0.93.3",
     "@home-automation/deep-heating-home-assistant": "workspace:*",
     "@home-automation/deep-heating-types": "workspace:*",
     "@home-automation/rxx": "workspace:*",
