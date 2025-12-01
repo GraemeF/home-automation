@@ -9,16 +9,20 @@
   import { Option, pipe } from 'effect';
   import RoomControls from './RoomControls.svelte';
 
-  export let room: RoomState;
+  interface Props {
+    room: RoomState;
+  }
 
-  const isHeating = pipe(
-    room.isHeating,
-    Option.getOrElse(() => false)
+  let { room }: Props = $props();
+
+  const isHeating = $derived(
+    pipe(
+      room.isHeating,
+      Option.getOrElse(() => false),
+    ),
   );
 
-  const adjust: (adjustment: RoomAdjustment) => RoomAdjustment = (
-    adjustment: RoomAdjustment
-  ) => {
+  const adjust = (adjustment: RoomAdjustment): RoomAdjustment => {
     if ($apiClientStore) $apiClientStore.adjustRoom(adjustment);
     return adjustment;
   };

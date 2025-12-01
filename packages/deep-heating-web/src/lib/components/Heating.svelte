@@ -1,5 +1,9 @@
 <script lang="ts">
-  export let isHeating: boolean = false;
+  interface Props {
+    isHeating?: boolean;
+  }
+
+  let { isHeating = false }: Props = $props();
 </script>
 
 <span
