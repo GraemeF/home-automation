@@ -1,5 +1,11 @@
 # @home-automation/deep-heating
 
+## 0.1.2
+
+### Patch Changes
+
+- [#1154](https://github.com/GraemeF/home-automation/pull/1154) [`af83dd4`](https://github.com/GraemeF/home-automation/commit/af83dd4e9af7e86855f7c5b899d2c599d315a1ea) Thanks [@GraemeF](https://github.com/GraemeF)! - Revert patchShebangs change that broke Docker builds
+
 ## 0.1.1
 
 ### Patch Changes
