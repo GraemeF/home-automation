@@ -206,8 +206,6 @@ export default [
     rules: {
       // SvelteKit SSR uses process.env directly, not Effect's platform abstraction
       'effect/prefer-effect-platform': 'off',
-      // Simple ternaries are fine in UI code
-      'effect/prefer-match-over-ternary': 'off',
       // Svelte stores are inherently mutable
       'functional/prefer-immutable-types': 'off',
       'functional/prefer-readonly-type': 'off',
