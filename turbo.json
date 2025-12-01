@@ -1,6 +1,10 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["eslint.config.mjs", "tsconfig.base.json"],
+  "globalDependencies": [
+    "eslint.config.mjs",
+    "tsconfig.base.json",
+    "package.json"
+  ],
   "tasks": {
     "all": {
       "dependsOn": ["ci"]
@@ -17,7 +21,7 @@
       "outputs": ["coverage/**"]
     },
     "typecheck": {
-      "dependsOn": ["^build", "^typecheck"],
+      "dependsOn": ["^build", "^typecheck", "sync"],
       "outputs": [],
       "inputs": [
         "src/**/*.ts",
@@ -25,7 +29,9 @@
         "**/*.test.ts",
         "**/*.spec.ts",
         "tsconfig*.json",
-        "package.json"
+        "package.json",
+        "svelte.config.js",
+        "vite.config.js"
       ],
       "cache": true
     },
@@ -75,6 +81,7 @@
         "packages/**/*.svelte",
         "packages/**/*.json",
         "packages/**/*.md",
+        "turbo.json",
         ".prettierrc*",
         "prettier.config.*"
       ],
