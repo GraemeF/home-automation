@@ -216,10 +216,10 @@ exec ${pkgs.bun}/bin/bun run $out/lib/deep-heating/server/bundle.js "\$@"
 EOF
               chmod +x $out/bin/deep-heating-server
 
-              # Create web wrapper script (runs with Node, adapter-node output)
+              # Create web wrapper script (runs with Bun, svelte-adapter-bun output)
               cat > $out/bin/deep-heating-web <<EOF
 #!/bin/sh
-exec ${pkgs.nodejs}/bin/node $out/lib/deep-heating/web/index.js "\$@"
+exec ${pkgs.bun}/bin/bun run $out/lib/deep-heating/web/index.js "\$@"
 EOF
               chmod +x $out/bin/deep-heating-web
 
