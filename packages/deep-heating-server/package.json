@@ -6,7 +6,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "serve": "node ../../dist/out-tsc/main.js",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "bun test"
   },
   "dependencies": {
     "@effect/platform": "0.93.3",
