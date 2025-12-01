@@ -218,8 +218,6 @@ export default [
     name: 'server-package',
     files: ['packages/deep-heating-server/**/*.ts'],
     rules: {
-      // Simple ternaries are fine
-      'effect/prefer-match-over-ternary': 'off',
       // Curried calls are needed for functional composition at boundaries
       'effect/no-curried-calls': 'off',
       // Nested pipes are allowed at application entry points
