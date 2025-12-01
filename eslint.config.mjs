@@ -218,8 +218,6 @@ export default [
     rules: {
       // Curried calls are needed for functional composition at boundaries
       'effect/no-curried-calls': 'off',
-      // Nested pipes are allowed at application entry points
-      'effect/no-nested-pipe': 'off',
       // Pipe first arg is common pattern with Config/Ref
       'effect/no-pipe-first-arg-call': 'off',
       // Allow Bun.write for fire-and-forget file writes from RxJS callbacks

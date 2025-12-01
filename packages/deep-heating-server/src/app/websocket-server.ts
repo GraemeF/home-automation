@@ -229,6 +229,81 @@ export interface WebSocketServer {
   readonly shutdown: Effect.Effect<void, never, never>;
 }
 
+const broadcastStateToClients = (
+  serverStateRef: Readonly<Ref.Ref<ServerState>>,
+  currentStateRef: Readonly<Ref.Ref<DeepHeatingState | null>>,
+  state: Readonly<DeepHeatingState>,
+): Effect.Effect<void, never, never> =>
+  pipe(
+    Ref.set(currentStateRef, state),
+    Effect.andThen(
+      broadcastToAllClients(serverStateRef, encodeServerMessage(state)),
+    ),
+  );
+
+const shutdownServerAndCleanup = (
+  server: Bun.Server<WebSocketData>,
+  serverStateRef: Readonly<Ref.Ref<ServerState>>,
+  roomAdjustmentSubject: Subject<RoomAdjustment>,
+): Effect.Effect<void, never, never> =>
+  pipe(
+    Ref.get(serverStateRef),
+    Effect.tap((state) =>
+      Effect.sync(() => {
+        try {
+          Array.from(HashMap.values(state.clients)).forEach((clientState) => {
+            try {
+              clientState.socket.close(1001, 'Server shutting down');
+            } catch {
+              // Ignore errors during cleanup
+            }
+          });
+          server.stop();
+        } catch {
+          // Ignore cleanup errors
+        }
+      }),
+    ),
+    Effect.tap(() =>
+      Effect.sync(() => {
+        roomAdjustmentSubject.complete();
+      }),
+    ),
+    Effect.asVoid,
+  );
+
+const initializeServerWithWebSocket = (
+  config: Readonly<WebSocketServerConfig>,
+  serverStateRef: Readonly<Ref.Ref<ServerState>>,
+  currentStateRef: Readonly<Ref.Ref<DeepHeatingState | null>>,
+  roomAdjustmentSubject: Subject<RoomAdjustment>,
+): Effect.Effect<WebSocketServer, never, never> =>
+  pipe(
+    createWebSocketServer(
+      config,
+      serverStateRef,
+      roomAdjustmentSubject,
+      currentStateRef,
+    ),
+    Effect.tap((server) =>
+      Ref.update(serverStateRef, (state) => ({ ...state, server })),
+    ),
+    Effect.map(
+      (server): WebSocketServer => ({
+        roomAdjustments$: roomAdjustmentSubject.asObservable(),
+
+        broadcast: (state: Readonly<DeepHeatingState>) =>
+          broadcastStateToClients(serverStateRef, currentStateRef, state),
+
+        shutdown: shutdownServerAndCleanup(
+          server,
+          serverStateRef,
+          roomAdjustmentSubject,
+        ),
+      }),
+    ),
+  );
+
 export const createAndStartWebSocketServer = (
   config: Readonly<WebSocketServerConfig>,
 ): Effect.Effect<WebSocketServer, never, never> =>
@@ -243,63 +318,11 @@ export const createAndStartWebSocketServer = (
     }),
     Effect.flatMap(
       ({ serverStateRef, currentStateRef, roomAdjustmentSubject }) =>
-        pipe(
-          createWebSocketServer(
-            config,
-            serverStateRef,
-            roomAdjustmentSubject,
-            currentStateRef,
-          ),
-          Effect.tap((server) =>
-            Ref.update(serverStateRef, (state) => ({ ...state, server })),
-          ),
-          Effect.map(
-            (server): WebSocketServer => ({
-              roomAdjustments$: roomAdjustmentSubject.asObservable(),
-
-              broadcast: (state: Readonly<DeepHeatingState>) =>
-                pipe(
-                  Ref.set(currentStateRef, state),
-                  Effect.andThen(
-                    broadcastToAllClients(
-                      serverStateRef,
-                      encodeServerMessage(state),
-                    ),
-                  ),
-                ),
-
-              shutdown: pipe(
-                Ref.get(serverStateRef),
-                Effect.tap((state) =>
-                  Effect.sync(() => {
-                    try {
-                      Array.from(HashMap.values(state.clients)).forEach(
-                        (clientState) => {
-                          try {
-                            clientState.socket.close(
-                              1001,
-                              'Server shutting down',
-                            );
-                          } catch {
-                            // Ignore errors during cleanup
-                          }
-                        },
-                      );
-                      server.stop();
-                    } catch {
-                      // Ignore cleanup errors
-                    }
-                  }),
-                ),
-                Effect.tap(() =>
-                  Effect.sync(() => {
-                    roomAdjustmentSubject.complete();
-                  }),
-                ),
-                Effect.asVoid,
-              ),
-            }),
-          ),
+        initializeServerWithWebSocket(
+          config,
+          serverStateRef,
+          currentStateRef,
+          roomAdjustmentSubject,
         ),
     ),
   );

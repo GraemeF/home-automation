@@ -81,6 +81,17 @@ const delayThenRun = <A, E>(
   effect: Effect.Effect<A, E, never>,
 ): Effect.Effect<A, E, never> => Effect.flatMap(sleep(ms), () => effect);
 
+const connectToWebSocket = (port: number): Effect.Effect<void, Error, never> =>
+  pipe(
+    Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
+    Effect.flatMap(waitForConnection),
+    Effect.tap(() =>
+      Effect.sync(() => {
+        expect(true).toBe(true); // Connection succeeded
+      }),
+    ),
+  );
+
 // =============================================================================
 // Integration Tests
 // =============================================================================
@@ -92,16 +103,7 @@ describe('WebSocket Server Integration', () => {
     return pipe(
       createTestServer(port),
       Effect.flatMap((server) =>
-        pipe(
-          Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
-          Effect.flatMap(waitForConnection),
-          Effect.tap(() =>
-            Effect.sync(() => {
-              expect(true).toBe(true); // Connection succeeded
-            }),
-          ),
-          Effect.ensuring(server.shutdown),
-        ),
+        Effect.ensuring(connectToWebSocket(port), server.shutdown),
       ),
     );
   });
@@ -110,32 +112,38 @@ describe('WebSocket Server Integration', () => {
     const port = getRandomPort();
     const testState = createTestState();
 
+    const connectAndReceiveStateMessage = (
+      ws: WebSocket,
+    ): Effect.Effect<unknown, Error, never> =>
+      pipe(waitForConnection(ws), Effect.andThen(waitForMessage(ws)));
+
+    const broadcastAndVerifyState = (
+      server: WebSocketServer,
+    ): Effect.Effect<void, Error, never> =>
+      pipe(
+        // Broadcast state first
+        server.broadcast(testState),
+        // Then connect client
+        Effect.andThen(
+          Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
+        ),
+        Effect.flatMap(connectAndReceiveStateMessage),
+        Effect.tap((message) =>
+          Effect.sync(() => {
+            const decoded = Schema.decodeUnknownSync(ServerMessage)(message);
+            expect(decoded.type).toBe('state');
+            if (decoded.type === 'state') {
+              expect(decoded.data.rooms).toHaveLength(1);
+              expect(decoded.data.rooms[0].name).toBe('Living Room');
+            }
+          }),
+        ),
+        Effect.ensuring(server.shutdown),
+      );
+
     return pipe(
       createTestServer(port),
-      Effect.flatMap((server) =>
-        pipe(
-          // Broadcast state first
-          server.broadcast(testState),
-          // Then connect client
-          Effect.andThen(
-            Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
-          ),
-          Effect.flatMap((ws) =>
-            pipe(waitForConnection(ws), Effect.andThen(waitForMessage(ws))),
-          ),
-          Effect.tap((message) =>
-            Effect.sync(() => {
-              const decoded = Schema.decodeUnknownSync(ServerMessage)(message);
-              expect(decoded.type).toBe('state');
-              if (decoded.type === 'state') {
-                expect(decoded.data.rooms).toHaveLength(1);
-                expect(decoded.data.rooms[0].name).toBe('Living Room');
-              }
-            }),
-          ),
-          Effect.ensuring(server.shutdown),
-        ),
-      ),
+      Effect.flatMap(broadcastAndVerifyState),
     );
   });
 
@@ -143,154 +151,184 @@ describe('WebSocket Server Integration', () => {
     const port = getRandomPort();
     const testState = createTestState();
 
+    const connectTwoClientsAndReceiveBroadcast = (
+      ws1: WebSocket,
+      ws2: WebSocket,
+      server: WebSocketServer,
+    ): Effect.Effect<readonly [unknown, unknown, void], Error, never> =>
+      pipe(
+        Effect.all([waitForConnection(ws1), waitForConnection(ws2)]),
+        Effect.andThen(
+          Effect.all(
+            [
+              waitForMessage(ws1),
+              waitForMessage(ws2),
+              delayThenRun(50, server.broadcast(testState)),
+            ],
+            { concurrency: 'unbounded' },
+          ),
+        ),
+      );
+
+    const verifyBroadcastToClients = (
+      server: WebSocketServer,
+    ): Effect.Effect<void, Error, never> =>
+      pipe(
+        // Connect two clients
+        Effect.all([
+          Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
+          Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
+        ]),
+        Effect.flatMap(([ws1, ws2]) =>
+          connectTwoClientsAndReceiveBroadcast(ws1, ws2, server),
+        ),
+        Effect.tap(([msg1, msg2]) =>
+          Effect.sync(() => {
+            const decoded1 = Schema.decodeUnknownSync(ServerMessage)(msg1);
+            const decoded2 = Schema.decodeUnknownSync(ServerMessage)(msg2);
+            expect(decoded1.type).toBe('state');
+            expect(decoded2.type).toBe('state');
+          }),
+        ),
+        Effect.ensuring(server.shutdown),
+      );
+
     return pipe(
       createTestServer(port),
-      Effect.flatMap((server) =>
-        pipe(
-          // Connect two clients
-          Effect.all([
-            Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
-            Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
-          ]),
-          Effect.flatMap(([ws1, ws2]) =>
-            pipe(
-              Effect.all([waitForConnection(ws1), waitForConnection(ws2)]),
-              Effect.andThen(
-                Effect.all(
-                  [
-                    waitForMessage(ws1),
-                    waitForMessage(ws2),
-                    delayThenRun(50, server.broadcast(testState)),
-                  ],
-                  { concurrency: 'unbounded' },
-                ),
-              ),
-            ),
-          ),
-          Effect.tap(([msg1, msg2]) =>
-            Effect.sync(() => {
-              const decoded1 = Schema.decodeUnknownSync(ServerMessage)(msg1);
-              const decoded2 = Schema.decodeUnknownSync(ServerMessage)(msg2);
-              expect(decoded1.type).toBe('state');
-              expect(decoded2.type).toBe('state');
-            }),
-          ),
-          Effect.ensuring(server.shutdown),
-        ),
-      ),
+      Effect.flatMap(verifyBroadcastToClients),
     );
   });
 
   it.scoped('should receive room adjustments from clients', () => {
     const port = getRandomPort();
 
-    return pipe(
-      createTestServer(port),
-      Effect.flatMap((server) =>
-        pipe(
-          Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
-          Effect.flatMap((ws) =>
-            pipe(
-              waitForConnection(ws),
-              Effect.andThen(
-                Effect.all(
-                  [
-                    // Listen for adjustments
-                    Effect.promise(() =>
-                      firstValueFrom(
-                        server.roomAdjustments$.pipe(take(1), timeout(5000)),
-                      ),
-                    ),
-                    delayThenRun(
-                      50,
-                      Effect.sync(() => {
-                        const adjustment: RoomAdjustment = {
-                          roomName: 'Living Room',
-                          adjustment: 1.5,
-                        };
-                        const message = Schema.encodeSync(ClientMessage)({
-                          type: 'adjust_room',
-                          data: adjustment,
-                        });
-                        ws.send(JSON.stringify(message));
-                      }),
-                    ),
-                  ],
-                  { concurrency: 'unbounded' },
+    const sendRoomAdjustmentAndWaitForReceipt = (
+      ws: WebSocket,
+      server: WebSocketServer,
+    ): Effect.Effect<readonly [RoomAdjustment, void], Error, never> =>
+      pipe(
+        waitForConnection(ws),
+        Effect.andThen(
+          Effect.all(
+            [
+              // Listen for adjustments
+              Effect.promise(() =>
+                firstValueFrom(
+                  server.roomAdjustments$.pipe(take(1), timeout(5000)),
                 ),
               ),
-            ),
+              delayThenRun(
+                50,
+                Effect.sync(() => {
+                  const adjustment: RoomAdjustment = {
+                    roomName: 'Living Room',
+                    adjustment: 1.5,
+                  };
+                  const message = Schema.encodeSync(ClientMessage)({
+                    type: 'adjust_room',
+                    data: adjustment,
+                  });
+                  ws.send(JSON.stringify(message));
+                }),
+              ),
+            ],
+            { concurrency: 'unbounded' },
           ),
-          Effect.tap(([received]) =>
-            Effect.sync(() => {
-              expect(received.roomName).toBe('Living Room');
-              expect(received.adjustment).toBe(1.5);
-            }),
-          ),
-          Effect.ensuring(server.shutdown),
         ),
-      ),
+      );
+
+    const verifyRoomAdjustmentReceived = (
+      server: WebSocketServer,
+    ): Effect.Effect<void, Error, never> =>
+      pipe(
+        Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
+        Effect.flatMap((ws) => sendRoomAdjustmentAndWaitForReceipt(ws, server)),
+        Effect.tap(([received]) =>
+          Effect.sync(() => {
+            expect(received.roomName).toBe('Living Room');
+            expect(received.adjustment).toBe(1.5);
+          }),
+        ),
+        Effect.ensuring(server.shutdown),
+      );
+
+    return pipe(
+      createTestServer(port),
+      Effect.flatMap(verifyRoomAdjustmentReceived),
     );
   });
 
   it.scoped('should handle multiple room adjustments', () => {
     const port = getRandomPort();
 
-    return pipe(
-      createTestServer(port),
-      Effect.flatMap((server) =>
-        pipe(
-          Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
-          Effect.flatMap((ws) =>
-            pipe(
-              waitForConnection(ws),
-              Effect.andThen(
-                Effect.all(
-                  [
-                    // Listen for adjustments
-                    Effect.promise(() =>
-                      firstValueFrom(
-                        server.roomAdjustments$.pipe(
-                          take(3),
-                          toArray(),
-                          timeout(5000),
-                        ),
-                      ),
-                    ),
-                    delayThenRun(
-                      50,
-                      Effect.sync(() => {
-                        const adjustments: readonly RoomAdjustment[] = [
-                          { roomName: 'Living Room', adjustment: 1.0 },
-                          { roomName: 'Bedroom', adjustment: -0.5 },
-                          { roomName: 'Kitchen', adjustment: 2.0 },
-                        ];
-                        adjustments.forEach((adjustment) => {
-                          const message = Schema.encodeSync(ClientMessage)({
-                            type: 'adjust_room',
-                            data: adjustment,
-                          });
-                          ws.send(JSON.stringify(message));
-                        });
-                      }),
-                    ),
-                  ],
-                  { concurrency: 'unbounded' },
+    const sendMultipleAdjustmentsAndWaitForReceipt = (
+      ws: WebSocket,
+      server: WebSocketServer,
+    ): Effect.Effect<
+      readonly [readonly RoomAdjustment[], void],
+      Error,
+      never
+    > =>
+      pipe(
+        waitForConnection(ws),
+        Effect.andThen(
+          Effect.all(
+            [
+              // Listen for adjustments
+              Effect.promise(() =>
+                firstValueFrom(
+                  server.roomAdjustments$.pipe(
+                    take(3),
+                    toArray(),
+                    timeout(5000),
+                  ),
                 ),
               ),
-            ),
+              delayThenRun(
+                50,
+                Effect.sync(() => {
+                  const adjustments: readonly RoomAdjustment[] = [
+                    { roomName: 'Living Room', adjustment: 1.0 },
+                    { roomName: 'Bedroom', adjustment: -0.5 },
+                    { roomName: 'Kitchen', adjustment: 2.0 },
+                  ];
+                  adjustments.forEach((adjustment) => {
+                    const message = Schema.encodeSync(ClientMessage)({
+                      type: 'adjust_room',
+                      data: adjustment,
+                    });
+                    ws.send(JSON.stringify(message));
+                  });
+                }),
+              ),
+            ],
+            { concurrency: 'unbounded' },
           ),
-          Effect.tap(([received]) =>
-            Effect.sync(() => {
-              expect(received).toHaveLength(3);
-              expect(received[0].roomName).toBe('Living Room');
-              expect(received[1].roomName).toBe('Bedroom');
-              expect(received[2].roomName).toBe('Kitchen');
-            }),
-          ),
-          Effect.ensuring(server.shutdown),
         ),
-      ),
+      );
+
+    const verifyMultipleAdjustmentsReceived = (
+      server: WebSocketServer,
+    ): Effect.Effect<void, Error, never> =>
+      pipe(
+        Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
+        Effect.flatMap((ws) =>
+          sendMultipleAdjustmentsAndWaitForReceipt(ws, server),
+        ),
+        Effect.tap(([received]) =>
+          Effect.sync(() => {
+            expect(received).toHaveLength(3);
+            expect(received[0].roomName).toBe('Living Room');
+            expect(received[1].roomName).toBe('Bedroom');
+            expect(received[2].roomName).toBe('Kitchen');
+          }),
+        ),
+        Effect.ensuring(server.shutdown),
+      );
+
+    return pipe(
+      createTestServer(port),
+      Effect.flatMap(verifyMultipleAdjustmentsReceived),
     );
   });
 
@@ -298,76 +336,97 @@ describe('WebSocket Server Integration', () => {
     const port = getRandomPort();
     const testState = createTestState();
 
+    const connectSecondClientAndReceiveBroadcast = (
+      ws2: WebSocket,
+      server: WebSocketServer,
+    ): Effect.Effect<readonly [unknown, void], Error, never> =>
+      pipe(
+        waitForConnection(ws2),
+        Effect.andThen(
+          Effect.all(
+            [
+              waitForMessage(ws2),
+              delayThenRun(50, server.broadcast(testState)),
+            ],
+            { concurrency: 'unbounded' },
+          ),
+        ),
+      );
+
+    const sendMalformedMessagesAndVerifyServerStillWorks = (
+      ws: WebSocket,
+      server: WebSocketServer,
+    ): Effect.Effect<unknown, Error, never> =>
+      pipe(
+        waitForConnection(ws),
+        // Send malformed messages
+        Effect.tap(() =>
+          Effect.sync(() => {
+            ws.send('not json');
+            ws.send('{"invalid": "message"}');
+            ws.send('{"type": "unknown_type", "data": {}}');
+          }),
+        ),
+        // Wait a bit
+        Effect.andThen(sleep(100)),
+        // Server should still work
+        Effect.andThen(
+          Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
+        ),
+        Effect.flatMap((ws2) =>
+          connectSecondClientAndReceiveBroadcast(ws2, server),
+        ),
+        Effect.tap(([message]) =>
+          Effect.sync(() => {
+            expect(message).toBeDefined();
+          }),
+        ),
+      );
+
+    const verifyMalformedMessagesIgnored = (
+      server: WebSocketServer,
+    ): Effect.Effect<void, Error, never> =>
+      pipe(
+        Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
+        Effect.flatMap((ws) =>
+          sendMalformedMessagesAndVerifyServerStillWorks(ws, server),
+        ),
+        Effect.ensuring(server.shutdown),
+      );
+
     return pipe(
       createTestServer(port),
-      Effect.flatMap((server) =>
-        pipe(
-          Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
-          Effect.flatMap((ws) =>
-            pipe(
-              waitForConnection(ws),
-              // Send malformed messages
-              Effect.tap(() =>
-                Effect.sync(() => {
-                  ws.send('not json');
-                  ws.send('{"invalid": "message"}');
-                  ws.send('{"type": "unknown_type", "data": {}}');
-                }),
-              ),
-              // Wait a bit
-              Effect.andThen(sleep(100)),
-              // Server should still work
-              Effect.andThen(
-                Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
-              ),
-              Effect.flatMap((ws2) =>
-                pipe(
-                  waitForConnection(ws2),
-                  Effect.andThen(
-                    Effect.all(
-                      [
-                        waitForMessage(ws2),
-                        delayThenRun(50, server.broadcast(testState)),
-                      ],
-                      { concurrency: 'unbounded' },
-                    ),
-                  ),
-                ),
-              ),
-              Effect.tap(([message]) =>
-                Effect.sync(() => {
-                  expect(message).toBeDefined();
-                }),
-              ),
-            ),
-          ),
-          Effect.ensuring(server.shutdown),
-        ),
-      ),
+      Effect.flatMap(verifyMalformedMessagesIgnored),
     );
   });
 
   it.scoped('should complete roomAdjustments$ observable on shutdown', () => {
     const port = getRandomPort();
 
+    const shutdownAndVerifyCompletion = (
+      server: WebSocketServer,
+      completed: { readonly value: boolean },
+    ): Effect.Effect<void, never, never> =>
+      pipe(
+        server.shutdown,
+        Effect.tap(() =>
+          Effect.sync(() => {
+            expect(completed.value).toBe(true);
+          }),
+        ),
+      );
+
     return pipe(
       createTestServer(port),
       Effect.flatMap((server) => {
-        let completed = false;
+        const completed = { value: false };
         server.roomAdjustments$.subscribe({
           complete: () => {
-            completed = true;
+            completed.value = true;
           },
         });
 
-        return pipe(
-          server.shutdown,
-          Effect.tap(() =>
-            Effect.sync(() => {
-              expect(completed).toBe(true);
-            }),
-          ),
-        );
+        return shutdownAndVerifyCompletion(server, completed);
       }),
     );
   });
@@ -378,43 +437,53 @@ describe('WebSocket Server - Edge Cases', () => {
     const port = getRandomPort();
     const testState = createTestState();
 
+    const disconnectFirstClientAndBroadcastToSecond = (
+      ws1: WebSocket,
+      ws2: WebSocket,
+      server: WebSocketServer,
+    ): Effect.Effect<readonly [unknown, void], Error, never> =>
+      pipe(
+        Effect.all([waitForConnection(ws1), waitForConnection(ws2)]),
+        // Disconnect first client
+        Effect.tap(Effect.sync(ws1.close.bind(ws1))),
+        // Wait for disconnection
+        Effect.andThen(sleep(100)),
+        // Broadcast to remaining client
+        Effect.andThen(
+          Effect.all(
+            [
+              waitForMessage(ws2),
+              delayThenRun(50, server.broadcast(testState)),
+            ],
+            { concurrency: 'unbounded' },
+          ),
+        ),
+      );
+
+    const verifyDisconnectionHandling = (
+      server: WebSocketServer,
+    ): Effect.Effect<void, Error, never> =>
+      pipe(
+        // Connect two clients
+        Effect.all([
+          Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
+          Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
+        ]),
+        Effect.flatMap(([ws1, ws2]) =>
+          disconnectFirstClientAndBroadcastToSecond(ws1, ws2, server),
+        ),
+        Effect.tap(([message]) =>
+          Effect.sync(() => {
+            const decoded = Schema.decodeUnknownSync(ServerMessage)(message);
+            expect(decoded.type).toBe('state');
+          }),
+        ),
+        Effect.ensuring(server.shutdown),
+      );
+
     return pipe(
       createTestServer(port),
-      Effect.flatMap((server) =>
-        pipe(
-          // Connect two clients
-          Effect.all([
-            Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
-            Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
-          ]),
-          Effect.flatMap(([ws1, ws2]) =>
-            pipe(
-              Effect.all([waitForConnection(ws1), waitForConnection(ws2)]),
-              // Disconnect first client
-              Effect.tap(Effect.sync(ws1.close.bind(ws1))),
-              // Wait for disconnection
-              Effect.andThen(sleep(100)),
-              // Broadcast to remaining client
-              Effect.andThen(
-                Effect.all(
-                  [
-                    waitForMessage(ws2),
-                    delayThenRun(50, server.broadcast(testState)),
-                  ],
-                  { concurrency: 'unbounded' },
-                ),
-              ),
-            ),
-          ),
-          Effect.tap(([message]) =>
-            Effect.sync(() => {
-              const decoded = Schema.decodeUnknownSync(ServerMessage)(message);
-              expect(decoded.type).toBe('state');
-            }),
-          ),
-          Effect.ensuring(server.shutdown),
-        ),
-      ),
+      Effect.flatMap(verifyDisconnectionHandling),
     );
   });
 });

@@ -108,6 +108,64 @@ const startHeatingSystem = (
     Effect.asVoid,
   );
 
+const createWebSocketServerWithLogging = (
+  port: number,
+  path: string,
+): Effect.Effect<WebSocketServer, never, Scope.Scope> =>
+  pipe(
+    createAndStartWebSocketServer({ port, path }),
+    Effect.tap(() => Effect.log(`WebSocket server listening on port ${port}`)),
+  );
+
+const shutdownWebSocketServerWithLogging = (
+  wsServer: WebSocketServer,
+): Effect.Effect<void, never, never> =>
+  pipe(
+    Effect.log('Shutting down WebSocket server...'),
+    Effect.andThen(wsServer.shutdown),
+    Effect.andThen(Effect.log('Server shut down')),
+  );
+
+const runHeatingSystemWithCleanup = (
+  wsServer: WebSocketServer,
+  home: Home,
+  initialRoomAdjustments: readonly RoomAdjustment[],
+  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
+  roomAdjustmentsPath: string,
+): Effect.Effect<never, never, Scope.Scope> =>
+  pipe(
+    startHeatingSystem(
+      wsServer,
+      home,
+      initialRoomAdjustments,
+      homeAssistantRuntime,
+      roomAdjustmentsPath,
+    ),
+    Effect.zipRight(
+      Effect.addFinalizer(() => shutdownWebSocketServerWithLogging(wsServer)),
+    ),
+    Effect.zipRight(Effect.never),
+  );
+
+const setupWebSocketServerAndRunHeatingSystem = (
+  home: Home,
+  initialRoomAdjustments: readonly RoomAdjustment[],
+  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
+  config: ServerConfig,
+): Effect.Effect<never, never, Scope.Scope> =>
+  pipe(
+    createWebSocketServerWithLogging(config.port, config.websocketPath),
+    Effect.flatMap((wsServer) =>
+      runHeatingSystemWithCleanup(
+        wsServer,
+        home,
+        initialRoomAdjustments,
+        homeAssistantRuntime,
+        config.roomAdjustmentsPath,
+      ),
+    ),
+  );
+
 const startServer = (
   fs: FileSystem.FileSystem,
   home: Home,
@@ -120,35 +178,11 @@ const startServer = (
       Effect.log(`Loaded ${adjustments.length} room adjustments`),
     ),
     Effect.flatMap((initialRoomAdjustments) =>
-      pipe(
-        createAndStartWebSocketServer({
-          port: config.port,
-          path: config.websocketPath,
-        }),
-        Effect.tap(() =>
-          Effect.log(`WebSocket server listening on port ${config.port}`),
-        ),
-        Effect.flatMap((wsServer) =>
-          pipe(
-            startHeatingSystem(
-              wsServer,
-              home,
-              initialRoomAdjustments,
-              homeAssistantRuntime,
-              config.roomAdjustmentsPath,
-            ),
-            Effect.zipRight(
-              Effect.addFinalizer(() =>
-                pipe(
-                  Effect.log('Shutting down WebSocket server...'),
-                  Effect.andThen(wsServer.shutdown),
-                  Effect.andThen(Effect.log('Server shut down')),
-                ),
-              ),
-            ),
-            Effect.zipRight(Effect.never),
-          ),
-        ),
+      setupWebSocketServerAndRunHeatingSystem(
+        home,
+        initialRoomAdjustments,
+        homeAssistantRuntime,
+        config,
       ),
     ),
   );
