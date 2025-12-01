@@ -86,42 +86,51 @@ const parseClientMessage = (data: Readonly<string>) =>
     Effect.flatMap(Schema.decodeUnknown(ClientMessage)),
   );
 
-const handleClientMessage =
-  (roomAdjustmentSubject: Subject<RoomAdjustment>) =>
-  (data: Readonly<string>): Effect.Effect<void, never, never> =>
-    pipe(
-      parseClientMessage(data),
-      Effect.tap((message) =>
-        Effect.sync(() => {
-          if (message.type === 'adjust_room') {
-            roomAdjustmentSubject.next(message.data);
-          }
-        }),
-      ),
-      Effect.catchAll(() => Effect.void),
-    );
+const handleClientMessage = (
+  roomAdjustmentSubject: Subject<RoomAdjustment>,
+  data: Readonly<string>,
+): Effect.Effect<void, never, never> =>
+  pipe(
+    parseClientMessage(data),
+    Effect.tap((message) =>
+      Effect.sync(() => {
+        if (message.type === 'adjust_room') {
+          roomAdjustmentSubject.next(message.data);
+        }
+      }),
+    ),
+    Effect.catchAll(() => Effect.void),
+  );
 
 // =============================================================================
 // Broadcasting
 // =============================================================================
 
+const encodeDeepHeatingState = (
+  state: Readonly<DeepHeatingState>,
+): typeof DeepHeatingState.Encoded => {
+  const encoder = Schema.encodeSync(DeepHeatingState);
+  return encoder(state);
+};
+
 const encodeServerMessage = (
   state: Readonly<DeepHeatingState>,
 ): ServerMessageEncoded => ({
   type: 'state',
-  data: Schema.encodeSync(DeepHeatingState)(state),
+  data: encodeDeepHeatingState(state),
 });
 
-const sendToSingleClient =
-  (message: Readonly<ServerMessageEncoded>) =>
-  (clientState: Readonly<ClientState>): Effect.Effect<void, never, never> =>
-    Effect.try({
-      try: () => {
-        const serialized = JSON.stringify(message);
-        clientState.socket.send(serialized);
-      },
-      catch: () => undefined,
-    }).pipe(Effect.catchAll(() => Effect.void));
+const sendToSingleClient = (
+  message: Readonly<ServerMessageEncoded>,
+  clientState: Readonly<ClientState>,
+): Effect.Effect<void, never, never> =>
+  Effect.try({
+    try: () => {
+      const serialized = JSON.stringify(message);
+      clientState.socket.send(serialized);
+    },
+    catch: () => undefined,
+  }).pipe(Effect.catchAll(() => Effect.void));
 
 const broadcastToAllClients = (
   serverStateRef: Readonly<Ref.Ref<ServerState>>,
@@ -133,7 +142,7 @@ const broadcastToAllClients = (
     Effect.flatMap((state) =>
       Effect.forEach(
         HashMap.values(state.clients),
-        sendToSingleClient(message),
+        (clientState) => sendToSingleClient(message, clientState),
         {
           discard: true,
         },
@@ -176,7 +185,7 @@ const createWebSocketServer = (
               Effect.andThen(Ref.get(currentState)),
               Effect.tap((state) =>
                 state !== null
-                  ? sendToSingleClient(encodeServerMessage(state))(clientState)
+                  ? sendToSingleClient(encodeServerMessage(state), clientState)
                   : Effect.void,
               ),
             ),
@@ -190,7 +199,7 @@ const createWebSocketServer = (
           const data =
             typeof message === 'string' ? message : message.toString();
           // eslint-disable-next-line effect/no-runSync -- WebSocket message handler is a sync callback at application boundary
-          Effect.runSync(handleClientMessage(roomAdjustmentSubject)(data));
+          Effect.runSync(handleClientMessage(roomAdjustmentSubject, data));
         },
 
         close: (ws: Bun.ServerWebSocket<WebSocketData>) => {

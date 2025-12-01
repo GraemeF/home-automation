@@ -23,6 +23,11 @@ import { firstValueFrom, take, toArray, timeout } from 'rxjs';
 // Test Utilities
 // =============================================================================
 
+// Schema wrapper functions to avoid curried calls
+const decodeServerMessage = Schema.decodeUnknownSync(ServerMessage);
+
+const encodeClientMessage = Schema.encodeSync(ClientMessage);
+
 const getRandomPort = () => Math.floor(Math.random() * (65535 - 49152) + 49152);
 
 const createTestState = (): DeepHeatingState => ({
@@ -130,7 +135,7 @@ describe('WebSocket Server Integration', () => {
         Effect.flatMap(connectAndReceiveStateMessage),
         Effect.tap((message) =>
           Effect.sync(() => {
-            const decoded = Schema.decodeUnknownSync(ServerMessage)(message);
+            const decoded = decodeServerMessage(message);
             expect(decoded.type).toBe('state');
             if (decoded.type === 'state') {
               expect(decoded.data.rooms).toHaveLength(1);
@@ -184,8 +189,8 @@ describe('WebSocket Server Integration', () => {
         ),
         Effect.tap(([msg1, msg2]) =>
           Effect.sync(() => {
-            const decoded1 = Schema.decodeUnknownSync(ServerMessage)(msg1);
-            const decoded2 = Schema.decodeUnknownSync(ServerMessage)(msg2);
+            const decoded1 = decodeServerMessage(msg1);
+            const decoded2 = decodeServerMessage(msg2);
             expect(decoded1.type).toBe('state');
             expect(decoded2.type).toBe('state');
           }),
@@ -224,7 +229,7 @@ describe('WebSocket Server Integration', () => {
                     roomName: 'Living Room',
                     adjustment: 1.5,
                   };
-                  const message = Schema.encodeSync(ClientMessage)({
+                  const message = encodeClientMessage({
                     type: 'adjust_room',
                     data: adjustment,
                   });
@@ -293,7 +298,7 @@ describe('WebSocket Server Integration', () => {
                     { roomName: 'Kitchen', adjustment: 2.0 },
                   ];
                   adjustments.forEach((adjustment) => {
-                    const message = Schema.encodeSync(ClientMessage)({
+                    const message = encodeClientMessage({
                       type: 'adjust_room',
                       data: adjustment,
                     });
@@ -474,7 +479,7 @@ describe('WebSocket Server - Edge Cases', () => {
         ),
         Effect.tap(([message]) =>
           Effect.sync(() => {
-            const decoded = Schema.decodeUnknownSync(ServerMessage)(message);
+            const decoded = decodeServerMessage(message);
             expect(decoded.type).toBe('state');
           }),
         ),
