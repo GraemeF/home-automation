@@ -663,13 +663,13 @@
      url = "https://registry.npmjs.org/@sveltejs/kit/-/kit-2.5.26.tgz";
      hash = "sha512-8l1JTIM2L+bS8ebq1E+nGjv/YSKSnD9Q19bYIUkc41vaEG2JjVUx6ikvPIJv2hkQAuqJLzoPrXlKk4KcyWOv3Q==";
   };
-  "@sveltejs/vite-plugin-svelte-inspector@2.1.0" = fetchurl {
-     url = "https://registry.npmjs.org/@sveltejs/vite-plugin-svelte-inspector/-/vite-plugin-svelte-inspector-2.1.0.tgz";
-     hash = "sha512-9QX28IymvBlSCqsCll5t0kQVxipsfhFFL+L2t3nTWfXnddYwxBuAEtTtlaVQpRz9c37BhJjltSeY4AJSC03SSg==";
+  "@sveltejs/vite-plugin-svelte-inspector@5.0.1" = fetchurl {
+     url = "https://registry.npmjs.org/@sveltejs/vite-plugin-svelte-inspector/-/vite-plugin-svelte-inspector-5.0.1.tgz";
+     hash = "sha512-ubWshlMk4bc8mkwWbg6vNvCeT7lGQojE3ijDh3QTR6Zr/R+GXxsGbyH4PExEPpiFmqPhYiVSVmHBjUcVc1JIrA==";
   };
-  "@sveltejs/vite-plugin-svelte@3.1.2" = fetchurl {
-     url = "https://registry.npmjs.org/@sveltejs/vite-plugin-svelte/-/vite-plugin-svelte-3.1.2.tgz";
-     hash = "sha512-Txsm1tJvtiYeLUVRNqxZGKR/mI+CzuIQuc2gn+YCs9rMTowpNZ2Nqt53JdL8KF9bLhAf2ruR/dr9eZCwdTriRA==";
+  "@sveltejs/vite-plugin-svelte@6.2.1" = fetchurl {
+     url = "https://registry.npmjs.org/@sveltejs/vite-plugin-svelte/-/vite-plugin-svelte-6.2.1.tgz";
+     hash = "sha512-YZs/OSKOQAQCnJvM/P+F1URotNnYNeU3P2s4oIpzm1uFaqUEqRxUB0g5ejMjEb5Gjb9/PiBI5Ktrq4rUUF8UVQ==";
   };
   "@testing-library/dom@10.4.1" = fetchurl {
      url = "https://registry.npmjs.org/@testing-library/dom/-/dom-10.4.1.tgz";
@@ -2124,10 +2124,6 @@
      url = "https://registry.npmjs.org/svelte-eslint-parser/-/svelte-eslint-parser-0.43.0.tgz";
      hash = "sha512-GpU52uPKKcVnh8tKN5P4UZpJ/fUDndmq7wfsvoVXsyP+aY0anol7Yqo01fyrlaWGMFfm4av5DyrjlaXdLRJvGA==";
   };
-  "svelte-hmr@0.16.0" = fetchurl {
-     url = "https://registry.npmjs.org/svelte-hmr/-/svelte-hmr-0.16.0.tgz";
-     hash = "sha512-Gyc7cOS3VJzLlfj7wKS0ZnzDVdv3Pn2IuVeJPk9m2skfhcu5bq3wtIZyQGggr7/Iim5rH5cncyQft/kRLupcnA==";
-  };
   "svelte-material-icons@3.0.5" = fetchurl {
      url = "https://registry.npmjs.org/svelte-material-icons/-/svelte-material-icons-3.0.5.tgz";
      hash = "sha512-UbhAa+Btd5y6e6DMljVccP+cbJ8lvesltMippiCOvfIUtYe2TsQqM+P6osfrVsZHV47b1tY6AmqCuSpMKnwMOQ==";
@@ -2300,9 +2296,9 @@
      url = "https://registry.npmjs.org/vite/-/vite-5.4.21.tgz";
      hash = "sha512-o5a9xKjbtuhY6Bi5S3+HvbRERmouabWbyUcpXXUA1u+GNUKoROi9byOJ8M0nHbHYHkYICiMlqxkg1KkYmm25Sw==";
   };
-  "vitefu@0.2.5" = fetchurl {
-     url = "https://registry.npmjs.org/vitefu/-/vitefu-0.2.5.tgz";
-     hash = "sha512-SgHtMLoqaeeGnd2evZ849ZbACbnwQCIwRH57t18FxcXoZop0uQu0uzlIhJBlF/eWVzuce0sHeqPcDo+evVcg8Q==";
+  "vitefu@1.1.1" = fetchurl {
+     url = "https://registry.npmjs.org/vitefu/-/vitefu-1.1.1.tgz";
+     hash = "sha512-B/Fegf3i8zh0yFbpzZ21amWzHmuNlLlmJT6n7bu5e+pCHUKQIfXSYokrqOBGEMMe9UG2sostKQF9mml/vYaWJQ==";
   };
   "vscode-jsonrpc@6.0.0" = fetchurl {
      url = "https://registry.npmjs.org/vscode-jsonrpc/-/vscode-jsonrpc-6.0.0.tgz";
