@@ -82,7 +82,8 @@ const removeClientFromServerState = (
 
 const parseClientMessage = (data: Readonly<string>) =>
   pipe(
-    Effect.try(() => JSON.parse(data) as unknown),
+    data,
+    (d) => Effect.try(() => JSON.parse(d) as unknown),
     Effect.flatMap(Schema.decodeUnknown(ClientMessage)),
   );
 
@@ -91,7 +92,8 @@ const handleClientMessage = (
   data: Readonly<string>,
 ): Effect.Effect<void, never, never> =>
   pipe(
-    parseClientMessage(data),
+    data,
+    parseClientMessage,
     Effect.tap((message) =>
       Effect.sync(() => {
         if (message.type === 'adjust_room') {
@@ -256,7 +258,8 @@ const shutdownServerAndCleanup = (
   roomAdjustmentSubject: Subject<RoomAdjustment>,
 ): Effect.Effect<void, never, never> =>
   pipe(
-    Ref.get(serverStateRef),
+    serverStateRef,
+    Ref.get,
     Effect.tap((state) =>
       Effect.sync(() => {
         try {
@@ -317,14 +320,15 @@ export const createAndStartWebSocketServer = (
   config: Readonly<WebSocketServerConfig>,
 ): Effect.Effect<WebSocketServer, never, never> =>
   pipe(
-    Effect.all({
+    {
       serverStateRef: Ref.make<ServerState>({
         server: null,
         clients: HashMap.empty(),
       }),
       currentStateRef: Ref.make<DeepHeatingState | null>(null),
       roomAdjustmentSubject: Effect.sync(() => new Subject<RoomAdjustment>()),
-    }),
+    },
+    Effect.all,
     Effect.flatMap(
       ({ serverStateRef, currentStateRef, roomAdjustmentSubject }) =>
         initializeServerWithWebSocket(

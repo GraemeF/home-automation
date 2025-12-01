@@ -63,7 +63,7 @@ const startHeatingSystem = (
   roomAdjustmentsPath: string,
 ): Effect.Effect<void, never, Scope.Scope> =>
   pipe(
-    Effect.sync(() => {
+    () => {
       // Convert the Effect Stream to RxJS Observable for the heating system
       const entityUpdates$ = streamToObservable(
         getEntityUpdatesStream.pipe(Stream.provideLayer(HomeAssistantLayer)),
@@ -97,7 +97,8 @@ const startHeatingSystem = (
       });
 
       return { broadcastSubscription, saveSubscription };
-    }),
+    },
+    Effect.sync,
     Effect.tap(() =>
       Effect.addFinalizer(() =>
         Effect.sync(() => {
@@ -113,7 +114,8 @@ const createWebSocketServerWithLogging = (
   path: string,
 ): Effect.Effect<WebSocketServer, never, Scope.Scope> =>
   pipe(
-    createAndStartWebSocketServer({ port, path }),
+    { port, path },
+    createAndStartWebSocketServer,
     Effect.tap(() => Effect.log(`WebSocket server listening on port ${port}`)),
   );
 
@@ -121,7 +123,8 @@ const shutdownWebSocketServerWithLogging = (
   wsServer: WebSocketServer,
 ): Effect.Effect<void, never, never> =>
   pipe(
-    Effect.log('Shutting down WebSocket server...'),
+    'Shutting down WebSocket server...',
+    Effect.log,
     Effect.andThen(wsServer.shutdown),
     Effect.andThen(Effect.log('Server shut down')),
   );

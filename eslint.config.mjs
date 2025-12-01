@@ -216,8 +216,6 @@ export default [
     name: 'server-package',
     files: ['packages/deep-heating-server/**/*.ts'],
     rules: {
-      // Pipe first arg is common pattern with Config/Ref
-      'effect/no-pipe-first-arg-call': 'off',
       // Allow Bun.write for fire-and-forget file writes from RxJS callbacks
       'effect/prefer-effect-platform': 'off',
     },

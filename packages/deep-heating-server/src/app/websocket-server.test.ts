@@ -88,7 +88,8 @@ const delayThenRun = <A, E>(
 
 const connectToWebSocket = (port: number): Effect.Effect<void, Error, never> =>
   pipe(
-    Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
+    () => new WebSocket(`ws://localhost:${port}/ws`),
+    Effect.sync,
     Effect.flatMap(waitForConnection),
     Effect.tap(() =>
       Effect.sync(() => {
@@ -106,7 +107,8 @@ describe('WebSocket Server Integration', () => {
     const port = getRandomPort();
 
     return pipe(
-      createTestServer(port),
+      port,
+      createTestServer,
       Effect.flatMap((server) =>
         Effect.ensuring(connectToWebSocket(port), server.shutdown),
       ),
@@ -120,18 +122,20 @@ describe('WebSocket Server Integration', () => {
     const connectAndReceiveStateMessage = (
       ws: WebSocket,
     ): Effect.Effect<unknown, Error, never> =>
-      pipe(waitForConnection(ws), Effect.andThen(waitForMessage(ws)));
+      pipe(ws, waitForConnection, Effect.andThen(waitForMessage(ws)));
+
+    const createWebSocketEffect = (): Effect.Effect<WebSocket, never, never> =>
+      pipe(() => new WebSocket(`ws://localhost:${port}/ws`), Effect.sync);
 
     const broadcastAndVerifyState = (
       server: WebSocketServer,
     ): Effect.Effect<void, Error, never> =>
       pipe(
         // Broadcast state first
-        server.broadcast(testState),
+        testState,
+        server.broadcast,
         // Then connect client
-        Effect.andThen(
-          Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
-        ),
+        Effect.andThen(createWebSocketEffect()),
         Effect.flatMap(connectAndReceiveStateMessage),
         Effect.tap((message) =>
           Effect.sync(() => {
@@ -147,7 +151,8 @@ describe('WebSocket Server Integration', () => {
       );
 
     return pipe(
-      createTestServer(port),
+      port,
+      createTestServer,
       Effect.flatMap(broadcastAndVerifyState),
     );
   });
@@ -160,30 +165,37 @@ describe('WebSocket Server Integration', () => {
       ws1: WebSocket,
       ws2: WebSocket,
       server: WebSocketServer,
-    ): Effect.Effect<readonly [unknown, unknown, void], Error, never> =>
-      pipe(
-        Effect.all([waitForConnection(ws1), waitForConnection(ws2)]),
+    ): Effect.Effect<readonly [unknown, unknown, void], Error, never> => {
+      const broadcastTestState = pipe(testState, server.broadcast);
+      return pipe(
+        [waitForConnection(ws1), waitForConnection(ws2)],
+        Effect.all,
         Effect.andThen(
           Effect.all(
             [
               waitForMessage(ws1),
               waitForMessage(ws2),
-              delayThenRun(50, server.broadcast(testState)),
+              delayThenRun(50, broadcastTestState),
             ],
             { concurrency: 'unbounded' },
           ),
         ),
       );
+    };
+
+    const createWebSocketEffect1 = (): Effect.Effect<WebSocket, never, never> =>
+      pipe(() => new WebSocket(`ws://localhost:${port}/ws`), Effect.sync);
+
+    const createWebSocketEffect2 = (): Effect.Effect<WebSocket, never, never> =>
+      pipe(() => new WebSocket(`ws://localhost:${port}/ws`), Effect.sync);
 
     const verifyBroadcastToClients = (
       server: WebSocketServer,
     ): Effect.Effect<void, Error, never> =>
       pipe(
         // Connect two clients
-        Effect.all([
-          Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
-          Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
-        ]),
+        [createWebSocketEffect1(), createWebSocketEffect2()],
+        Effect.all,
         Effect.flatMap(([ws1, ws2]) =>
           connectTwoClientsAndReceiveBroadcast(ws1, ws2, server),
         ),
@@ -199,7 +211,8 @@ describe('WebSocket Server Integration', () => {
       );
 
     return pipe(
-      createTestServer(port),
+      port,
+      createTestServer,
       Effect.flatMap(verifyBroadcastToClients),
     );
   });
@@ -210,18 +223,21 @@ describe('WebSocket Server Integration', () => {
     const sendRoomAdjustmentAndWaitForReceipt = (
       ws: WebSocket,
       server: WebSocketServer,
-    ): Effect.Effect<readonly [RoomAdjustment, void], Error, never> =>
-      pipe(
-        waitForConnection(ws),
+    ): Effect.Effect<readonly [RoomAdjustment, void], Error, never> => {
+      const listenForAdjustment = pipe(
+        () =>
+          firstValueFrom(server.roomAdjustments$.pipe(take(1), timeout(5000))),
+        Effect.promise,
+      );
+
+      return pipe(
+        ws,
+        waitForConnection,
         Effect.andThen(
           Effect.all(
             [
               // Listen for adjustments
-              Effect.promise(() =>
-                firstValueFrom(
-                  server.roomAdjustments$.pipe(take(1), timeout(5000)),
-                ),
-              ),
+              listenForAdjustment,
               delayThenRun(
                 50,
                 Effect.sync(() => {
@@ -241,12 +257,14 @@ describe('WebSocket Server Integration', () => {
           ),
         ),
       );
+    };
 
     const verifyRoomAdjustmentReceived = (
       server: WebSocketServer,
     ): Effect.Effect<void, Error, never> =>
       pipe(
-        Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
+        () => new WebSocket(`ws://localhost:${port}/ws`),
+        Effect.sync,
         Effect.flatMap((ws) => sendRoomAdjustmentAndWaitForReceipt(ws, server)),
         Effect.tap(([received]) =>
           Effect.sync(() => {
@@ -258,7 +276,8 @@ describe('WebSocket Server Integration', () => {
       );
 
     return pipe(
-      createTestServer(port),
+      port,
+      createTestServer,
       Effect.flatMap(verifyRoomAdjustmentReceived),
     );
   });
@@ -273,22 +292,23 @@ describe('WebSocket Server Integration', () => {
       readonly [readonly RoomAdjustment[], void],
       Error,
       never
-    > =>
-      pipe(
-        waitForConnection(ws),
+    > => {
+      const listenForMultipleAdjustments = pipe(
+        () =>
+          firstValueFrom(
+            server.roomAdjustments$.pipe(take(3), toArray(), timeout(5000)),
+          ),
+        Effect.promise,
+      );
+
+      return pipe(
+        ws,
+        waitForConnection,
         Effect.andThen(
           Effect.all(
             [
               // Listen for adjustments
-              Effect.promise(() =>
-                firstValueFrom(
-                  server.roomAdjustments$.pipe(
-                    take(3),
-                    toArray(),
-                    timeout(5000),
-                  ),
-                ),
-              ),
+              listenForMultipleAdjustments,
               delayThenRun(
                 50,
                 Effect.sync(() => {
@@ -311,12 +331,14 @@ describe('WebSocket Server Integration', () => {
           ),
         ),
       );
+    };
 
     const verifyMultipleAdjustmentsReceived = (
       server: WebSocketServer,
     ): Effect.Effect<void, Error, never> =>
       pipe(
-        Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
+        () => new WebSocket(`ws://localhost:${port}/ws`),
+        Effect.sync,
         Effect.flatMap((ws) =>
           sendMultipleAdjustmentsAndWaitForReceipt(ws, server),
         ),
@@ -332,7 +354,8 @@ describe('WebSocket Server Integration', () => {
       );
 
     return pipe(
-      createTestServer(port),
+      port,
+      createTestServer,
       Effect.flatMap(verifyMultipleAdjustmentsReceived),
     );
   });
@@ -344,26 +367,30 @@ describe('WebSocket Server Integration', () => {
     const connectSecondClientAndReceiveBroadcast = (
       ws2: WebSocket,
       server: WebSocketServer,
-    ): Effect.Effect<readonly [unknown, void], Error, never> =>
-      pipe(
-        waitForConnection(ws2),
+    ): Effect.Effect<readonly [unknown, void], Error, never> => {
+      const broadcastTestState = pipe(testState, server.broadcast);
+      return pipe(
+        ws2,
+        waitForConnection,
         Effect.andThen(
           Effect.all(
-            [
-              waitForMessage(ws2),
-              delayThenRun(50, server.broadcast(testState)),
-            ],
+            [waitForMessage(ws2), delayThenRun(50, broadcastTestState)],
             { concurrency: 'unbounded' },
           ),
         ),
       );
+    };
+
+    const createWebSocketEffect3 = (): Effect.Effect<WebSocket, never, never> =>
+      pipe(() => new WebSocket(`ws://localhost:${port}/ws`), Effect.sync);
 
     const sendMalformedMessagesAndVerifyServerStillWorks = (
       ws: WebSocket,
       server: WebSocketServer,
     ): Effect.Effect<unknown, Error, never> =>
       pipe(
-        waitForConnection(ws),
+        ws,
+        waitForConnection,
         // Send malformed messages
         Effect.tap(() =>
           Effect.sync(() => {
@@ -375,9 +402,7 @@ describe('WebSocket Server Integration', () => {
         // Wait a bit
         Effect.andThen(sleep(100)),
         // Server should still work
-        Effect.andThen(
-          Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
-        ),
+        Effect.andThen(createWebSocketEffect3()),
         Effect.flatMap((ws2) =>
           connectSecondClientAndReceiveBroadcast(ws2, server),
         ),
@@ -392,7 +417,8 @@ describe('WebSocket Server Integration', () => {
       server: WebSocketServer,
     ): Effect.Effect<void, Error, never> =>
       pipe(
-        Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
+        () => new WebSocket(`ws://localhost:${port}/ws`),
+        Effect.sync,
         Effect.flatMap((ws) =>
           sendMalformedMessagesAndVerifyServerStillWorks(ws, server),
         ),
@@ -400,7 +426,8 @@ describe('WebSocket Server Integration', () => {
       );
 
     return pipe(
-      createTestServer(port),
+      port,
+      createTestServer,
       Effect.flatMap(verifyMalformedMessagesIgnored),
     );
   });
@@ -422,7 +449,8 @@ describe('WebSocket Server Integration', () => {
       );
 
     return pipe(
-      createTestServer(port),
+      port,
+      createTestServer,
       Effect.flatMap((server) => {
         const completed = { value: false };
         server.roomAdjustments$.subscribe({
@@ -446,34 +474,40 @@ describe('WebSocket Server - Edge Cases', () => {
       ws1: WebSocket,
       ws2: WebSocket,
       server: WebSocketServer,
-    ): Effect.Effect<readonly [unknown, void], Error, never> =>
-      pipe(
-        Effect.all([waitForConnection(ws1), waitForConnection(ws2)]),
+    ): Effect.Effect<readonly [unknown, void], Error, never> => {
+      const boundClose = ws1.close.bind(ws1);
+      const closeWebSocket = pipe(boundClose, Effect.sync);
+      const broadcastTestState = pipe(testState, server.broadcast);
+      return pipe(
+        [waitForConnection(ws1), waitForConnection(ws2)],
+        Effect.all,
         // Disconnect first client
-        Effect.tap(Effect.sync(ws1.close.bind(ws1))),
+        Effect.tap(closeWebSocket),
         // Wait for disconnection
         Effect.andThen(sleep(100)),
         // Broadcast to remaining client
         Effect.andThen(
           Effect.all(
-            [
-              waitForMessage(ws2),
-              delayThenRun(50, server.broadcast(testState)),
-            ],
+            [waitForMessage(ws2), delayThenRun(50, broadcastTestState)],
             { concurrency: 'unbounded' },
           ),
         ),
       );
+    };
+
+    const createWebSocketEffect4 = (): Effect.Effect<WebSocket, never, never> =>
+      pipe(() => new WebSocket(`ws://localhost:${port}/ws`), Effect.sync);
+
+    const createWebSocketEffect5 = (): Effect.Effect<WebSocket, never, never> =>
+      pipe(() => new WebSocket(`ws://localhost:${port}/ws`), Effect.sync);
 
     const verifyDisconnectionHandling = (
       server: WebSocketServer,
     ): Effect.Effect<void, Error, never> =>
       pipe(
         // Connect two clients
-        Effect.all([
-          Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
-          Effect.sync(() => new WebSocket(`ws://localhost:${port}/ws`)),
-        ]),
+        [createWebSocketEffect4(), createWebSocketEffect5()],
+        Effect.all,
         Effect.flatMap(([ws1, ws2]) =>
           disconnectFirstClientAndBroadcastToSecond(ws1, ws2, server),
         ),
@@ -487,7 +521,8 @@ describe('WebSocket Server - Edge Cases', () => {
       );
 
     return pipe(
-      createTestServer(port),
+      port,
+      createTestServer,
       Effect.flatMap(verifyDisconnectionHandling),
     );
   });
