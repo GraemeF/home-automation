@@ -1,5 +1,11 @@
 # @home-automation/deep-heating-web
 
+## 0.2.0
+
+### Minor Changes
+
+- [#1148](https://github.com/GraemeF/home-automation/pull/1148) [`6b93928`](https://github.com/GraemeF/home-automation/commit/6b939286d0c17d4b5f8efa74525a6c03f9da811d) Thanks [@GraemeF](https://github.com/GraemeF)! - Upgrade to Svelte 5 and Vite 6 with latest SvelteKit
+
 ## 0.1.0
 
 ### Minor Changes
