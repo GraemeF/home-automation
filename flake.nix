@@ -82,11 +82,11 @@
           inherit (bun2nix.packages.${system}.default) mkDerivation fetchBunDeps;
 
           # Fetch Bun dependencies from pruned lockfile (for builds)
-          # patchShebangs = false avoids pulling bun-with-fake-node (101MB) into runtime closure
-          # The bundled output doesn't need patched shebangs - everything is compiled to single JS files
+          # patchShebangs = true required on Linux for tools like tsc to work in sandbox
+          # TODO: Investigate separating build-time and runtime deps to avoid bun-with-fake-node in image
           bunDepsDeepHeating = fetchBunDeps {
             bunNix = ./bun-deep-heating.nix;
-            patchShebangs = false;
+            patchShebangs = true;
           };
 
           # Fetch Bun dependencies from full lockfile (for CI validation)
