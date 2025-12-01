@@ -41,8 +41,8 @@ const config: KnipConfig = {
       ignore: ['dist/**'],
     },
 
-    // Socket.IO server application
-    'packages/deep-heating-socketio': {
+    // WebSocket server application
+    'packages/deep-heating-server': {
       entry: ['src/main.ts', 'src/index.ts', 'src/environments/*.ts'],
       ignore: ['dist/**'],
     },
@@ -56,8 +56,6 @@ const config: KnipConfig = {
         'src/app.d.ts',
       ],
       ignore: ['dist/**', '.svelte-kit/**'],
-      // socket.io is imported for type-only usage (DefaultEventsMap)
-      ignoreDependencies: ['socket.io'],
     },
 
     // Combined deployment package
@@ -66,7 +64,7 @@ const config: KnipConfig = {
       ignore: ['dist/**'],
       // These are workspace deps for deployment
       ignoreDependencies: [
-        'deep-heating-socketio',
+        'deep-heating-server',
         '@home-automation/deep-heating-web',
       ],
     },

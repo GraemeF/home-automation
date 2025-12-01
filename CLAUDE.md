@@ -13,7 +13,7 @@ Deep Heating is a Home Assistant add-on that combines TRVs (Thermostatic Radiato
 bun run build          # Build all packages (uses turbo)
 bun run test           # Run all tests
 bun run lint           # Lint all packages
-bun run dev            # Start dev servers (socketio + web)
+bun run dev            # Start dev servers (server + web)
 bun run format         # Format code with Prettier
 
 # Single package testing
@@ -41,7 +41,7 @@ This is a Bun workspaces monorepo orchestrated by Turborepo. Packages are in `pa
 
 **Applications**:
 
-- `deep-heating-socketio` - Express + Socket.IO backend server
+- `deep-heating-server` - WebSocket backend server (Effect + Bun)
 - `deep-heating-web` - SvelteKit frontend
 
 **Deployment**:
@@ -52,7 +52,7 @@ This is a Bun workspaces monorepo orchestrated by Turborepo. Packages are in `pa
 
 ```
 deep-heating-web → deep-heating-types
-deep-heating-socketio → deep-heating-types, deep-heating-rx, deep-heating-state
+deep-heating-server → deep-heating-types, deep-heating-rx, deep-heating-state
 deep-heating-rx → deep-heating-types, deep-heating-home-assistant, rxx
 deep-heating-state → deep-heating-types
 deep-heating-home-assistant → deep-heating-types
@@ -62,7 +62,7 @@ deep-heating-home-assistant → deep-heating-types
 
 - **Reactive streams**: RxJS throughout for state and event handling
 - **Effect library**: Used for typed functional effects in some modules
-- **Real-time**: Socket.IO for client-server communication
+- **Real-time**: Native WebSocket for client-server communication
 - **Strict TypeScript**: `exactOptionalPropertyTypes: true` enabled
 
 ## Testing

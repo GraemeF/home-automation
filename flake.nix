@@ -52,7 +52,7 @@
 
             buildPhase = ''
               echo "Pruning workspace with turbo..."
-              ${pkgs.turbo}/bin/turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker --out-dir=pruned
+              ${pkgs.turbo}/bin/turbo prune deep-heating-server @home-automation/deep-heating-web --docker --out-dir=pruned
             '';
 
             installPhase = ''
@@ -140,7 +140,7 @@
 
             buildPhase = ''
               echo "Pruning workspace with turbo..."
-              ${pkgs.turbo}/bin/turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker --out-dir=pruned
+              ${pkgs.turbo}/bin/turbo prune deep-heating-server @home-automation/deep-heating-web --docker --out-dir=pruned
 
               echo "Generating bun-deep-heating.nix from pruned lockfile..."
               ${bun2nix.packages.${system}.default}/bin/bun2nix \
@@ -155,7 +155,7 @@
 
           # DEEP-HEATING BUILD
           # ==================
-          # Combined build of socketio backend and SvelteKit web frontend
+          # Combined build of server backend and SvelteKit web frontend
           deep-heating = mkDerivation {
             pname = "deep-heating";
             version = "0.1.0";
@@ -181,16 +181,16 @@
 
             buildPhase = ''
               echo "Building deep-heating with Turbo..."
-              # Build both socketio and web (SvelteKit)
-              ${pkgs.turbo}/bin/turbo build --filter='deep-heating-socketio...' --filter='@home-automation/deep-heating-web...'
+              # Build both server and web (SvelteKit)
+              ${pkgs.turbo}/bin/turbo build --filter='deep-heating-server...' --filter='@home-automation/deep-heating-web...'
 
-              echo "Bundling socketio backend with Bun..."
-              mkdir -p dist/socketio
-              ${pkgs.bun}/bin/bun build packages/deep-heating-socketio/src/main.ts \
+              echo "Bundling server backend with Bun..."
+              mkdir -p dist/server
+              ${pkgs.bun}/bin/bun build packages/deep-heating-server/src/main.ts \
                 --target=bun \
                 --production \
-                --outfile=dist/socketio/bundle.js
-              echo "  Backend bundle: $(du -h dist/socketio/bundle.js | cut -f1)"
+                --outfile=dist/server/bundle.js
+              echo "  Backend bundle: $(du -h dist/server/bundle.js | cut -f1)"
 
               echo "SvelteKit build output:"
               ls -la dist/packages/deep-heating-web/ || echo "  (build output location may differ)"
@@ -201,20 +201,20 @@
               mkdir -p $out/bin
               mkdir -p $out/lib/deep-heating
 
-              # Copy socketio backend bundle
-              echo "  Copying socketio bundle..."
-              cp -r dist/socketio $out/lib/deep-heating/
+              # Copy server backend bundle
+              echo "  Copying server bundle..."
+              cp -r dist/server $out/lib/deep-heating/
 
               # Copy SvelteKit web build
               echo "  Copying web build..."
               cp -r dist/packages/deep-heating-web $out/lib/deep-heating/web
 
-              # Create socketio wrapper script
-              cat > $out/bin/deep-heating-socketio <<EOF
+              # Create server wrapper script
+              cat > $out/bin/deep-heating-server <<EOF
 #!/bin/sh
-exec ${pkgs.bun}/bin/bun run $out/lib/deep-heating/socketio/bundle.js "\$@"
+exec ${pkgs.bun}/bin/bun run $out/lib/deep-heating/server/bundle.js "\$@"
 EOF
-              chmod +x $out/bin/deep-heating-socketio
+              chmod +x $out/bin/deep-heating-server
 
               # Create web wrapper script (runs with Node, adapter-node output)
               cat > $out/bin/deep-heating-web <<EOF
@@ -250,9 +250,9 @@ EOF
             nginx = {
               command = ''${pkgs.nginx}/bin/nginx -g "daemon off;" -c /etc/nginx/nginx.conf'';
             };
-            socketio = {
+            server = {
               env = { PORT = "3002"; };
-              command = "${deep-heating}/bin/deep-heating-socketio";
+              command = "${deep-heating}/bin/deep-heating-server";
             };
             web = {
               env = { PORT = "3001"; };
@@ -336,7 +336,7 @@ ${mkS6RunScript def}RUNSCRIPT
 
           # DOCKER IMAGE (Linux only)
           # =========================
-          # Combined image with nginx, socketio, web, and s6 supervision
+          # Combined image with nginx, server, web, and s6 supervision
           dockerImage = if pkgs.stdenv.isLinux then pkgs.dockerTools.buildLayeredImage {
             name = "deep-heating";
             tag = "latest";
