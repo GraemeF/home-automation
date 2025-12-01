@@ -13,7 +13,7 @@
         "@changesets/cli": "2.29.8",
         "@codeforbreakfast/bun-test-effect": "0.4.0",
         "@codeforbreakfast/eslint-effect": "0.8.4",
-        "@effect/language-service": "^0.56.0",
+        "@effect/language-service": "0.56.0",
         "@testing-library/svelte": "5.2.9",
         "@tsconfig/svelte": "5.0.6",
         "@types/debug": "4.1.12",
@@ -52,7 +52,7 @@
     },
     "packages/deep-heating": {
       "name": "@home-automation/deep-heating",
-      "version": "0.0.10",
+      "version": "0.1.0",
       "dependencies": {
         "@home-automation/deep-heating-web": "workspace:*",
         "deep-heating-server": "workspace:*",
@@ -60,7 +60,7 @@
     },
     "packages/deep-heating-home-assistant": {
       "name": "@home-automation/deep-heating-home-assistant",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@effect/platform": "0.93.3",
         "@home-automation/deep-heating-types": "workspace:*",
@@ -71,7 +71,7 @@
     },
     "packages/deep-heating-rx": {
       "name": "@home-automation/deep-heating-rx",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@home-automation/deep-heating-home-assistant": "workspace:*",
         "@home-automation/deep-heating-types": "workspace:*",
@@ -84,7 +84,7 @@
     },
     "packages/deep-heating-server": {
       "name": "deep-heating-server",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "dependencies": {
         "@effect/platform": "0.93.3",
         "@effect/platform-bun": "0.84.0",
@@ -100,7 +100,7 @@
     },
     "packages/deep-heating-state": {
       "name": "@home-automation/deep-heating-state",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "dependencies": {
         "@home-automation/deep-heating-rx": "workspace:*",
         "@home-automation/deep-heating-types": "workspace:*",
@@ -110,7 +110,7 @@
     },
     "packages/deep-heating-types": {
       "name": "@home-automation/deep-heating-types",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "dependencies": {
         "effect": "3.19.6",
         "luxon": "3.7.2",
@@ -119,7 +119,7 @@
     },
     "packages/deep-heating-web": {
       "name": "@home-automation/deep-heating-web",
-      "version": "0.0.4",
+      "version": "0.1.0",
       "dependencies": {
         "@home-automation/deep-heating-types": "workspace:*",
         "effect": "3.19.6",
