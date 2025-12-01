@@ -1,5 +1,20 @@
 # @home-automation/deep-heating-web
 
+## 0.1.0
+
+### Minor Changes
+
+- [#1140](https://github.com/GraemeF/home-automation/pull/1140) [`545a2ac`](https://github.com/GraemeF/home-automation/commit/545a2acb0a8ba1b5065df6f25130bf1472330e5f) Thanks [@GraemeF](https://github.com/GraemeF)! - Replace Socket.IO with native WebSocket for real-time communication
+  - Server now uses Bun's native WebSocket API with Effect patterns for connection management
+  - Client uses browser's native WebSocket with exponential backoff reconnection
+  - New WebSocket message schemas for type-safe client-server communication
+  - Removes Socket.IO dependency, reducing bundle size and complexity
+
+### Patch Changes
+
+- Updated dependencies [[`545a2ac`](https://github.com/GraemeF/home-automation/commit/545a2acb0a8ba1b5065df6f25130bf1472330e5f)]:
+  - @home-automation/deep-heating-types@0.2.0
+
 ## 0.0.4
 
 ### Patch Changes

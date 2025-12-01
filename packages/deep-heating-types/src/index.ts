@@ -6,3 +6,4 @@ export * from './lib/home-assistant';
 export * from './lib/schedule-types';
 export * from './lib/temperature';
 export * from './lib/weekSchedule';
+export * from './lib/websocket';

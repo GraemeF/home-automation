@@ -127,7 +127,7 @@ jobs:
         if: steps.changes.outputs.lockfile_changed == 'true'
         run: |
           echo "Pruning workspace with turbo..."
-          nix develop --command bunx turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker --out-dir=pruned
+          nix develop --command bunx turbo prune deep-heating-server @home-automation/deep-heating-web --docker --out-dir=pruned
 
           echo "Generating fresh bun-deep-heating.nix from pruned lockfile..."
           nix run github:nix-community/bun2nix -- \
@@ -139,7 +139,7 @@ jobs:
             echo "❌ bun-deep-heating.nix is out of sync with the pruned lockfile!"
             echo ""
             echo "To fix, run:"
-            echo "  turbo prune deep-heating-socketio @home-automation/deep-heating-web --docker --out-dir=pruned"
+            echo "  turbo prune deep-heating-server @home-automation/deep-heating-web --docker --out-dir=pruned"
             echo "  nix run github:nix-community/bun2nix -- --lock-file pruned/bun.lock --output-file bun-deep-heating.nix"
             echo ""
             echo "Diff:"

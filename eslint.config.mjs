@@ -206,29 +206,18 @@ export default [
     rules: {
       // SvelteKit SSR uses process.env directly, not Effect's platform abstraction
       'effect/prefer-effect-platform': 'off',
-      // Simple ternaries are fine in UI code
-      'effect/prefer-match-over-ternary': 'off',
       // Svelte stores are inherently mutable
       'functional/prefer-immutable-types': 'off',
       'functional/prefer-readonly-type': 'off',
     },
   },
-  // SocketIO package - relaxed Effect rules (Express/Socket.IO app, not Effect-based)
+  // Server package - Effect-based WebSocket server at application boundary
   {
-    name: 'socketio-package',
-    files: ['packages/deep-heating-socketio/**/*.ts'],
+    name: 'server-package',
+    files: ['packages/deep-heating-server/**/*.ts'],
     rules: {
-      // Classes are used for Socket.IO server
-      'effect/no-classes': 'off',
-      // Simple ternaries are fine
-      'effect/prefer-match-over-ternary': 'off',
-      // Express handlers use mutable patterns
-      'functional/prefer-immutable-types': 'off',
-      'functional/prefer-readonly-type': 'off',
-      // Allow curried calls in non-Effect code
-      'effect/no-curried-calls': 'off',
-      // Allow eta-expansion in non-Effect code
-      'effect/no-eta-expansion': 'off',
+      // Allow Bun.write for fire-and-forget file writes from RxJS callbacks
+      'effect/prefer-effect-platform': 'off',
     },
   },
   // Stories files - functional rules
