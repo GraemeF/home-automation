@@ -7,7 +7,7 @@
     "version:sync": "bun scripts/sync-version.ts"
   },
   "dependencies": {
-    "deep-heating-socketio": "workspace:*",
+    "deep-heating-server": "workspace:*",
     "@home-automation/deep-heating-web": "workspace:*"
   }
 }

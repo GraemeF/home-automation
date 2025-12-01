@@ -1,0 +1,192 @@
+import { FetchHttpClient, FileSystem } from '@effect/platform';
+import { BunFileSystem } from '@effect/platform-bun';
+import { Effect, Layer, pipe, Runtime, Schema, Scope, Stream } from 'effect';
+import {
+  getEntityUpdatesStream,
+  HomeAssistantApi,
+  HomeAssistantApiLive,
+  HomeAssistantConfigLive,
+} from '@home-automation/deep-heating-home-assistant';
+import { streamToObservable } from '@home-automation/rxx';
+import { Home, RoomAdjustment } from '@home-automation/deep-heating-types';
+import { createDeepHeating } from '@home-automation/deep-heating-rx';
+import { maintainState } from '@home-automation/deep-heating-state';
+import { throttleTime } from 'rxjs/operators';
+import {
+  createAndStartWebSocketServer,
+  subscribeAndBroadcast,
+  type WebSocketServer,
+} from './app/websocket-server';
+
+export interface ServerConfig {
+  readonly port: number;
+  readonly homeConfigPath: string;
+  readonly roomAdjustmentsPath: string;
+  readonly websocketPath: string;
+}
+
+const RoomAdjustmentSchema = Schema.Struct({
+  roomName: Schema.String,
+  adjustment: Schema.Number,
+}) satisfies Schema.Schema<RoomAdjustment, RoomAdjustment>;
+
+const JsonHomeData = Schema.parseJson(Home);
+const JsonRoomAdjustments = Schema.parseJson(
+  Schema.Array(RoomAdjustmentSchema),
+);
+
+/**
+ * Layer that provides HomeAssistantApi with all required dependencies.
+ * Composed at the application level for proper Effect lifecycle management.
+ */
+const HomeAssistantLayer = HomeAssistantApiLive.pipe(
+  Layer.provide(HomeAssistantConfigLive),
+  Layer.provide(FetchHttpClient.layer),
+);
+
+const loadRoomAdjustments = (
+  fs: FileSystem.FileSystem,
+  roomAdjustmentsPath: string,
+): Effect.Effect<readonly RoomAdjustment[]> =>
+  pipe(
+    roomAdjustmentsPath,
+    fs.readFileString,
+    Effect.flatMap(Schema.decode(JsonRoomAdjustments)),
+    Effect.catchAll(() => Effect.succeed([] as readonly RoomAdjustment[])),
+  );
+
+const startHeatingSystem = (
+  wsServer: WebSocketServer,
+  home: Home,
+  initialRoomAdjustments: readonly RoomAdjustment[],
+  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
+  roomAdjustmentsPath: string,
+): Effect.Effect<void, never, Scope.Scope> =>
+  pipe(
+    Effect.sync(() => {
+      // Convert the Effect Stream to RxJS Observable for the heating system
+      const entityUpdates$ = streamToObservable(
+        getEntityUpdatesStream.pipe(Stream.provideLayer(HomeAssistantLayer)),
+      );
+
+      // Create the deep heating reactive system
+      const deepHeating = createDeepHeating(
+        home,
+        [...initialRoomAdjustments],
+        wsServer.roomAdjustments$,
+        entityUpdates$,
+        homeAssistantRuntime,
+      );
+
+      // Maintain state with throttling
+      const state$ = maintainState(deepHeating).pipe(
+        throttleTime(100, undefined, { leading: true, trailing: true }),
+      );
+
+      // Subscribe to state changes and broadcast to WebSocket clients
+      const broadcastSubscription = subscribeAndBroadcast(wsServer, state$);
+
+      // Save room adjustments on state changes
+      const saveSubscription = state$.subscribe((state) => {
+        const roomAdjustments = state.rooms.map((room) => ({
+          roomName: room.name,
+          adjustment: room.adjustment,
+        }));
+        // Fire-and-forget async write using Bun native API
+        void Bun.write(roomAdjustmentsPath, JSON.stringify(roomAdjustments));
+      });
+
+      return { broadcastSubscription, saveSubscription };
+    }),
+    Effect.tap(() =>
+      Effect.addFinalizer(() =>
+        Effect.sync(() => {
+          // Subscriptions will be cleaned up when the scope closes
+        }),
+      ),
+    ),
+    Effect.asVoid,
+  );
+
+const startServer = (
+  fs: FileSystem.FileSystem,
+  home: Home,
+  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
+  config: ServerConfig,
+): Effect.Effect<void, never, Scope.Scope> =>
+  pipe(
+    loadRoomAdjustments(fs, config.roomAdjustmentsPath),
+    Effect.tap((adjustments) =>
+      Effect.log(`Loaded ${adjustments.length} room adjustments`),
+    ),
+    Effect.flatMap((initialRoomAdjustments) =>
+      pipe(
+        createAndStartWebSocketServer({
+          port: config.port,
+          path: config.websocketPath,
+        }),
+        Effect.tap(() =>
+          Effect.log(`WebSocket server listening on port ${config.port}`),
+        ),
+        Effect.flatMap((wsServer) =>
+          pipe(
+            startHeatingSystem(
+              wsServer,
+              home,
+              initialRoomAdjustments,
+              homeAssistantRuntime,
+              config.roomAdjustmentsPath,
+            ),
+            Effect.zipRight(
+              Effect.addFinalizer(() =>
+                pipe(
+                  Effect.log('Shutting down WebSocket server...'),
+                  Effect.andThen(wsServer.shutdown),
+                  Effect.andThen(Effect.log('Server shut down')),
+                ),
+              ),
+            ),
+            Effect.zipRight(Effect.never),
+          ),
+        ),
+      ),
+    ),
+  );
+
+const loadAndStartServer = (
+  fs: FileSystem.FileSystem,
+  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
+  config: ServerConfig,
+) =>
+  pipe(
+    config.homeConfigPath,
+    fs.readFileString,
+    Effect.andThen(Schema.decode(JsonHomeData)),
+    Effect.tap((home) =>
+      Effect.log(`Home configuration loaded: ${home.rooms.length} rooms`),
+    ),
+    Effect.andThen((home) =>
+      startServer(fs, home, homeAssistantRuntime, config),
+    ),
+  );
+
+/**
+ * Runs the WebSocket server as an Effect application with proper lifecycle management.
+ * The server will run until interrupted (e.g., SIGINT/SIGTERM).
+ */
+export const runServer = (config: ServerConfig) =>
+  pipe(
+    Effect.void,
+    Effect.andThen(() =>
+      Effect.all({
+        fs: FileSystem.FileSystem,
+        // Creates HomeAssistantApi runtime with proper Effect lifecycle
+        homeAssistantRuntime: Layer.toRuntime(HomeAssistantLayer),
+      }),
+    ),
+    Effect.andThen(({ fs, homeAssistantRuntime }) =>
+      loadAndStartServer(fs, homeAssistantRuntime, config),
+    ),
+    Effect.scoped,
+    Effect.provide(BunFileSystem.layer),
+  );

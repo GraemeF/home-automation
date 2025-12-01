@@ -19,7 +19,7 @@
   const adjust: (adjustment: RoomAdjustment) => RoomAdjustment = (
     adjustment: RoomAdjustment
   ) => {
-    if ($apiClientStore) $apiClientStore.emit('adjust_room', adjustment);
+    if ($apiClientStore) $apiClientStore.adjustRoom(adjustment);
     return adjustment;
   };
 </script>

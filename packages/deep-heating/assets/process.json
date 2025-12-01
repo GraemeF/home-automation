@@ -3,7 +3,7 @@
     {
       "name": "Backend",
       "cwd": "/app",
-      "script": "node dist/out-tsc/packages/deep-heating-socketio/src/main.js",
+      "script": "node dist/out-tsc/packages/deep-heating-server/src/main.js",
       "env": {
         "PORT": "3002"
       }

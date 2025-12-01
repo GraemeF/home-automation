@@ -15,12 +15,8 @@ const loadConfig = Config.all({
   roomAdjustmentsPath: Config.string('ROOM_ADJUSTMENTS_PATH').pipe(
     Config.withDefault(`${tmpdir()}/deep-heating-room-adjustments.json`),
   ),
-  socketioPath: Config.string('SOCKETIO_PATH').pipe(
-    Config.withDefault('/socket.io'),
-  ),
-  corsOrigins: Config.string('CORS_ORIGINS').pipe(
-    Config.withDefault(''),
-    Config.map((s) => s.split(',').filter((x) => x.length > 0)),
+  websocketPath: Config.string('WEBSOCKET_PATH').pipe(
+    Config.withDefault('/ws'),
   ),
 }) satisfies Config.Config<ServerConfig>;
 

@@ -213,22 +213,21 @@ export default [
       'functional/prefer-readonly-type': 'off',
     },
   },
-  // SocketIO package - relaxed Effect rules (Express/Socket.IO app, not Effect-based)
+  // Server package - Effect-based WebSocket server at application boundary
   {
-    name: 'socketio-package',
-    files: ['packages/deep-heating-socketio/**/*.ts'],
+    name: 'server-package',
+    files: ['packages/deep-heating-server/**/*.ts'],
     rules: {
-      // Classes are used for Socket.IO server
-      'effect/no-classes': 'off',
       // Simple ternaries are fine
       'effect/prefer-match-over-ternary': 'off',
-      // Express handlers use mutable patterns
-      'functional/prefer-immutable-types': 'off',
-      'functional/prefer-readonly-type': 'off',
-      // Allow curried calls in non-Effect code
+      // Curried calls are needed for functional composition at boundaries
       'effect/no-curried-calls': 'off',
-      // Allow eta-expansion in non-Effect code
-      'effect/no-eta-expansion': 'off',
+      // Nested pipes are allowed at application entry points
+      'effect/no-nested-pipe': 'off',
+      // Pipe first arg is common pattern with Config/Ref
+      'effect/no-pipe-first-arg-call': 'off',
+      // Allow Bun.write for fire-and-forget file writes from RxJS callbacks
+      'effect/prefer-effect-platform': 'off',
     },
   },
   // Stories files - functional rules

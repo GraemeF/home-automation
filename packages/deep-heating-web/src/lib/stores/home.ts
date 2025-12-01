@@ -1,49 +1,47 @@
 import { Schema } from 'effect';
 import { DeepHeatingState } from '@home-automation/deep-heating-types';
 import { Option, pipe } from 'effect';
-import type { Socket } from 'socket.io-client';
-import type { DefaultEventsMap } from 'socket.io/dist/typed-events';
 import type { Readable } from 'svelte/store';
-import { derived, get, writable } from 'svelte/store';
-import { apiClientStore } from './apiClient';
+import { derived } from 'svelte/store';
+import { apiClientStore, type WebSocketClient } from './apiClient';
 
 interface Home {
   connected: boolean;
   state: Option.Option<DeepHeatingState>;
 }
 
-export const homeStore = derived<
-  Readable<Socket<DefaultEventsMap, DefaultEventsMap> | null>,
-  Home
->(
+export const homeStore = derived<Readable<WebSocketClient | null>, Home>(
   apiClientStore,
   ($apiClient, set) => {
-    const home = writable<Home>({
-      connected: false,
-      state: Option.none(),
+    if (!$apiClient) {
+      set({ connected: false, state: Option.none() });
+      return;
+    }
+
+    // Subscribe to connected state
+    const unsubConnect = $apiClient.connected.subscribe((connected) => {
+      set((current) => ({ ...current, connected }));
     });
 
-    if ($apiClient)
-      $apiClient
-        .on('connect', () => {
-          home.update((home) => ({ ...home, connected: true }));
-          set(get(home));
-        })
-        .on('disconnect', () => {
-          home.update((home) => ({ ...home, connected: false }));
-          set(get(home));
-        })
-        .on('State', (state) => {
-          home.update((home) => ({
-            ...home,
-            state: pipe(
-              state,
-              Schema.decodeUnknownSync(DeepHeatingState),
-              Option.some,
-            ),
-          }));
-          set(get(home));
-        });
+    // Subscribe to state updates
+    const unsubState = $apiClient.state.subscribe((message) => {
+      if (message?.type === 'state') {
+        set((current) => ({
+          ...current,
+          state: pipe(
+            message.data,
+            Schema.decodeUnknownSync(DeepHeatingState),
+            Option.some,
+          ),
+        }));
+      }
+    });
+
+    // Cleanup subscriptions on destroy
+    return () => {
+      unsubConnect();
+      unsubState();
+    };
   },
   { connected: false, state: Option.none() },
 );

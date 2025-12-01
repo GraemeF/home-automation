@@ -18,8 +18,7 @@
   },
   "dependencies": {
     "@home-automation/deep-heating-types": "workspace:*",
-    "effect": "3.19.6",
-    "socket.io-client": "4.8.1"
+    "effect": "3.19.6"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "5.2.2",
