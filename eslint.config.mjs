@@ -206,8 +206,6 @@ export default [
     rules: {
       // SvelteKit SSR uses process.env directly, not Effect's platform abstraction
       'effect/prefer-effect-platform': 'off',
-      // Simple ternaries are fine in UI code
-      'effect/prefer-match-over-ternary': 'off',
       // Svelte stores are inherently mutable
       'functional/prefer-immutable-types': 'off',
       'functional/prefer-readonly-type': 'off',
@@ -218,14 +216,6 @@ export default [
     name: 'server-package',
     files: ['packages/deep-heating-server/**/*.ts'],
     rules: {
-      // Simple ternaries are fine
-      'effect/prefer-match-over-ternary': 'off',
-      // Curried calls are needed for functional composition at boundaries
-      'effect/no-curried-calls': 'off',
-      // Nested pipes are allowed at application entry points
-      'effect/no-nested-pipe': 'off',
-      // Pipe first arg is common pattern with Config/Ref
-      'effect/no-pipe-first-arg-call': 'off',
       // Allow Bun.write for fire-and-forget file writes from RxJS callbacks
       'effect/prefer-effect-platform': 'off',
     },
