@@ -82,8 +82,13 @@
           inherit (bun2nix.packages.${system}.default) mkDerivation fetchBunDeps;
 
           # Fetch Bun dependencies from pruned lockfile (for builds)
-          # patchShebangs = false avoids pulling bun-with-fake-node (101MB) into runtime closure
-          # We manually patch shebangs to use bun in bunNodeModulesInstallPhase
+          # Web build needs patchShebangs for vite/svelte tooling
+          bunDepsWeb = fetchBunDeps {
+            bunNix = ./bun-deep-heating.nix;
+            patchShebangs = true;
+          };
+
+          # Server build uses production deps only - no shebangs to patch
           bunDepsDeepHeating = fetchBunDeps {
             bunNix = ./bun-deep-heating.nix;
             patchShebangs = false;
@@ -154,9 +159,37 @@
             '';
           };
 
+          # WEB FRONTEND BUILD
+          # ===================
+          # Separate derivation for SvelteKit web build - needs devDeps for vite
+          # Using patchShebangs=true so vite can run in Nix sandbox
+          deep-heating-web = mkDerivation {
+            pname = "deep-heating-web";
+            version = "0.1.0";
+
+            src = prunedWorkspace;
+            bunDeps = bunDepsWeb;
+            SOURCE_DATE_EPOCH = lastModified;
+
+            buildPhase = ''
+              echo "Building web frontend with Turbo + Vite..."
+              ${pkgs.turbo}/bin/turbo build --filter='@home-automation/deep-heating-web...'
+            '';
+
+            installPhase = ''
+              echo "Installing web build to $out..."
+              mkdir -p $out
+
+              # SvelteKit adapter-bun outputs to dist/packages/deep-heating-web (see svelte.config.js)
+              cp -r dist/packages/deep-heating-web/* $out/
+
+              echo "Web build installed: $(du -sh $out | cut -f1)"
+            '';
+          };
+
           # DEEP-HEATING BUILD
           # ==================
-          # Combined build of server backend and SvelteKit web frontend
+          # Server backend build - uses production deps only (no vite/tsc)
           deep-heating = mkDerivation {
             pname = "deep-heating";
             version = "0.1.0";
@@ -165,20 +198,11 @@
             bunDeps = bunDepsDeepHeating;
             SOURCE_DATE_EPOCH = lastModified;
 
-            # Override bun install to use hoisted linker
-            # NOTE: Not using --production because build requires devDependencies (vite for SvelteKit)
-            # We manually patch shebangs to use bun instead of /usr/bin/env node
-            # This avoids needing bun2nix's patchShebangs which pulls in bun-with-fake-node (101MB)
+            # Production-only install - no devDependencies, no shebangs to patch
+            # Web frontend is built separately with full devDeps
             bunNodeModulesInstallPhase = ''
-              echo "Installing node modules with hoisted linker..."
-              ${pkgs.bun}/bin/bun install --frozen-lockfile --linker=hoisted --ignore-scripts
-
-              echo "Patching shebangs to use bun (avoids bun-with-fake-node)..."
-              for f in node_modules/.bin/*; do
-                if [ -f "$f" ] && [ ! -L "$f" ]; then
-                  ${pkgs.gnused}/bin/sed -i 's|#!/usr/bin/env node|#!${pkgs.bun}/bin/bun|' "$f" 2>/dev/null || true
-                fi
-              done
+              echo "Installing production dependencies only..."
+              ${pkgs.bun}/bin/bun install --frozen-lockfile --production --ignore-scripts
 
               echo "Normalizing timestamps to git commit time..."
               find node_modules -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} + || true
@@ -190,20 +214,14 @@
             '';
 
             buildPhase = ''
-              echo "Building deep-heating with Turbo..."
-              # Build both server and web (SvelteKit)
-              ${pkgs.turbo}/bin/turbo build --filter='deep-heating-server...' --filter='@home-automation/deep-heating-web...'
-
               echo "Bundling server backend with Bun..."
+              # Bun handles TypeScript natively - no need for turbo/tsc
               mkdir -p dist/server
               ${pkgs.bun}/bin/bun build packages/deep-heating-server/src/main.ts \
                 --target=bun \
                 --production \
                 --outfile=dist/server/bundle.js
               echo "  Backend bundle: $(du -h dist/server/bundle.js | cut -f1)"
-
-              echo "SvelteKit build output:"
-              ls -la dist/packages/deep-heating-web/ || echo "  (build output location may differ)"
             '';
 
             installPhase = ''
@@ -215,9 +233,9 @@
               echo "  Copying server bundle..."
               cp -r dist/server $out/lib/deep-heating/
 
-              # Copy SvelteKit web build
-              echo "  Copying web build..."
-              cp -r dist/packages/deep-heating-web $out/lib/deep-heating/web
+              # Copy pre-built web from separate derivation
+              echo "  Copying web build from ${deep-heating-web}..."
+              cp -r ${deep-heating-web} $out/lib/deep-heating/web
 
               # Create server wrapper script
               cat > $out/bin/deep-heating-server <<EOF
@@ -385,7 +403,7 @@ ${mkS6RunScript def}RUNSCRIPT
           } else null;
         in
         {
-          inherit prunedWorkspace bunDepsDeepHeating bunDepsFull validateDeps generateBunNix generateBunNixDeepHeating deep-heating;
+          inherit prunedWorkspace bunDepsWeb bunDepsDeepHeating bunDepsFull validateDeps generateBunNix generateBunNixDeepHeating deep-heating-web deep-heating;
         } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
           # Linux-only packages
           inherit s6Services nginxConfig containerInit dockerImage;
