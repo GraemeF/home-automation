@@ -384,7 +384,7 @@ ${mkS6RunScript def}RUNSCRIPT
           # Combined image with nginx, server, web, and s6 supervision
           dockerImage = if pkgs.stdenv.isLinux then pkgs.dockerTools.buildLayeredImage {
             name = "deep-heating";
-            tag = "latest";
+            tag = "nix-build";
 
             # Set timestamps to git commit time for reproducibility
             created = "@${lastModified}";
