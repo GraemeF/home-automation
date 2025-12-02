@@ -4,8 +4,15 @@ import {
   Wait,
   type StartedTestContainer,
 } from 'testcontainers';
+import { resolve } from 'path';
 
 const INGRESS_PORT = 8099;
+
+// Minimal home config for smoke test - backend needs this to start
+const SMOKE_TEST_HOME_CONFIG = resolve(
+  import.meta.dirname,
+  'fixtures/smoke-test-home.json',
+);
 
 describe('smoke test', () => {
   test(
@@ -23,13 +30,21 @@ describe('smoke test', () => {
 
       try {
         console.log(`Starting container from image: ${imageName}`);
+        console.log(`Using home config: ${SMOKE_TEST_HOME_CONFIG}`);
         container = await new GenericContainer(imageName)
           .withExposedPorts(INGRESS_PORT)
           .withEnvironment({
             SUPERVISOR_URL: 'http://dummy:8123',
             SUPERVISOR_TOKEN: 'dummy-token-for-smoke-test',
             ALLOW_ALL_IPS: 'true',
+            HOME_CONFIG_PATH: '/config/home.json',
           })
+          .withCopyFilesToContainer([
+            {
+              source: SMOKE_TEST_HOME_CONFIG,
+              target: '/config/home.json',
+            },
+          ])
           .withWaitStrategy(Wait.forHttp('/', INGRESS_PORT).forStatusCode(200))
           .withStartupTimeout(45_000)
           .start();
@@ -46,9 +61,29 @@ describe('smoke test', () => {
           'text/html',
         );
 
+        // Debug: Check what /ws returns via HTTP first
+        console.log('Testing /ws endpoint via HTTP...');
+        const wsHttpResponse = await fetch(`${baseUrl}/ws`);
+        console.log(`  /ws HTTP status: ${wsHttpResponse.status}`);
+        console.log(
+          `  /ws HTTP headers: ${JSON.stringify(Object.fromEntries(wsHttpResponse.headers))}`,
+        );
+        if (!wsHttpResponse.ok && wsHttpResponse.status !== 426) {
+          const body = await wsHttpResponse.text();
+          console.log(`  /ws HTTP body: ${body.slice(0, 500)}`);
+        }
+
         // Verify WebSocket endpoint is routed through nginx
         const wsUrl = `ws://${host}:${port}/ws`;
+        console.log(`Testing WebSocket connection to ${wsUrl}...`);
         const wsConnected = await testWebSocketConnection(wsUrl);
+        if (!wsConnected) {
+          // Dump container logs to help debug
+          console.log('WebSocket connection failed! Container logs:');
+          const logs = await container.logs();
+          const logOutput = await streamToString(logs);
+          console.log(logOutput.slice(-5000)); // Last 5000 chars
+        }
         expect(wsConnected).toBe(true);
       } finally {
         if (container) {
@@ -59,6 +94,14 @@ describe('smoke test', () => {
     { timeout: 60_000 },
   );
 });
+
+async function streamToString(stream: NodeJS.ReadableStream): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
 
 async function testWebSocketConnection(url: string): Promise<boolean> {
   return new Promise((resolve) => {

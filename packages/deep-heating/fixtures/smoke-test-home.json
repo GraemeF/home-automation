@@ -1,0 +1,12 @@
+{
+  "rooms": [
+    {
+      "name": "Test Room",
+      "temperatureSensorEntityId": "sensor.test_temperature",
+      "climateEntityIds": ["climate.test_trv"],
+      "schedule": null
+    }
+  ],
+  "sleepSwitchId": "event.goodnight",
+  "heatingId": "climate.main"
+}
