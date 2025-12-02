@@ -42,10 +42,22 @@ jobs:
       - name: Build Docker image with Nix
         run: nix build .#dockerImage --print-build-logs
 
-      - name: Load and push Docker image
+      - name: Load Docker image
+        id: load
         run: |
           SOURCE_IMAGE=$(docker load < result | grep "Loaded image:" | sed 's/Loaded image: //')
           echo "Loaded image: $SOURCE_IMAGE"
+          echo "image=$SOURCE_IMAGE" >> $GITHUB_OUTPUT
+
+      - name: Run smoke test
+        run: |
+          nix develop --command bun install --frozen-lockfile
+          SMOKE_TEST_IMAGE="${{ steps.load.outputs.image }}" \
+            nix develop --command bun test packages/deep-heating/smoke-test.test.ts
+
+      - name: Push Docker image
+        run: |
+          SOURCE_IMAGE="${{ steps.load.outputs.image }}"
           VERSION="${{ inputs.version }}"
           OWNER_LC="${{ github.repository_owner }}"
           OWNER_LC="${OWNER_LC,,}"
@@ -86,10 +98,22 @@ jobs:
       - name: Build Docker image with Nix
         run: nix build .#dockerImage --print-build-logs
 
-      - name: Load and push Docker image
+      - name: Load Docker image
+        id: load
         run: |
           SOURCE_IMAGE=$(docker load < result | grep "Loaded image:" | sed 's/Loaded image: //')
           echo "Loaded image: $SOURCE_IMAGE"
+          echo "image=$SOURCE_IMAGE" >> $GITHUB_OUTPUT
+
+      - name: Run smoke test
+        run: |
+          nix develop --command bun install --frozen-lockfile
+          SMOKE_TEST_IMAGE="${{ steps.load.outputs.image }}" \
+            nix develop --command bun test packages/deep-heating/smoke-test.test.ts
+
+      - name: Push Docker image
+        run: |
+          SOURCE_IMAGE="${{ steps.load.outputs.image }}"
           VERSION="${{ inputs.version }}"
           OWNER_LC="${{ github.repository_owner }}"
           OWNER_LC="${OWNER_LC,,}"
