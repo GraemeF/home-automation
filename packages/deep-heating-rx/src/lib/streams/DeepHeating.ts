@@ -172,11 +172,13 @@ export function createDeepHeating(
     home,
     entityUpdates$,
   ).buttonPressEvents$;
-  buttonEvents$.subscribe((x) =>
-    log(x.entity_id, x.attributes.friendly_name, 'last happened at', x.state),
-  );
+  buttonEvents$.subscribe((x) => {
+    log(x.entity_id, x.attributes.friendly_name, 'last happened at', x.state);
+  });
   const houseModes$ = getHouseModes(buttonEvents$, home.sleepSwitchId);
-  const logHouseMode = (x: HouseModeValue) => log('House is', x);
+  const logHouseMode = (x: HouseModeValue) => {
+    log('House is', x);
+  };
   houseModes$.subscribe(logHouseMode);
   const rooms$ = from(home.rooms).pipe(
     groupBy((roomDefinition) => roomDefinition.name),
@@ -201,46 +203,47 @@ export function createDeepHeating(
   );
   const trvDisplayName = (trvId: ClimateEntityId): string =>
     `${
-      home.rooms.find((x) => x.climateEntityIds.includes(trvId))?.name
+      home.rooms.find((x) => x.climateEntityIds.includes(trvId))?.name ??
+      'Unknown'
     } (${trvId})`;
-  trvControlStates$.subscribe((x) =>
+  trvControlStates$.subscribe((x) => {
     log(
       'TRV',
       trvDisplayName(x.climateEntityId),
       x.source === 'Device' ? 'is set to' : 'will be changed to',
       x.mode,
       x.targetTemperature,
-    ),
-  );
+    );
+  });
 
   const trvStatuses$ = trvStatusSubject.pipe(
     shareReplayLatestDistinctByKey((x) => x.climateEntityId),
   );
 
-  trvStatuses$.subscribe((x) =>
+  trvStatuses$.subscribe((x) => {
     log(
       'TRV',
       trvDisplayName(x.climateEntityId),
       x.isHeating ? 'is heating' : 'is cooling',
-    ),
-  );
+    );
+  });
 
   const heatingStatuses$ = heatingStatusSubject.pipe(
     shareReplayLatestDistinctByKey((x) => x.heatingId),
   );
 
-  heatingStatuses$.subscribe((x) =>
-    log('Heating', x.heatingId, x.isHeating ? 'is heating' : 'is cooling'),
-  );
+  heatingStatuses$.subscribe((x) => {
+    log('Heating', x.heatingId, x.isHeating ? 'is heating' : 'is cooling');
+  });
 
-  heatingProvider.trvApiUpdates$.subscribe((x) =>
+  heatingProvider.trvApiUpdates$.subscribe((x) => {
     publishTrvControlState({
       climateEntityId: x.climateEntityId,
       mode: x.state.mode,
       targetTemperature: x.state.target,
       source: 'Device',
-    }),
-  );
+    });
+  });
 
   const trvReportedStatuses$ = heatingProvider.trvApiUpdates$.pipe(
     map((x) => ({
@@ -284,7 +287,9 @@ export function createDeepHeating(
   const trvModes$ = getTrvModes(trvControlStates$);
   const roomTrvModes$ = getRoomTrvModes(roomTrvs$, trvModes$);
   const roomModes$ = getRoomModes(rooms$, houseModes$, roomTrvModes$);
-  roomModes$.subscribe((x) => log(x.roomName, 'is', x.mode));
+  roomModes$.subscribe((x) => {
+    log(x.roomName, 'is', x.mode);
+  });
   const roomScheduledTargetTemperatures$ = getRoomScheduledTargetTemperatures(
     rooms$,
     roomSchedules$,
@@ -296,9 +301,9 @@ export function createDeepHeating(
     roomAdjustments$,
   );
 
-  roomTargetTemperatures$.subscribe((x) =>
-    log(x.roomName, 'should be', x.targetTemperature),
-  );
+  roomTargetTemperatures$.subscribe((x) => {
+    log(x.roomName, 'should be', x.targetTemperature);
+  });
 
   const trvTargetTemperatures$ = getTrvTargetTemperatures(trvControlStates$);
   const roomTrvTargetTemperatures$ = getRoomTrvTargetTemperatures(
@@ -364,34 +369,36 @@ export function createDeepHeating(
     publishTrvAction,
   );
   const trvsHeating$ = getTrvsHeating(trvStatuses$);
-  trvsHeating$.subscribe((x) => log('TRVs', Array.from(x), 'are heating'));
+  trvsHeating$.subscribe((x) => {
+    log('TRVs', Array.from(x), 'are heating');
+  });
 
   const roomsHeating$ = getRoomsHeating(roomDecisionPoints$);
 
   const trvsAnyHeating$ = getAnyHeating(trvsHeating$);
-  trvsAnyHeating$.subscribe((x) =>
-    log(x ? 'Some TRVs are heating' : 'No TRVs are heating'),
-  );
+  trvsAnyHeating$.subscribe((x) => {
+    log(x ? 'Some TRVs are heating' : 'No TRVs are heating');
+  });
 
   const roomsAnyHeating$ = getAnyHeating(roomsHeating$);
-  roomsAnyHeating$.subscribe((x) =>
-    log(x ? 'Some rooms are heating' : 'No rooms are heating'),
-  );
+  roomsAnyHeating$.subscribe((x) => {
+    log(x ? 'Some rooms are heating' : 'No rooms are heating');
+  });
 
   const heatingActions$ = getHeatingActions(
     home.heatingId,
     heatingStatuses$,
     roomsAnyHeating$,
   );
-  heatingActions$.subscribe((x) =>
+  heatingActions$.subscribe((x) => {
     log(
       'Heating',
       x.climateEntityId,
       'should change to',
       x.mode,
       x.targetTemperature,
-    ),
-  );
+    );
+  });
 
   const appliedHeatingActions$ = applyHeatingActions(
     heatingActions$,

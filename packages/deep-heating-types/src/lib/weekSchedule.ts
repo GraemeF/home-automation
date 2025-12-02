@@ -1,5 +1,8 @@
 import { DateTime, Duration } from 'luxon';
-import { HeatingSchedule, HeatingScheduleEntry } from './deep-heating-types';
+import type {
+  HeatingSchedule,
+  HeatingScheduleEntry,
+} from './deep-heating-types';
 import { DaySchedule, WeekSchedule } from './schedule-types';
 import { Temperature } from './temperature';
 

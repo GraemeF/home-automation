@@ -74,7 +74,7 @@ const createWebSocketClient = (wsUrl: string): WebSocketClient => {
       // eslint-disable-next-line functional/immutable-data -- WebSocket API requires callback assignment
       socket.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data) as unknown;
+          const data = JSON.parse(event.data as string) as unknown;
           const decode = Schema.decodeUnknown(ServerMessage);
           // eslint-disable-next-line effect/no-runSync -- WebSocket callback is a sync boundary
           const message = Effect.runSync(decode(data));

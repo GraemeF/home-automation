@@ -30,8 +30,8 @@ export const createHomeAssistantHeatingProvider = (
       mergeMap((x) => x.pipe(debounceTime(5000))),
     ),
     heatingActions.pipe(debounceTime(5000)),
-  ).subscribe((action) =>
-    pipe(
+  ).subscribe((action) => {
+    void pipe(
       [
         setClimateEntityMode(action.climateEntityId, action.mode),
         setClimateEntityTemperature(
@@ -42,16 +42,14 @@ export const createHomeAssistantHeatingProvider = (
       Effect.all,
       Effect.tap(() =>
         Effect.log(
-          `${action.climateEntityId} has been changed to ${
-            (action.mode ?? '', action.targetTemperature)
-          }`,
+          `${action.climateEntityId} has been changed to ${action.mode} ${String(action.targetTemperature)}`,
         ),
       ),
       Effect.catchTag(
         'SetTemperatureError',
         (error: Readonly<SetTemperatureError>) =>
           Effect.logError(
-            `Failed to set temperature for ${error.entityId} to ${error.targetTemperature}`,
+            `Failed to set temperature for ${error.entityId} to ${String(error.targetTemperature)}`,
           ),
       ),
       Effect.catchTag('SetHvacModeError', (error: Readonly<SetHvacModeError>) =>
@@ -61,8 +59,8 @@ export const createHomeAssistantHeatingProvider = (
       ),
       Effect.as('done'),
       Runtime.runPromise(runtime),
-    ),
-  );
+    );
+  });
 
   const climateEntityUpdates$ = getClimateEntityUpdates(entityUpdates$);
   const trvApiUpdatesForHome = getTrvApiUpdates(home);

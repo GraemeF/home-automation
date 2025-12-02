@@ -22,15 +22,12 @@ const getNextTrvControlState = (
   action: ClimateAction,
   scheduledTargetTemperature: TrvScheduledTargetTemperature,
 ): TrvControlState => {
-  const mode = action.mode ?? latest.mode;
+  const mode = action.mode;
 
   const getTargetTemperature = () =>
     Match.value(mode).pipe(
       Match.when('off', () => MinimumTrvTargetTemperature),
-      Match.when(
-        'heat',
-        () => action.targetTemperature ?? latest.targetTemperature,
-      ),
+      Match.when('heat', () => action.targetTemperature),
       Match.when(
         'auto',
         () => scheduledTargetTemperature.scheduledTargetTemperature,
@@ -70,7 +67,9 @@ export const applyTrvActions = (
               filter((x) => x.climateEntityId === trvId),
             ),
           ),
-          tap(([action]) => publishHiveTrvAction(action)),
+          tap(([action]) => {
+            publishHiveTrvAction(action);
+          }),
           map(([action, latest, scheduledTargetTemperature]) =>
             getNextTrvControlState(latest, action, scheduledTargetTemperature),
           ),

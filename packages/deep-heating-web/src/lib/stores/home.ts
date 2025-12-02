@@ -20,13 +20,13 @@ export const homeStore = derived<Readable<WebSocketClient | null>, Home>(
 
     // Subscribe to connected state
     const unsubConnect = $apiClient.connected.subscribe((connected) => {
-      set((current) => ({ ...current, connected }));
+      set((current: Home) => ({ ...current, connected }));
     });
 
     // Subscribe to state updates
     const unsubState = $apiClient.state.subscribe((message) => {
       if (message?.type === 'state') {
-        set((current) => ({
+        set((current: Home) => ({
           ...current,
           state: pipe(
             message.data,
