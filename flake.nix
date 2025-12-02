@@ -304,15 +304,17 @@ EOF
           };
 
           # Helper to generate s6 run script content for a service
+          # Multi-line commands are run directly; single commands use exec for cleaner process tree
           mkS6RunScript = def:
             let
               envLines = pkgs.lib.concatStringsSep "\n"
                 (pkgs.lib.mapAttrsToList (k: v: "export ${k}=${v}") (def.env or {}));
+              isMultiLine = builtins.match ".*\n.*" def.command != null;
             in ''
 #!/bin/sh
 exec 2>&1
 ${envLines}
-exec ${def.command}
+${if isMultiLine then def.command else "exec ${def.command}"}
 '';
 
           # Helper to generate install commands for a service directory
