@@ -19,6 +19,8 @@
     "ci": "turbo run ci",
     "deps:check": "knip-bun",
     "changeset": "changeset",
+    "changeset:pre:beta": "changeset pre enter beta",
+    "changeset:pre:exit": "changeset pre exit",
     "version": "changeset version && turbo run version:sync"
   },
   "private": true,
