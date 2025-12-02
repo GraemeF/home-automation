@@ -2216,6 +2216,10 @@
      url = "https://registry.npmjs.org/type-fest/-/type-fest-0.21.3.tgz";
      hash = "sha512-t0rzBq87m3fVcduHDUFhKmyyX+9eo6WQjZvf51Ea/M0Q7+T374Jp1aUiyUl0GKxp8M/OETVHSDvmkyPgvX+X2w==";
   };
+  "typescript-eslint@8.47.0" = fetchurl {
+     url = "https://registry.npmjs.org/typescript-eslint/-/typescript-eslint-8.47.0.tgz";
+     hash = "sha512-Lwe8i2XQ3WoMjua/r1PHrCTpkubPYJCAfOurtn+mtTzqB6jNd+14n9UN1bJ4s3F49x9ixAm0FLflB/JzQ57M8Q==";
+  };
   "typescript@5.9.3" = fetchurl {
      url = "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz";
      hash = "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==";
