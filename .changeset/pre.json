@@ -12,5 +12,7 @@
     "dictionary": "0.0.2",
     "@home-automation/rxx": "0.1.0"
   },
-  "changesets": []
+  "changesets": [
+    "reduce-docker-image-size"
+  ]
 }

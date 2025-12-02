@@ -1,5 +1,11 @@
 # @home-automation/deep-heating
 
+## 0.1.3-beta.0
+
+### Patch Changes
+
+- [#1158](https://github.com/GraemeF/home-automation/pull/1158) [`7fdc88d`](https://github.com/GraemeF/home-automation/commit/7fdc88da00172f135589d100cf158d370e492809) Thanks [@GraemeF](https://github.com/GraemeF)! - Reduce Docker image size by ~100MB
+
 ## 0.1.2
 
 ### Patch Changes
