@@ -1,5 +1,11 @@
 # @home-automation/deep-heating
 
+## 0.1.3-beta.1
+
+### Patch Changes
+
+- [#1163](https://github.com/GraemeF/home-automation/pull/1163) [`f5c792c`](https://github.com/GraemeF/home-automation/commit/f5c792cfb097487964ff1a885e99f5d712b057e0) Thanks [@GraemeF](https://github.com/GraemeF)! - Add smoke test to CI that verifies frontend and backend communicate through nginx before releasing Docker images
+
 ## 0.1.3-beta.0
 
 ### Patch Changes
