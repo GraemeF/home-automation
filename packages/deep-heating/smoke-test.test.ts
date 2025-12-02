@@ -4,8 +4,15 @@ import {
   Wait,
   type StartedTestContainer,
 } from 'testcontainers';
+import { resolve } from 'path';
 
 const INGRESS_PORT = 8099;
+
+// Minimal home config for smoke test - backend needs this to start
+const SMOKE_TEST_HOME_CONFIG = resolve(
+  import.meta.dirname,
+  'fixtures/smoke-test-home.json',
+);
 
 describe('smoke test', () => {
   test(
@@ -23,13 +30,21 @@ describe('smoke test', () => {
 
       try {
         console.log(`Starting container from image: ${imageName}`);
+        console.log(`Using home config: ${SMOKE_TEST_HOME_CONFIG}`);
         container = await new GenericContainer(imageName)
           .withExposedPorts(INGRESS_PORT)
           .withEnvironment({
             SUPERVISOR_URL: 'http://dummy:8123',
             SUPERVISOR_TOKEN: 'dummy-token-for-smoke-test',
             ALLOW_ALL_IPS: 'true',
+            HOME_CONFIG_PATH: '/config/home.json',
           })
+          .withCopyFilesToContainer([
+            {
+              source: SMOKE_TEST_HOME_CONFIG,
+              target: '/config/home.json',
+            },
+          ])
           .withWaitStrategy(Wait.forHttp('/', INGRESS_PORT).forStatusCode(200))
           .withStartupTimeout(45_000)
           .start();
