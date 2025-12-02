@@ -8,5 +8,8 @@
 .beads/*.jsonl
 .beads/*.json
 
+# Changeset-generated files
+.changeset/pre.json
+
 # Vite temp files
 *.timestamp-*.mjs
