@@ -86,6 +86,12 @@
         "prettier.config.*"
       ],
       "cache": true
+    },
+    "//#changeset:pre:beta": {
+      "cache": false
+    },
+    "//#changeset:pre:exit": {
+      "cache": false
     }
   }
 }
