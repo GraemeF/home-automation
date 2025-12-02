@@ -282,7 +282,16 @@ EOF
           # Each service has: command (required), env (optional map)
           s6ServiceDefs = {
             nginx = {
-              command = ''${pkgs.nginx}/bin/nginx -g "daemon off;" -c /etc/nginx/nginx.conf'';
+              # Copy config to writable location, optionally removing IP restrictions for testing
+              command = ''
+                cp /etc/nginx/nginx.conf /run/nginx/nginx.conf
+                if [ -n "$ALLOW_ALL_IPS" ]; then
+                  echo "ALLOW_ALL_IPS set - removing IP restrictions for testing"
+                  ${pkgs.gnused}/bin/sed -i 's/allow  172.30.32.2;/allow all;/' /run/nginx/nginx.conf
+                  ${pkgs.gnused}/bin/sed -i 's/deny   all;//' /run/nginx/nginx.conf
+                fi
+                ${pkgs.nginx}/bin/nginx -g "daemon off;" -c /run/nginx/nginx.conf
+              '';
             };
             server = {
               env = { PORT = "3002"; };
@@ -389,6 +398,7 @@ ${mkS6RunScript def}RUNSCRIPT
               pkgs.dockerTools.binSh      # /bin/sh for scripts
               pkgs.dockerTools.fakeNss    # Provides /etc/passwd and /etc/group (for nginx)
               pkgs.coreutils              # Basic utilities (cp, mkdir, etc)
+              pkgs.gnused                 # sed for nginx config modification (ALLOW_ALL_IPS)
             ];
 
             # OCI/Docker configuration
