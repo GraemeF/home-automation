@@ -171,6 +171,12 @@
             bunDeps = bunDepsWeb;
             SOURCE_DATE_EPOCH = lastModified;
 
+            # Skip lifecycle scripts - preinstall runs "bun x only-allow bun"
+            # which needs network access (not available in Nix sandbox)
+            bunLifecycleScriptsPhase = ''
+              echo "Skipping lifecycle scripts (no network in sandbox)"
+            '';
+
             buildPhase = ''
               echo "Building web frontend with Turbo + Vite..."
               ${pkgs.turbo}/bin/turbo build --filter='@home-automation/deep-heating-web...'
