@@ -10,10 +10,10 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@effect/platform": "0.93.3",
+    "@effect/platform": "0.93.4",
     "@home-automation/deep-heating-types": "workspace:*",
     "@home-automation/rxx": "workspace:*",
-    "effect": "3.19.6",
+    "effect": "3.19.7",
     "rxjs": "7.8.2"
   }
 }

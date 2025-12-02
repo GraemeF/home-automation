@@ -11,7 +11,7 @@
   "dependencies": {
     "@home-automation/deep-heating-rx": "workspace:*",
     "@home-automation/deep-heating-types": "workspace:*",
-    "effect": "3.19.6",
+    "effect": "3.19.7",
     "rxjs": "7.8.2"
   }
 }
