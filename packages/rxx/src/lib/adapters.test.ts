@@ -26,7 +26,15 @@ describe('Effect/RxJS adapters', () => {
       const stream = Stream.fail(new Error('test error'));
       const observable = streamToObservable(stream);
 
-      await expect(firstValueFrom(observable)).rejects.toThrow('test error');
+      let error: Error | undefined;
+      try {
+        await firstValueFrom(observable);
+      } catch (e) {
+        error = e as Error;
+      }
+
+      expect(error).toBeDefined();
+      expect(error?.message).toBe('test error');
     });
 
     it.live('handles streams that emit over time', () =>
@@ -64,7 +72,9 @@ describe('Effect/RxJS adapters', () => {
 
     it.effect('converts an empty observable to an empty stream', () =>
       pipe(
-        new Observable<number>((subscriber) => subscriber.complete()),
+        new Observable<number>((subscriber) => {
+          subscriber.complete();
+        }),
         observableToStream,
         Stream.runCollect,
         Effect.map((result) => {
@@ -93,9 +103,15 @@ describe('Effect/RxJS adapters', () => {
     it.effect('handles observables that emit over time', () =>
       pipe(
         new Observable<number>((subscriber) => {
-          setTimeout(() => subscriber.next(1), 10);
-          setTimeout(() => subscriber.next(2), 20);
-          setTimeout(() => subscriber.next(3), 30);
+          setTimeout(() => {
+            subscriber.next(1);
+          }, 10);
+          setTimeout(() => {
+            subscriber.next(2);
+          }, 20);
+          setTimeout(() => {
+            subscriber.next(3);
+          }, 30);
           setTimeout(subscriber.complete.bind(subscriber), 40);
         }),
         observableToStream,
@@ -111,7 +127,9 @@ describe('Effect/RxJS adapters', () => {
 
       return pipe(
         new Observable<number>((subscriber) => {
-          const interval = setInterval(() => subscriber.next(1), 10);
+          const interval = setInterval(() => {
+            subscriber.next(1);
+          }, 10);
           return () => {
             clearInterval(interval);
             unsubscribed = true;

@@ -9,8 +9,8 @@ import {
   tap,
 } from 'rxjs/operators';
 
-export function shareReplayLatestDistinctByKey<T, K>(
-  keySelector: (observedValue: T) => K,
+export function shareReplayLatestDistinctByKey<T>(
+  keySelector: (observedValue: T) => unknown,
   distinctThing: (a: T, b: T) => boolean = isDeepStrictEqual,
 ) {
   return (source: Observable<T>): Observable<T> =>
@@ -22,8 +22,8 @@ export function shareReplayLatestDistinctByKey<T, K>(
     );
 }
 
-export function shareReplayLatestByKey<T, K>(
-  keySelector: (observedValue: T) => K,
+export function shareReplayLatestByKey<T>(
+  keySelector: (observedValue: T) => unknown,
 ) {
   return (source: Observable<T>): Observable<T> =>
     source.pipe(

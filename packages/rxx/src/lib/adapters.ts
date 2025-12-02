@@ -24,14 +24,14 @@ export const observableToStream = <A>(
 ): Stream.Stream<A, Error> =>
   Stream.async<A, Error>((emit: StreamEmit.Emit<never, Error, A, void>) => {
     const subscription = observable.subscribe({
-      next: (value) => emit(Effect.succeed(Chunk.of(value))),
+      next: (value) => void emit(Effect.succeed(Chunk.of(value))),
       error: (e) =>
-        emit(
+        void emit(
           Effect.fail(
             Option.some(e instanceof Error ? e : new Error(String(e))),
           ),
         ),
-      complete: () => emit(Effect.fail(Option.none())),
+      complete: () => void emit(Effect.fail(Option.none())),
     });
     return Effect.sync(subscription.unsubscribe.bind(subscription));
   });

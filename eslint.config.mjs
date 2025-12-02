@@ -1,3 +1,4 @@
+import tseslint from 'typescript-eslint';
 import typescript from '@typescript-eslint/eslint-plugin';
 import parser from '@typescript-eslint/parser';
 import unusedImports from 'eslint-plugin-unused-imports';
@@ -124,7 +125,7 @@ export default [
       ],
     },
   },
-  // TypeScript files (all packages)
+  // TypeScript files (all packages) - base rules without type checking
   {
     name: 'typescript-base',
     files: ['**/*.ts', '**/*.tsx'],
@@ -132,6 +133,21 @@ export default [
     plugins: commonPlugins,
     rules: typescriptBaseRules,
   },
+  // TypeScript strict type-checked rules (requires type information)
+  ...tseslint.configs.strictTypeChecked.map((config) => ({
+    ...config,
+    name: config.name
+      ? `strict-type-checked/${config.name}`
+      : 'strict-type-checked',
+    files: ['**/*.ts', '**/*.tsx'],
+    languageOptions: {
+      ...config.languageOptions,
+      parserOptions: {
+        ...(config.languageOptions?.parserOptions ?? {}),
+        projectService: true,
+      },
+    },
+  })),
   // Effect strict rules for all TS files (excludes testing)
   {
     name: 'effect-strict',

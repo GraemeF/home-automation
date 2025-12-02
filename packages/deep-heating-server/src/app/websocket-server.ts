@@ -58,7 +58,7 @@ const createAddClientToServerStateUpdater =
 const addClientToServerState = (
   serverStateRef: Readonly<Ref.Ref<ServerState>>,
   clientState: Readonly<ClientState>,
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void> =>
   Ref.update(serverStateRef, createAddClientToServerStateUpdater(clientState));
 
 const createRemoveClientFromServerStateUpdater =
@@ -70,7 +70,7 @@ const createRemoveClientFromServerStateUpdater =
 const removeClientFromServerState = (
   serverStateRef: Readonly<Ref.Ref<ServerState>>,
   clientId: ClientId,
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void> =>
   Ref.update(
     serverStateRef,
     createRemoveClientFromServerStateUpdater(clientId),
@@ -90,15 +90,13 @@ const parseClientMessage = (data: Readonly<string>) =>
 const handleClientMessage = (
   roomAdjustmentSubject: Subject<RoomAdjustment>,
   data: Readonly<string>,
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void> =>
   pipe(
     data,
     parseClientMessage,
     Effect.tap((message) =>
       Effect.sync(() => {
-        if (message.type === 'adjust_room') {
-          roomAdjustmentSubject.next(message.data);
-        }
+        roomAdjustmentSubject.next(message.data);
       }),
     ),
     Effect.catchAll(() => Effect.void),
@@ -125,7 +123,7 @@ const encodeServerMessage = (
 const sendToSingleClient = (
   message: Readonly<ServerMessageEncoded>,
   clientState: Readonly<ClientState>,
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void> =>
   Effect.try({
     try: () => {
       const serialized = JSON.stringify(message);
@@ -137,7 +135,7 @@ const sendToSingleClient = (
 const broadcastToAllClients = (
   serverStateRef: Readonly<Ref.Ref<ServerState>>,
   message: Readonly<ServerMessageEncoded>,
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void> =>
   pipe(
     serverStateRef,
     Ref.get,
@@ -162,7 +160,7 @@ const createWebSocketServer = (
   serverStateRef: Readonly<Ref.Ref<ServerState>>,
   roomAdjustmentSubject: Subject<RoomAdjustment>,
   currentState: Readonly<Ref.Ref<DeepHeatingState | null>>,
-): Effect.Effect<Bun.Server<WebSocketData>, never, never> =>
+): Effect.Effect<Bun.Server<WebSocketData>> =>
   Effect.sync(() => {
     const server = Bun.serve<WebSocketData>({
       port: config.port,
@@ -236,15 +234,15 @@ export interface WebSocketServer {
   readonly roomAdjustments$: Observable<RoomAdjustment>;
   readonly broadcast: (
     state: Readonly<DeepHeatingState>,
-  ) => Effect.Effect<void, never, never>;
-  readonly shutdown: Effect.Effect<void, never, never>;
+  ) => Effect.Effect<void>;
+  readonly shutdown: Effect.Effect<void>;
 }
 
 const broadcastStateToClients = (
   serverStateRef: Readonly<Ref.Ref<ServerState>>,
   currentStateRef: Readonly<Ref.Ref<DeepHeatingState | null>>,
   state: Readonly<DeepHeatingState>,
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void> =>
   pipe(
     Ref.set(currentStateRef, state),
     Effect.andThen(
@@ -256,7 +254,7 @@ const shutdownServerAndCleanup = (
   server: Bun.Server<WebSocketData>,
   serverStateRef: Readonly<Ref.Ref<ServerState>>,
   roomAdjustmentSubject: Subject<RoomAdjustment>,
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void> =>
   pipe(
     serverStateRef,
     Ref.get,
@@ -270,7 +268,7 @@ const shutdownServerAndCleanup = (
               // Ignore errors during cleanup
             }
           });
-          server.stop();
+          void server.stop();
         } catch {
           // Ignore cleanup errors
         }
@@ -289,7 +287,7 @@ const initializeServerWithWebSocket = (
   serverStateRef: Readonly<Ref.Ref<ServerState>>,
   currentStateRef: Readonly<Ref.Ref<DeepHeatingState | null>>,
   roomAdjustmentSubject: Subject<RoomAdjustment>,
-): Effect.Effect<WebSocketServer, never, never> =>
+): Effect.Effect<WebSocketServer> =>
   pipe(
     createWebSocketServer(
       config,
@@ -318,7 +316,7 @@ const initializeServerWithWebSocket = (
 
 export const createAndStartWebSocketServer = (
   config: Readonly<WebSocketServerConfig>,
-): Effect.Effect<WebSocketServer, never, never> =>
+): Effect.Effect<WebSocketServer> =>
   pipe(
     {
       serverStateRef: Ref.make<ServerState>({
