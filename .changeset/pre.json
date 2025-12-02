@@ -12,5 +12,9 @@
     "dictionary": "0.0.2",
     "@home-automation/rxx": "0.1.0"
   },
-  "changesets": ["reduce-docker-image-size", "smoke-test-ci"]
+  "changesets": [
+    "fix-nginx-ws",
+    "reduce-docker-image-size",
+    "smoke-test-ci"
+  ]
 }
