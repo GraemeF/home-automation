@@ -82,11 +82,11 @@
           inherit (bun2nix.packages.${system}.default) mkDerivation fetchBunDeps;
 
           # Fetch Bun dependencies from pruned lockfile (for builds)
-          # patchShebangs = true required on Linux for tools like tsc to work in sandbox
-          # TODO: Investigate separating build-time and runtime deps to avoid bun-with-fake-node in image
+          # patchShebangs = false avoids pulling bun-with-fake-node (101MB) into runtime closure
+          # We manually patch shebangs to use bun in bunNodeModulesInstallPhase
           bunDepsDeepHeating = fetchBunDeps {
             bunNix = ./bun-deep-heating.nix;
-            patchShebangs = true;
+            patchShebangs = false;
           };
 
           # Fetch Bun dependencies from full lockfile (for CI validation)
@@ -166,10 +166,19 @@
             SOURCE_DATE_EPOCH = lastModified;
 
             # Override bun install to use hoisted linker
-            # NOTE: Not using --production because build requires devDependencies (tsc, vite)
+            # NOTE: Not using --production because build requires devDependencies (vite for SvelteKit)
+            # We manually patch shebangs to use bun instead of /usr/bin/env node
+            # This avoids needing bun2nix's patchShebangs which pulls in bun-with-fake-node (101MB)
             bunNodeModulesInstallPhase = ''
               echo "Installing node modules with hoisted linker..."
               ${pkgs.bun}/bin/bun install --frozen-lockfile --linker=hoisted --ignore-scripts
+
+              echo "Patching shebangs to use bun (avoids bun-with-fake-node)..."
+              for f in node_modules/.bin/*; do
+                if [ -f "$f" ] && [ ! -L "$f" ]; then
+                  ${pkgs.gnused}/bin/sed -i 's|#!/usr/bin/env node|#!${pkgs.bun}/bin/bun|' "$f" 2>/dev/null || true
+                fi
+              done
 
               echo "Normalizing timestamps to git commit time..."
               find node_modules -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} + || true
