@@ -46,9 +46,29 @@ describe('smoke test', () => {
           'text/html',
         );
 
+        // Debug: Check what /ws returns via HTTP first
+        console.log('Testing /ws endpoint via HTTP...');
+        const wsHttpResponse = await fetch(`${baseUrl}/ws`);
+        console.log(`  /ws HTTP status: ${wsHttpResponse.status}`);
+        console.log(
+          `  /ws HTTP headers: ${JSON.stringify(Object.fromEntries(wsHttpResponse.headers))}`,
+        );
+        if (!wsHttpResponse.ok && wsHttpResponse.status !== 426) {
+          const body = await wsHttpResponse.text();
+          console.log(`  /ws HTTP body: ${body.slice(0, 500)}`);
+        }
+
         // Verify WebSocket endpoint is routed through nginx
         const wsUrl = `ws://${host}:${port}/ws`;
+        console.log(`Testing WebSocket connection to ${wsUrl}...`);
         const wsConnected = await testWebSocketConnection(wsUrl);
+        if (!wsConnected) {
+          // Dump container logs to help debug
+          console.log('WebSocket connection failed! Container logs:');
+          const logs = await container.logs();
+          const logOutput = await streamToString(logs);
+          console.log(logOutput.slice(-5000)); // Last 5000 chars
+        }
         expect(wsConnected).toBe(true);
       } finally {
         if (container) {
@@ -59,6 +79,14 @@ describe('smoke test', () => {
     { timeout: 60_000 },
   );
 });
+
+async function streamToString(stream: NodeJS.ReadableStream): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
 
 async function testWebSocketConnection(url: string): Promise<boolean> {
   return new Promise((resolve) => {
