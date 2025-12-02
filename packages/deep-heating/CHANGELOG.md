@@ -1,5 +1,11 @@
 # @home-automation/deep-heating
 
+## 0.1.3-beta.2
+
+### Patch Changes
+
+- [#1166](https://github.com/GraemeF/home-automation/pull/1166) [`ccfcefd`](https://github.com/GraemeF/home-automation/commit/ccfcefda86221d606cf46a7093d9758344d8402c) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix nginx WebSocket proxying by routing /ws to backend instead of unused /socket.io path
+
 ## 0.1.3-beta.1
 
 ### Patch Changes
