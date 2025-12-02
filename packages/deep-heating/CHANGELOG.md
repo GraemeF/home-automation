@@ -1,5 +1,11 @@
 # @home-automation/deep-heating
 
+## 0.1.3-beta.3
+
+### Patch Changes
+
+- [#1169](https://github.com/GraemeF/home-automation/pull/1169) [`7b78008`](https://github.com/GraemeF/home-automation/commit/7b780080cfdf6cbf051a3fe7f7f10457ab552d67) Thanks [@GraemeF](https://github.com/GraemeF)! - Add strict type checking with typescript-eslint to catch type errors at lint time
+
 ## 0.1.3-beta.2
 
 ### Patch Changes
