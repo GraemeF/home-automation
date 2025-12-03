@@ -1,6 +1,5 @@
-import { Schema } from 'effect';
-import { DeepHeatingState } from '@home-automation/deep-heating-types';
-import { Option, pipe } from 'effect';
+import type { DeepHeatingState } from '@home-automation/deep-heating-types';
+import { Option } from 'effect';
 import type { Readable } from 'svelte/store';
 import { derived } from 'svelte/store';
 import { apiClientStore, type WebSocketClient } from './apiClient';
@@ -23,16 +22,12 @@ export const homeStore = derived<Readable<WebSocketClient | null>, Home>(
       set((current: Home) => ({ ...current, connected }));
     });
 
-    // Subscribe to state updates
+    // Subscribe to state updates (message.data is already decoded by apiClient)
     const unsubState = $apiClient.state.subscribe((message) => {
       if (message?.type === 'state') {
         set((current: Home) => ({
           ...current,
-          state: pipe(
-            message.data,
-            Schema.decodeUnknownSync(DeepHeatingState),
-            Option.some,
-          ),
+          state: Option.some(message.data),
         }));
       }
     });
