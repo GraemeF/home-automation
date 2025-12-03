@@ -124,7 +124,19 @@ jobs:
       # TODO: Move smoke test back before push once the WebSocket issue is fixed
       - name: Run smoke test
         run: |
-          nix develop --command bun install --frozen-lockfile
+          # Retry bun install up to 3 times (workaround for https://github.com/oven-sh/bun/issues/23929)
+          for i in 1 2 3; do
+            echo "Attempt $i: bun install"
+            if nix develop --command bun install --frozen-lockfile; then
+              break
+            fi
+            if [ $i -eq 3 ]; then
+              echo "bun install failed after 3 attempts"
+              exit 1
+            fi
+            echo "Retrying in 5 seconds..."
+            sleep 5
+          done
           SMOKE_TEST_IMAGE="${{ steps.load.outputs.image }}" \
             nix develop --command bun test packages/deep-heating/smoke-test.test.ts
 
