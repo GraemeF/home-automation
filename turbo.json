@@ -87,6 +87,11 @@
       ],
       "cache": true
     },
+    "e2e": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "outputs": []
+    },
     "//#changeset:pre:beta": {
       "cache": false
     },
