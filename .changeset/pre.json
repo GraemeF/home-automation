@@ -14,6 +14,7 @@
   },
   "changesets": [
     "fix-nginx-ws",
+    "fix-temperature-sorting",
     "fix-web-double-decode",
     "reduce-docker-image-size",
     "smoke-test-ci",
