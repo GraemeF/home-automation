@@ -169,13 +169,13 @@ jobs:
         run: nix develop --command bun install --frozen-lockfile
 
       - name: Build packages for E2E
-        run: nix develop --command turbo build --filter=@home-automation/deep-heating...
+        run: nix develop --command bunx turbo build --filter=@home-automation/deep-heating...
 
       - name: Install Playwright Browsers
         run: nix develop --command bunx playwright install chromium --with-deps
 
       - name: Run E2E tests
-        run: nix develop --command turbo e2e --filter=@home-automation/deep-heating
+        run: nix develop --command bunx turbo e2e --filter=@home-automation/deep-heating
 
       - name: Post E2E test summary
         uses: daun/playwright-report-summary@v3
