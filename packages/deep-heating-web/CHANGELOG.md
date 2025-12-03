@@ -1,5 +1,11 @@
 # @home-automation/deep-heating-web
 
+## 0.2.1-beta.2
+
+### Patch Changes
+
+- [#1180](https://github.com/GraemeF/home-automation/pull/1180) [`93906a7`](https://github.com/GraemeF/home-automation/commit/93906a7b9966932deabae3f0b597484b8202ef8c) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix UI crash caused by incorrect use of Svelte derived store API - use update() instead of set() with updater functions
+
 ## 0.2.1-beta.1
 
 ### Patch Changes
