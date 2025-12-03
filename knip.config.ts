@@ -60,7 +60,7 @@ const config: KnipConfig = {
 
     // Combined deployment package
     'packages/deep-heating': {
-      entry: ['scripts/*.ts', 'smoke-test.test.ts'],
+      entry: ['scripts/*.ts', '*.test.ts'],
       ignore: ['dist/**'],
       // These are workspace deps for deployment
       ignoreDependencies: [

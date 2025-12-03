@@ -12,6 +12,7 @@
     "@home-automation/deep-heating-web": "workspace:*"
   },
   "devDependencies": {
+    "playwright": "1.57.0",
     "testcontainers": "11.8.1"
   }
 }

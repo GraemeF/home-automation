@@ -71,6 +71,14 @@ jobs:
           SMOKE_TEST_IMAGE="${{ steps.load.outputs.image }}" \
             nix develop --command bun test packages/deep-heating/smoke-test.test.ts
 
+      - name: Install Playwright browsers
+        run: nix develop --command bunx playwright install --with-deps chromium
+
+      - name: Run E2E smoke test
+        run: |
+          SMOKE_TEST_IMAGE="${{ steps.load.outputs.image }}" \
+            nix develop --command bun test packages/deep-heating/e2e-smoke-test.test.ts
+
   docker-arm64:
     name: Build Docker (arm64)
     runs-on: ubuntu-24.04-arm
@@ -139,6 +147,14 @@ jobs:
           done
           SMOKE_TEST_IMAGE="${{ steps.load.outputs.image }}" \
             nix develop --command bun test packages/deep-heating/smoke-test.test.ts
+
+      - name: Install Playwright browsers
+        run: nix develop --command bunx playwright install --with-deps chromium
+
+      - name: Run E2E smoke test
+        run: |
+          SMOKE_TEST_IMAGE="${{ steps.load.outputs.image }}" \
+            nix develop --command bun test packages/deep-heating/e2e-smoke-test.test.ts
 
   docker-manifest:
     name: Create multi-arch manifest
