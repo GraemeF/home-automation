@@ -11,7 +11,7 @@ interface Home {
 
 export const homeStore = derived<Readable<WebSocketClient | null>, Home>(
   apiClientStore,
-  ($apiClient, set) => {
+  ($apiClient, set, update) => {
     if (!$apiClient) {
       set({ connected: false, state: Option.none() });
       return;
@@ -19,13 +19,13 @@ export const homeStore = derived<Readable<WebSocketClient | null>, Home>(
 
     // Subscribe to connected state
     const unsubConnect = $apiClient.connected.subscribe((connected) => {
-      set((current: Home) => ({ ...current, connected }));
+      update((current) => ({ ...current, connected }));
     });
 
     // Subscribe to state updates (message.data is already decoded by apiClient)
     const unsubState = $apiClient.state.subscribe((message) => {
       if (message?.type === 'state') {
-        set((current: Home) => ({
+        update((current) => ({
           ...current,
           state: Option.some(message.data),
         }));

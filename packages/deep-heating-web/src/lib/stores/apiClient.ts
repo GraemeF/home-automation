@@ -79,8 +79,8 @@ const createWebSocketClient = (wsUrl: string): WebSocketClient => {
           // eslint-disable-next-line effect/no-runSync -- WebSocket callback is a sync boundary
           const message = Effect.runSync(decode(data));
           state.set(message);
-        } catch {
-          // Ignore invalid messages
+        } catch (error) {
+          console.error('Failed to decode WebSocket message:', error);
         }
       };
     } catch {
