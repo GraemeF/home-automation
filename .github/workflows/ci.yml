@@ -53,7 +53,7 @@ jobs:
           fi
 
   build:
-    needs: check-changes
+    needs: [check-changes, validate-nix]
     runs-on: ubuntu-latest
     if: github.head_ref != 'changeset-release/main' && needs.check-changes.outputs.should_build == 'true'
     steps:
