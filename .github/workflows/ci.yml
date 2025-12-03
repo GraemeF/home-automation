@@ -153,7 +153,7 @@ jobs:
         run: nix develop --command bunx playwright install chromium --with-deps
 
       - name: Run E2E tests
-        run: nix develop --command turbo e2e --filter=@home-automation/deep-heating
+        run: nix develop --command bunx turbo e2e --filter=@home-automation/deep-heating
 
       - name: Post E2E test summary
         uses: daun/playwright-report-summary@v3
