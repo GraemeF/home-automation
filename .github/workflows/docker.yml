@@ -64,16 +64,12 @@ jobs:
           docker tag "$SOURCE_IMAGE" "${{ secrets.DOCKERHUB_USERNAME }}/deep-heating:${VERSION}-amd64"
           docker push "${{ secrets.DOCKERHUB_USERNAME }}/deep-heating:${VERSION}-amd64"
 
-      # TODO: Move smoke test back before push once the WebSocket issue is fixed
-      - name: Run smoke test
+      - name: Install dependencies and Playwright browsers
         run: |
           nix develop --command bun install --frozen-lockfile
-          SMOKE_TEST_IMAGE="${{ steps.load.outputs.image }}" \
-            nix develop --command bun test packages/deep-heating/smoke-test.test.ts
+          nix develop --command bunx playwright install --with-deps chromium
 
-      - name: Install Playwright browsers
-        run: nix develop --command bunx playwright install --with-deps chromium
-
+      # TODO: Move smoke test back before push once the WebSocket issue is fixed
       - name: Run E2E smoke test
         run: |
           SMOKE_TEST_IMAGE="${{ steps.load.outputs.image }}" \
@@ -129,8 +125,7 @@ jobs:
           docker tag "$SOURCE_IMAGE" "${{ secrets.DOCKERHUB_USERNAME }}/deep-heating:${VERSION}-arm64"
           docker push "${{ secrets.DOCKERHUB_USERNAME }}/deep-heating:${VERSION}-arm64"
 
-      # TODO: Move smoke test back before push once the WebSocket issue is fixed
-      - name: Run smoke test
+      - name: Install dependencies and Playwright browsers
         run: |
           # Retry bun install up to 3 times (workaround for https://github.com/oven-sh/bun/issues/23929)
           for i in 1 2 3; do
@@ -145,12 +140,9 @@ jobs:
             echo "Retrying in 5 seconds..."
             sleep 5
           done
-          SMOKE_TEST_IMAGE="${{ steps.load.outputs.image }}" \
-            nix develop --command bun test packages/deep-heating/smoke-test.test.ts
+          nix develop --command bunx playwright install --with-deps chromium
 
-      - name: Install Playwright browsers
-        run: nix develop --command bunx playwright install --with-deps chromium
-
+      # TODO: Move smoke test back before push once the WebSocket issue is fixed
       - name: Run E2E smoke test
         run: |
           SMOKE_TEST_IMAGE="${{ steps.load.outputs.image }}" \
