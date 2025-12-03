@@ -148,3 +148,47 @@ jobs:
           fi
 
           echo "✅ bun-deep-heating.nix is in sync"
+
+  e2e:
+    needs: [check-changes, build]
+    runs-on: ubuntu-latest
+    if: github.head_ref != 'changeset-release/main' && needs.check-changes.outputs.should_build == 'true'
+    steps:
+      - name: Checkout [pr]
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        run: nix develop --command bun install --frozen-lockfile
+
+      - name: Build packages for E2E
+        run: nix develop --command turbo build --filter=@home-automation/deep-heating...
+
+      - name: Install Playwright Browsers
+        run: nix develop --command bunx playwright install chromium --with-deps
+
+      - name: Run E2E tests
+        run: nix develop --command turbo e2e --filter=@home-automation/deep-heating
+
+      - name: Post E2E test summary
+        uses: daun/playwright-report-summary@v3
+        if: always()
+        with:
+          report-file: packages/deep-heating/playwright-results.json
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: |
+            packages/deep-heating/playwright-report/
+            packages/deep-heating/playwright-results.json
+          retention-days: 7
