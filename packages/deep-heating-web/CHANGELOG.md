@@ -1,5 +1,11 @@
 # @home-automation/deep-heating-web
 
+## 0.2.1-beta.0
+
+### Patch Changes
+
+- [#1171](https://github.com/GraemeF/home-automation/pull/1171) [`209f367`](https://github.com/GraemeF/home-automation/commit/209f3677a5da613a0a49db801267f48905e0f48e) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix runtime error when receiving WebSocket state updates. The home store was attempting to decode already-decoded state data, causing "Cannot read properties of undefined (reading '\_tag')" errors on Option fields.
+
 ## 0.2.0
 
 ### Minor Changes
