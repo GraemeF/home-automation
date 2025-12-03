@@ -14,6 +14,7 @@
   },
   "changesets": [
     "fix-nginx-ws",
+    "fix-web-double-decode",
     "reduce-docker-image-size",
     "smoke-test-ci",
     "strict-type-checking"
