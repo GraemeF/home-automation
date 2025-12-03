@@ -6,14 +6,13 @@
   "scripts": {
     "version:sync": "bun scripts/sync-version.ts",
     "format": "prettier --write .",
-    "e2e": "bun test e2e-local-smoke-test.test.ts"
+    "e2e": "playwright test"
   },
   "dependencies": {
     "deep-heating-server": "workspace:*",
     "@home-automation/deep-heating-web": "workspace:*"
   },
   "devDependencies": {
-    "playwright": "1.57.0",
-    "testcontainers": "11.8.1"
+    "@playwright/test": "1.57.0"
   }
 }
