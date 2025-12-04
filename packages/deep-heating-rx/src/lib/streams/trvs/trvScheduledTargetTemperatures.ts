@@ -3,6 +3,7 @@ import {
   TrvWeekHeatingSchedule,
   toHeatingSchedule,
 } from '@home-automation/deep-heating-types';
+import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import { Observable, combineLatest, timer } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
 import { localNow } from '../../utils/datetime';
@@ -22,4 +23,5 @@ export const getTrvScheduledTargetTemperatures = (
         now,
       )[0].targetTemperature,
     })),
+    shareReplayLatestDistinctByKey((x) => x.climateEntityId),
   );
