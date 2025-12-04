@@ -41,15 +41,7 @@ import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import debug from 'debug';
 import { HashSet, Predicate, Runtime } from 'effect';
 import { from, GroupedObservable, Observable, Subject } from 'rxjs';
-import {
-  distinctUntilChanged,
-  groupBy,
-  map,
-  mergeAll,
-  mergeMap,
-  share,
-  shareReplay,
-} from 'rxjs/operators';
+import { groupBy, map, mergeAll, mergeMap } from 'rxjs/operators';
 import { applyHeatingActions, applyTrvActions } from './actions';
 import { getHouseModes } from './house/houseModes';
 import { getRoomAdjustments } from './rooms/roomAdjustments';
@@ -189,17 +181,11 @@ export function createDeepHeating(
     temperatureSensorUpdate$,
   );
   const trvControlStates$ = trvControlStateSubject.pipe(
-    groupBy((trvControlState) => trvControlState.climateEntityId),
-    mergeMap((trvControlState) =>
-      trvControlState.pipe(
-        distinctUntilChanged<TrvControlState>(
-          (a, b) =>
-            a.mode === b.mode && a.targetTemperature === b.targetTemperature,
-        ),
-        shareReplay(1),
-      ),
+    shareReplayLatestDistinctByKey(
+      (x) => x.climateEntityId,
+      (a, b) =>
+        a.mode === b.mode && a.targetTemperature === b.targetTemperature,
     ),
-    share(),
   );
   const trvDisplayName = (trvId: ClimateEntityId): string =>
     `${
