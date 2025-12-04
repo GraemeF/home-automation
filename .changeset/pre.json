@@ -16,6 +16,7 @@
     "fix-derived-store-update",
     "fix-nginx-ws",
     "fix-temperature-sorting",
+    "fix-trv-scheduled-temperatures-replay",
     "fix-web-double-decode",
     "reduce-docker-image-size",
     "smoke-test-ci",
