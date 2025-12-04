@@ -82,9 +82,9 @@ flowchart TB
     TrvSchedTargets --> Output
 
     %% Styling
-    classDef timer fill:#99ccff,stroke:#0066cc
-    classDef user fill:#99ff99,stroke:#00cc00
-    classDef output fill:#ffcc99,stroke:#cc6600
+    classDef timer fill:#3b82f6,stroke:#2563eb,color:#fff
+    classDef user fill:#22c55e,stroke:#16a34a,color:#000
+    classDef output fill:#f97316,stroke:#ea580c,color:#000
 
     class Timer60,Timer63 timer
     class UserCmd user

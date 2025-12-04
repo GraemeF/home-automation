@@ -47,9 +47,9 @@ flowchart LR
     L8 --> HAOut
     L8 -.->|"Feedback"| L3
 
-    classDef input fill:#99ff99,stroke:#00cc00
-    classDef output fill:#ffcc99,stroke:#cc6600
-    classDef process fill:#e6e6e6,stroke:#666666
+    classDef input fill:#22c55e,stroke:#16a34a,color:#000
+    classDef output fill:#f97316,stroke:#ea580c,color:#000
+    classDef process fill:#3b82f6,stroke:#2563eb,color:#fff
 
     class HA,User,Timers input
     class HAOut output

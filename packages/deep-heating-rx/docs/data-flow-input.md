@@ -66,9 +66,9 @@ flowchart TB
     HeatingApi --> HeatingStatus
 
     %% Styling
-    classDef external fill:#99ff99,stroke:#00cc00
-    classDef subject fill:#ff9999,stroke:#cc0000
-    classDef timer fill:#99ccff,stroke:#0066cc
+    classDef external fill:#22c55e,stroke:#16a34a,color:#000
+    classDef subject fill:#ef4444,stroke:#dc2626,color:#fff
+    classDef timer fill:#3b82f6,stroke:#2563eb,color:#fff
 
     class HA,User external
     class Timer60,Timer63 timer

@@ -64,9 +64,9 @@ flowchart TB
     HeatingStatusSubject -.->|"to Layer 4"| BackToInput
 
     %% Styling
-    classDef subject fill:#ff9999,stroke:#cc0000
-    classDef output fill:#ffcc99,stroke:#cc6600
-    classDef feedback fill:#cc99ff,stroke:#6600cc
+    classDef subject fill:#ef4444,stroke:#dc2626,color:#fff
+    classDef output fill:#f97316,stroke:#ea580c,color:#000
+    classDef feedback fill:#a855f7,stroke:#9333ea,color:#fff
 
     class TrvControlSubject,TrvStatusSubject,HeatingStatusSubject subject
     class HAClimate,HAHeating output

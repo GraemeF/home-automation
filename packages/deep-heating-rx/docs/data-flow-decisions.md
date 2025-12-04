@@ -79,9 +79,9 @@ flowchart TB
     RoomDecisions --> Output
 
     %% Styling
-    classDef timer fill:#99ccff,stroke:#0066cc
-    classDef output fill:#ffcc99,stroke:#cc6600
-    classDef decision fill:#ffffcc,stroke:#cccc00
+    classDef timer fill:#3b82f6,stroke:#2563eb,color:#fff
+    classDef output fill:#f97316,stroke:#ea580c,color:#000
+    classDef decision fill:#eab308,stroke:#ca8a04,color:#000
 
     class Timer60 timer
     class Output output
