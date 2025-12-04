@@ -1,5 +1,7 @@
-import { describe, expect, it, afterEach } from 'bun:test';
-import { Subject, Subscription } from 'rxjs';
+import { describe, expect, it } from '@codeforbreakfast/bun-test-effect';
+import { Array, Effect, Option, pipe, Stream } from 'effect';
+import { Subject } from 'rxjs';
+import { observableToStream } from './adapters';
 import { shareReplayLatestDistinctByKey } from './rxx';
 
 interface TrvTemperature {
@@ -8,139 +10,125 @@ interface TrvTemperature {
 }
 
 describe('shareReplayLatestDistinctByKey', () => {
-  // eslint-disable-next-line functional/prefer-readonly-type -- Test subscription tracking
-  const subs: Subscription[] = [];
+  it.effect(
+    'replays latest value for each key when new subscriber joins',
+    () => {
+      const source$ = new Subject<TrvTemperature>();
+      const replayed$ = source$.pipe(
+        shareReplayLatestDistinctByKey((x) => x.climateEntityId),
+      );
 
-  afterEach(() => {
-    subs.forEach((s) => {
-      s.unsubscribe();
-    });
-    subs.length = 0;
-  });
+      // Subscribe first to establish the shareReplay cache
+      const firstSub = replayed$.subscribe();
 
-  const trackSubscription = (sub: Subscription): void => {
-    subs.push(sub);
-  };
+      // Emit values
+      source$.next({ climateEntityId: 'bedroom', temperature: 18 });
+      source$.next({ climateEntityId: 'office', temperature: 20 });
+      source$.next({ climateEntityId: 'lounge', temperature: 19 });
 
-  it('replays latest value for each key when new subscriber joins', async () => {
+      // Clean up first subscriber
+      firstSub.unsubscribe();
+
+      // Late subscriber should receive replayed values
+      return pipe(
+        replayed$,
+        observableToStream,
+        Stream.take(3),
+        Stream.runCollect,
+        Effect.map(Array.fromIterable),
+        Effect.map((arr) => {
+          expect(arr).toHaveLength(3);
+          expect(arr.map((v) => v.climateEntityId).sort()).toEqual([
+            'bedroom',
+            'lounge',
+            'office',
+          ]);
+        }),
+      );
+    },
+  );
+
+  it.effect('emits all keys when multiple values arrive', () => {
     const source$ = new Subject<TrvTemperature>();
     const replayed$ = source$.pipe(
       shareReplayLatestDistinctByKey((x) => x.climateEntityId),
     );
 
-    // eslint-disable-next-line functional/prefer-readonly-type -- Test value collection
-    const firstValues: TrvTemperature[] = [];
-    trackSubscription(
-      replayed$.subscribe((v) => {
-        firstValues.push(v);
+    // Emit after a small delay to ensure subscription is established
+    setTimeout(() => {
+      source$.next({ climateEntityId: 'bedroom', temperature: 18 });
+      source$.next({ climateEntityId: 'gymnasium', temperature: 15 });
+      source$.next({ climateEntityId: 'hall', temperature: 17 });
+      source$.next({ climateEntityId: 'lounge', temperature: 19 });
+      source$.next({ climateEntityId: 'office', temperature: 20 });
+    }, 10);
+
+    return pipe(
+      replayed$,
+      observableToStream,
+      Stream.take(5),
+      Stream.runCollect,
+      Effect.map(Array.fromIterable),
+      Effect.map((arr) => {
+        expect(arr).toHaveLength(5);
+        expect(new Set(arr.map((v) => v.climateEntityId)).size).toBe(5);
       }),
     );
-
-    source$.next({ climateEntityId: 'bedroom', temperature: 18 });
-    source$.next({ climateEntityId: 'office', temperature: 20 });
-    source$.next({ climateEntityId: 'lounge', temperature: 19 });
-
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    expect(firstValues).toHaveLength(3);
-
-    // eslint-disable-next-line functional/prefer-readonly-type -- Test value collection
-    const lateValues: TrvTemperature[] = [];
-    trackSubscription(
-      replayed$.subscribe((v) => {
-        lateValues.push(v);
-      }),
-    );
-
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    expect(lateValues).toHaveLength(3);
-    expect(lateValues.map((v) => v.climateEntityId).sort()).toStrictEqual([
-      'bedroom',
-      'lounge',
-      'office',
-    ]);
   });
 
-  it('emits all keys when multiple values arrive', async () => {
+  it.effect('does not emit duplicate values for same key', () => {
     const source$ = new Subject<TrvTemperature>();
     const replayed$ = source$.pipe(
       shareReplayLatestDistinctByKey((x) => x.climateEntityId),
     );
 
-    // eslint-disable-next-line functional/prefer-readonly-type -- Test value collection
-    const values: TrvTemperature[] = [];
-    trackSubscription(
-      replayed$.subscribe((v) => {
-        values.push(v);
+    // Emit after a small delay to ensure subscription is established
+    setTimeout(() => {
+      source$.next({ climateEntityId: 'bedroom', temperature: 18 });
+      source$.next({ climateEntityId: 'bedroom', temperature: 18 });
+      source$.next({ climateEntityId: 'bedroom', temperature: 18 });
+    }, 10);
+
+    return pipe(
+      replayed$,
+      observableToStream,
+      Stream.take(1),
+      Stream.runCollect,
+      Effect.map(Array.fromIterable),
+      Effect.map((arr) => {
+        expect(arr).toHaveLength(1);
       }),
     );
-
-    source$.next({ climateEntityId: 'bedroom', temperature: 18 });
-    source$.next({ climateEntityId: 'gymnasium', temperature: 15 });
-    source$.next({ climateEntityId: 'hall', temperature: 17 });
-    source$.next({ climateEntityId: 'lounge', temperature: 19 });
-    source$.next({ climateEntityId: 'office', temperature: 20 });
-
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    expect(values).toHaveLength(5);
-
-    const uniqueKeys = new Set(values.map((v) => v.climateEntityId));
-    expect(uniqueKeys.size).toBe(5);
   });
 
-  it('does not emit duplicate values for same key', async () => {
+  it.effect('emits when value changes for existing key', () => {
     const source$ = new Subject<TrvTemperature>();
     const replayed$ = source$.pipe(
       shareReplayLatestDistinctByKey((x) => x.climateEntityId),
     );
 
-    // eslint-disable-next-line functional/prefer-readonly-type -- Test value collection
-    const values: TrvTemperature[] = [];
-    trackSubscription(
-      replayed$.subscribe((v) => {
-        values.push(v);
+    // Emit after a small delay to ensure subscription is established
+    setTimeout(() => {
+      source$.next({ climateEntityId: 'bedroom', temperature: 18 });
+      source$.next({ climateEntityId: 'office', temperature: 20 });
+      source$.next({ climateEntityId: 'bedroom', temperature: 22 });
+    }, 10);
+
+    return pipe(
+      replayed$,
+      observableToStream,
+      Stream.take(3),
+      Stream.runCollect,
+      Effect.map(Array.fromIterable),
+      Effect.tap((arr) => {
+        expect(arr).toHaveLength(3);
+      }),
+      Effect.map(Array.last),
+      Effect.map(Option.getOrThrow),
+      Effect.map((lastValue) => {
+        expect(lastValue.climateEntityId).toBe('bedroom');
+        expect(lastValue.temperature).toBe(22);
       }),
     );
-
-    source$.next({ climateEntityId: 'bedroom', temperature: 18 });
-    source$.next({ climateEntityId: 'bedroom', temperature: 18 });
-    source$.next({ climateEntityId: 'bedroom', temperature: 18 });
-
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    expect(values).toHaveLength(1);
-  });
-
-  it('emits when value changes for existing key', async () => {
-    const source$ = new Subject<TrvTemperature>();
-    const replayed$ = source$.pipe(
-      shareReplayLatestDistinctByKey((x) => x.climateEntityId),
-    );
-
-    // eslint-disable-next-line functional/prefer-readonly-type -- Test value collection
-    const values: TrvTemperature[] = [];
-    trackSubscription(
-      replayed$.subscribe((v) => {
-        values.push(v);
-      }),
-    );
-
-    source$.next({ climateEntityId: 'bedroom', temperature: 18 });
-    source$.next({ climateEntityId: 'office', temperature: 20 });
-
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    expect(values).toHaveLength(2);
-
-    source$.next({ climateEntityId: 'bedroom', temperature: 22 });
-
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    expect(values).toHaveLength(3);
-    const lastValue = values[values.length - 1];
-    expect(lastValue.climateEntityId).toBe('bedroom');
-    expect(lastValue.temperature).toBe(22);
   });
 });
