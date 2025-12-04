@@ -1,5 +1,19 @@
 # @home-automation/deep-heating-rx
 
+## 0.1.3-beta.0
+
+### Patch Changes
+
+- [#1182](https://github.com/GraemeF/home-automation/pull/1182) [`9aed2df`](https://github.com/GraemeF/home-automation/commit/9aed2dfe12ccd16404201a348cbf911a6dc469f6) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix TRV scheduled temperatures not replaying for all radiators
+
+  The `getTrvScheduledTargetTemperatures` function was using `combineLatest` which
+  only stores the latest value from each input stream. When the 60-second timer
+  fired, it only re-emitted for the last TRV to have updated (typically Office),
+  causing other radiators to stop receiving target temperature updates.
+
+  Added `shareReplayLatestDistinctByKey` to properly store and replay each TRV's
+  scheduled target temperature independently.
+
 ## 0.1.2
 
 ### Patch Changes
