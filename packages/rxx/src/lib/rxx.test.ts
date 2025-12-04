@@ -1,5 +1,5 @@
-import { describe, it } from '@codeforbreakfast/bun-test-effect';
-import { Array, Data, Effect, Option, pipe, Stream } from 'effect';
+import { describe, expect, it } from '@codeforbreakfast/bun-test-effect';
+import { Array, Effect, Option, pipe, Stream } from 'effect';
 import { Subject } from 'rxjs';
 import { observableToStream } from './adapters';
 import { shareReplayLatestDistinctByKey } from './rxx';
@@ -8,77 +8,6 @@ interface TrvTemperature {
   readonly climateEntityId: string;
   readonly temperature: number;
 }
-
-const AssertionError = Data.TaggedError('AssertionError')<{
-  readonly message: string;
-}>;
-
-type AssertionError = ReturnType<typeof AssertionError>;
-
-const assertEqual = <A>(
-  actual: A,
-  expected: A,
-): Effect.Effect<void, AssertionError> =>
-  Effect.if(JSON.stringify(actual) === JSON.stringify(expected), {
-    onTrue: () => Effect.void,
-    onFalse: () =>
-      Effect.fail(
-        AssertionError({
-          message: `Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`,
-        }),
-      ),
-  });
-
-const assertLength = (
-  arr: readonly TrvTemperature[],
-  expected: number,
-): Effect.Effect<readonly TrvTemperature[], AssertionError> =>
-  Effect.if(arr.length === expected, {
-    onTrue: () => Effect.succeed(arr),
-    onFalse: () =>
-      Effect.fail(
-        AssertionError({
-          message: `Expected ${String(expected)} values, got ${String(arr.length)}`,
-        }),
-      ),
-  });
-
-const assertUniqueKeys = (
-  arr: readonly TrvTemperature[],
-  expected: number,
-): Effect.Effect<readonly TrvTemperature[], AssertionError> =>
-  Effect.if(new Set(arr.map((v) => v.climateEntityId)).size === expected, {
-    onTrue: () => Effect.succeed(arr),
-    onFalse: () =>
-      Effect.fail(
-        AssertionError({ message: `Expected ${String(expected)} unique keys` }),
-      ),
-  });
-
-const assertTrvMatches = (
-  value: TrvTemperature,
-  expectedId: string,
-  expectedTemp: number,
-): Effect.Effect<void, AssertionError> =>
-  pipe(
-    assertEqual(value.climateEntityId, expectedId),
-    Effect.andThen(assertEqual(value.temperature, expectedTemp)),
-  );
-
-const assertLastValue = (
-  arr: readonly TrvTemperature[],
-  expectedId: string,
-  expectedTemp: number,
-): Effect.Effect<void, AssertionError> =>
-  pipe(
-    arr,
-    Array.last,
-    Option.match({
-      onNone: () =>
-        Effect.fail(AssertionError({ message: 'Expected a last value' })),
-      onSome: (value) => assertTrvMatches(value, expectedId, expectedTemp),
-    }),
-  );
 
 describe('shareReplayLatestDistinctByKey', () => {
   it.effect(
@@ -107,14 +36,14 @@ describe('shareReplayLatestDistinctByKey', () => {
         Stream.take(3),
         Stream.runCollect,
         Effect.map(Array.fromIterable),
-        Effect.flatMap((arr) => assertLength(arr, 3)),
-        Effect.andThen((arr) =>
-          assertEqual(arr.map((v) => v.climateEntityId).sort(), [
+        Effect.map((arr) => {
+          expect(arr).toHaveLength(3);
+          expect(arr.map((v) => v.climateEntityId).sort()).toEqual([
             'bedroom',
             'lounge',
             'office',
-          ]),
-        ),
+          ]);
+        }),
       );
     },
   );
@@ -140,8 +69,10 @@ describe('shareReplayLatestDistinctByKey', () => {
       Stream.take(5),
       Stream.runCollect,
       Effect.map(Array.fromIterable),
-      Effect.flatMap((arr) => assertLength(arr, 5)),
-      Effect.flatMap((arr) => assertUniqueKeys(arr, 5)),
+      Effect.map((arr) => {
+        expect(arr).toHaveLength(5);
+        expect(new Set(arr.map((v) => v.climateEntityId)).size).toBe(5);
+      }),
     );
   });
 
@@ -164,7 +95,9 @@ describe('shareReplayLatestDistinctByKey', () => {
       Stream.take(1),
       Stream.runCollect,
       Effect.map(Array.fromIterable),
-      Effect.flatMap((arr) => assertLength(arr, 1)),
+      Effect.map((arr) => {
+        expect(arr).toHaveLength(1);
+      }),
     );
   });
 
@@ -187,8 +120,12 @@ describe('shareReplayLatestDistinctByKey', () => {
       Stream.take(3),
       Stream.runCollect,
       Effect.map(Array.fromIterable),
-      Effect.flatMap((arr) => assertLength(arr, 3)),
-      Effect.flatMap((arr) => assertLastValue(arr, 'bedroom', 22)),
+      Effect.map((arr) => {
+        expect(arr).toHaveLength(3);
+        const lastValue = Option.getOrThrow(Array.last(arr));
+        expect(lastValue.climateEntityId).toBe('bedroom');
+        expect(lastValue.temperature).toBe(22);
+      }),
     );
   });
 });
