@@ -9,38 +9,38 @@ This diagram shows how external data enters the system and is extracted into typ
 ```mermaid
 flowchart TB
     subgraph External["External Data Sources"]
-        HA[("Home Assistant\nWebSocket API")]
+        HA[("Home Assistant")]
         User[("User Commands")]
-        Timer60["Timer\n60s"]
-        Timer63["Timer\n63s"]
+        Timer60["Timer 60s"]
+        Timer63["Timer 63s"]
     end
 
     subgraph Layer1["Layer 1: Raw Data Extraction"]
         direction LR
-        TempSensor["temperatureSensorUpdate$\n<i>TemperatureSensorEntity</i>"]
-        TrvApi["trvApiUpdates$\n<i>TrvUpdate</i>"]
-        HeatingApi["heatingApiUpdates$\n<i>HeatingUpdate</i>"]
-        ButtonEvents["buttonEvents$\n<i>GoodnightEventEntity</i>"]
+        TempSensor["temperatureSensorUpdate$"]
+        TrvApi["trvApiUpdates$"]
+        HeatingApi["heatingApiUpdates$"]
+        ButtonEvents["buttonEvents$"]
     end
 
     subgraph Layer2["Layer 2: Configuration"]
         direction LR
-        Rooms["rooms$\n<i>Room definitions</i>"]
-        RoomSensors["roomSensors$\n<i>Room -> Sensor IDs</i>"]
-        RoomTrvs["roomTrvs$\n<i>Room -> TRV IDs</i>"]
+        Rooms["rooms$"]
+        RoomSensors["roomSensors$"]
+        RoomTrvs["roomTrvs$"]
     end
 
     subgraph Layer3["Layer 3: Device State"]
         direction LR
-        TrvTemps["trvTemperatures$\n<i>Per-TRV readings</i>"]
-        TrvSchedules["trvHiveHeatingSchedules$\n<i>Week schedules</i>"]
+        TrvTemps["trvTemperatures$"]
+        TrvSchedules["trvHiveHeatingSchedules$"]
     end
 
     subgraph Layer4["Layer 4: State Subjects"]
         direction LR
-        TrvControl[["trvControlStateSubject\n<i>Mode + Target</i>"]]
-        TrvStatus[["trvStatusSubject\n<i>Heating status</i>"]]
-        HeatingStatus[["heatingStatusSubject\n<i>Boiler status</i>"]]
+        TrvControl[["trvControlStateSubject"]]
+        TrvStatus[["trvStatusSubject"]]
+        HeatingStatus[["heatingStatusSubject"]]
     end
 
     %% External to Layer 1

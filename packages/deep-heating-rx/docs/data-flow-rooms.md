@@ -22,26 +22,26 @@ flowchart TB
     end
 
     subgraph Layer5["Layer 5: Room Aggregation"]
-        RoomTemps["roomTemperatures$\n<i>Sensor readings per room</i>"]
-        RoomTrvModes["roomTrvModes$\n<i>All TRV modes per room</i>"]
-        RoomTrvTemps["roomTrvTemperatures$\n<i>All TRV temps per room</i>"]
-        RoomTrvTargets["roomTrvTargetTemperatures$\n<i>All TRV targets per room</i>"]
+        RoomTemps["roomTemperatures$"]
+        RoomTrvModes["roomTrvModes$"]
+        RoomTrvTemps["roomTrvTemperatures$"]
+        RoomTrvTargets["roomTrvTargetTemperatures$"]
     end
 
     subgraph Layer6["Layer 6: Scheduling & House Mode"]
-        HouseModes["houseModes$\n<i>Auto/Sleeping</i>"]
-        RoomSchedules["roomSchedules$\n<i>Current schedule per room</i>"]
-        RoomSchedTargets["roomScheduledTargetTemperatures$\n<i>Scheduled target per room</i>"]
-        TrvSchedTargets["trvScheduledTargetTemperatures$\n<i>Scheduled target per TRV</i>"]
+        HouseModes["houseModes$"]
+        RoomSchedules["roomSchedules$"]
+        RoomSchedTargets["roomScheduledTargetTemperatures$"]
+        TrvSchedTargets["trvScheduledTargetTemperatures$"]
     end
 
     subgraph Layer7["Layer 7: User Adjustments"]
-        RoomAdjustments["roomAdjustments$\n<i>+/- temperature per room</i>"]
-        RoomModes["roomModes$\n<i>Off/Auto/Sleeping per room</i>"]
+        RoomAdjustments["roomAdjustments$"]
+        RoomModes["roomModes$"]
     end
 
     subgraph Layer8["Layer 8: Target Calculation"]
-        RoomTargets["roomTargetTemperatures$\n<i>Final desired temp per room</i>"]
+        RoomTargets["roomTargetTemperatures$"]
     end
 
     %% Layer 5 connections

@@ -22,18 +22,18 @@ flowchart LR
     end
 
     subgraph Processing["Processing Pipeline"]
-        L1["Raw Data\nExtraction"]
-        L2["Device &\nRoom Config"]
-        L3["Device\nState"]
-        L4["Room\nAggregation"]
-        L5["Scheduling &\nMode"]
-        L6["Target\nCalculation"]
-        L7["Decision\nPoints"]
-        L8["Action\nGeneration"]
+        L1["Raw Data<br/>Extraction"]
+        L2["Device &<br/>Room Config"]
+        L3["Device<br/>State"]
+        L4["Room<br/>Aggregation"]
+        L5["Scheduling<br/>& Mode"]
+        L6["Target<br/>Calculation"]
+        L7["Decision<br/>Points"]
+        L8["Action<br/>Generation"]
     end
 
     subgraph Output["Output"]
-        HAOut[("Home Assistant\nClimate Control")]
+        HAOut[("Home Assistant<br/>Climate Control")]
     end
 
     Input --> L1

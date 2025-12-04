@@ -16,15 +16,15 @@ flowchart TB
     end
 
     subgraph Layer15["Layer 15: Heating Aggregation"]
-        TrvsHeating["trvsHeating$\n<i>Set of heating TRVs</i>"]
-        TrvsAnyHeating["trvsAnyHeating$\n<i>Boolean: any TRV heating?</i>"]
-        RoomsHeating["roomsHeating$\n<i>Set of heating rooms</i>"]
-        RoomsAnyHeating["roomsAnyHeating$\n<i>Boolean: any room heating?</i>"]
+        TrvsHeating["trvsHeating$"]
+        TrvsAnyHeating["trvsAnyHeating$"]
+        RoomsHeating["roomsHeating$"]
+        RoomsAnyHeating["roomsAnyHeating$"]
     end
 
     subgraph Layer16["Layer 16: Main Heating Control"]
-        HeatingActions["heatingActions$\n<i>On/Off decision</i>"]
-        AppliedHeating["appliedHeatingActions$\n<i>Sent to boiler</i>"]
+        HeatingActions["heatingActions$"]
+        AppliedHeating["appliedHeatingActions$"]
     end
 
     subgraph Feedback["Feedback Loops"]
@@ -34,8 +34,8 @@ flowchart TB
     end
 
     subgraph Output["Home Assistant"]
-        HAClimate[("Climate Entities\n<i>TRV control</i>")]
-        HAHeating[("Heating System\n<i>Boiler control</i>")]
+        HAClimate[("Climate Entities")]
+        HAHeating[("Heating System")]
     end
 
     %% Layer 15 connections

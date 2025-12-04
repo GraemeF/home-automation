@@ -21,27 +21,27 @@ flowchart TB
     end
 
     subgraph Layer9["Layer 9: Room Decision Points"]
-        RoomDecisions["roomDecisionPoints$\n<i>Analysis per room</i>"]
+        RoomDecisions["roomDecisionPoints$"]
     end
 
     subgraph Layer10["Layer 10: TRV Decision Points"]
-        TrvDecisions["trvDecisionPoints$\n<i>Analysis per TRV</i>"]
+        TrvDecisions["trvDecisionPoints$"]
     end
 
     subgraph Layer11["Layer 11: TRV Target Calculation"]
-        TrvDesired["trvDesiredTargetTemperatures$\n<i>Optimal target per TRV</i>"]
+        TrvDesired["trvDesiredTargetTemperatures$"]
     end
 
     subgraph Layer12["Layer 12: Action Generation"]
-        TrvActions["trvActions$\n<i>Mode/target changes</i>"]
+        TrvActions["trvActions$"]
     end
 
     subgraph Layer13["Layer 13: Synthesized Status"]
-        TrvSynthStatus["trvSynthesisedStatuses$\n<i>Is TRV heating?</i>"]
+        TrvSynthStatus["trvSynthesisedStatuses$"]
     end
 
     subgraph Layer14["Layer 14: Action Application"]
-        AppliedActions["appliedTrvActions$\n<i>Sent to Home Assistant</i>"]
+        AppliedActions["appliedTrvActions$"]
     end
 
     %% Layer 9 connections
