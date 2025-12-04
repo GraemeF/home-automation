@@ -41,7 +41,7 @@ import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import debug from 'debug';
 import { HashSet, Predicate, Runtime } from 'effect';
 import { from, GroupedObservable, Observable, Subject } from 'rxjs';
-import { groupBy, map, mergeAll, mergeMap, tap } from 'rxjs/operators';
+import { groupBy, map, mergeAll, mergeMap } from 'rxjs/operators';
 import { applyHeatingActions, applyTrvActions } from './actions';
 import { getHouseModes } from './house/houseModes';
 import { getRoomAdjustments } from './rooms/roomAdjustments';
@@ -78,7 +78,6 @@ import { getTrvTargetTemperatures } from './trvs/trvTargetTemperatures';
 import { getTrvTemperatures } from './trvs/trvTemperatures';
 
 const log = debug('deep-heating');
-const logTrvTempFlow = debug('deep-heating:trv-temp-flow');
 
 export interface DeepHeating {
   readonly temperatureSensorUpdate$: Observable<TemperatureSensorEntity>;
@@ -301,31 +300,10 @@ export function createDeepHeating(
     roomTrvs$,
     trvTargetTemperatures$,
   );
-  const trvTemperatures$ = getTrvTemperatures(
-    heatingProvider.trvApiUpdates$,
-  ).pipe(
-    tap((x) => {
-      logTrvTempFlow(
-        '[1-trvTemperatures] %s: %d°C',
-        x.climateEntityId,
-        x.temperatureReading.temperature,
-      );
-    }),
-  );
+  const trvTemperatures$ = getTrvTemperatures(heatingProvider.trvApiUpdates$);
   const roomTrvTemperatures$ = getRoomTrvTemperatures(
     roomTrvs$,
     trvTemperatures$,
-  ).pipe(
-    tap((x) => {
-      logTrvTempFlow(
-        '[2-roomTrvTemperatures] %s: %o',
-        x.roomName,
-        x.trvTemperatures.map((t) => ({
-          id: t.climateEntityId,
-          temp: t.temperatureReading.temperature,
-        })),
-      );
-    }),
   );
   const roomTrvStatuses$ = getRoomTrvStatuses(roomTrvs$, trvStatuses$);
   const roomDecisionPoints$ = getRoomDecisionPoints(
@@ -336,28 +314,9 @@ export function createDeepHeating(
     roomTrvTemperatures$,
     roomTrvModes$,
   );
-  const trvDecisionPoints$ = getTrvDecisionPoints(roomDecisionPoints$).pipe(
-    tap((x) => {
-      logTrvTempFlow(
-        '[3-trvDecisionPoints] %s: roomTarget=%d, roomTemp=%d, trvTemp=%d',
-        x.climateEntityId,
-        x.roomTargetTemperature,
-        x.roomTemperature,
-        x.trvTemperature,
-      );
-    }),
-  );
-  const trvDesiredTargetTemperatures$ = getTrvDesiredTargetTemperatures(
-    trvDecisionPoints$,
-  ).pipe(
-    tap((x) => {
-      logTrvTempFlow(
-        '[4-trvDesiredTargetTemperatures] %s: target=%d°C',
-        x.climateEntityId,
-        x.targetTemperature,
-      );
-    }),
-  );
+  const trvDecisionPoints$ = getTrvDecisionPoints(roomDecisionPoints$);
+  const trvDesiredTargetTemperatures$ =
+    getTrvDesiredTargetTemperatures(trvDecisionPoints$);
   const trvScheduledTargetTemperatures$ = getTrvScheduledTargetTemperatures(
     trvHiveHeatingSchedules$,
   );
