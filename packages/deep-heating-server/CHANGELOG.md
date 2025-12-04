@@ -1,5 +1,13 @@
 # deep-heating-socketio
 
+## 0.1.4-beta.3
+
+### Patch Changes
+
+- Updated dependencies [[`1197dbc`](https://github.com/GraemeF/home-automation/commit/1197dbc465e5ef26d0eb5573f0f3ef6520d40903)]:
+  - @home-automation/deep-heating-rx@0.1.3-beta.3
+  - @home-automation/deep-heating-state@0.1.4-beta.3
+
 ## 0.1.4-beta.2
 
 ### Patch Changes

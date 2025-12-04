@@ -1,5 +1,11 @@
 # @home-automation/deep-heating-rx
 
+## 0.1.3-beta.3
+
+### Patch Changes
+
+- [#1192](https://github.com/GraemeF/home-automation/pull/1192) [`1197dbc`](https://github.com/GraemeF/home-automation/commit/1197dbc465e5ef26d0eb5573f0f3ef6520d40903) Thanks [@GraemeF](https://github.com/GraemeF)! - Remove broken 60-second timer from TRV desired target temperature calculation. The timer only recalculated the last TRV that emitted, not all TRVs - a bug that existed since the original implementation when there was only one TRV per room.
+
 ## 0.1.3-beta.2
 
 ### Patch Changes

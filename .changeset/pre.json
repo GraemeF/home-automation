@@ -21,6 +21,7 @@
     "fix-trv-scheduled-temperatures-replay",
     "fix-web-double-decode",
     "reduce-docker-image-size",
+    "remove-trv-timer",
     "smoke-test-ci",
     "strict-type-checking"
   ]
