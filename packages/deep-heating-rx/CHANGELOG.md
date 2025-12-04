@@ -1,5 +1,21 @@
 # @home-automation/deep-heating-rx
 
+## 0.1.3-beta.2
+
+### Patch Changes
+
+- [#1190](https://github.com/GraemeF/home-automation/pull/1190) [`2cc324b`](https://github.com/GraemeF/home-automation/commit/2cc324b4e80f6f4958bc823c7642d156bd6ccb0b) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix TRV control state updates being suppressed when device returns from unavailable
+
+  When a TRV goes unavailable and comes back online, the device may report a stale
+  target temperature that differs from what the system last commanded. Previously,
+  if the device reported the same mode and temperature as our cached synthesised
+  command, the device update would be suppressed and no corrective action would be
+  generated.
+
+  Now, device updates are always emitted if the source differs from the cached
+  value (Device vs Synthesised), ensuring the action pipeline can re-evaluate and
+  push the correct temperature to the TRV.
+
 ## 0.1.3-beta.1
 
 ### Patch Changes
