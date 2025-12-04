@@ -1,5 +1,13 @@
 # @home-automation/deep-heating
 
+## 0.1.3-beta.11
+
+### Patch Changes
+
+- Updated dependencies []:
+  - deep-heating-server@0.1.4-beta.4
+  - @home-automation/deep-heating-web@0.2.1-beta.3
+
 ## 0.1.3-beta.10
 
 ### Patch Changes

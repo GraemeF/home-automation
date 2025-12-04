@@ -1,5 +1,12 @@
 # @home-automation/deep-heating-home-assistant
 
+## 0.1.3-beta.0
+
+### Patch Changes
+
+- Updated dependencies [[`c8db588`](https://github.com/GraemeF/home-automation/commit/c8db588e1ebd50f43e83b39039028bc02c40ff06)]:
+  - @home-automation/deep-heating-types@0.2.1-beta.0
+
 ## 0.1.2
 
 ### Patch Changes

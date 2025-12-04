@@ -1,5 +1,11 @@
 # @home-automation/deep-heating-types
 
+## 0.2.1-beta.0
+
+### Patch Changes
+
+- [#1194](https://github.com/GraemeF/home-automation/pull/1194) [`c8db588`](https://github.com/GraemeF/home-automation/commit/c8db588e1ebd50f43e83b39039028bc02c40ff06) Thanks [@GraemeF](https://github.com/GraemeF)! - Add debug logging for scheduled target temperatures and test for Wednesday evening schedule behavior
+
 ## 0.2.0
 
 ### Minor Changes
