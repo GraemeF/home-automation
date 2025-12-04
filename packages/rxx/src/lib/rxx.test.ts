@@ -120,9 +120,12 @@ describe('shareReplayLatestDistinctByKey', () => {
       Stream.take(3),
       Stream.runCollect,
       Effect.map(Array.fromIterable),
-      Effect.map((arr) => {
+      Effect.tap((arr) => {
         expect(arr).toHaveLength(3);
-        const lastValue = Option.getOrThrow(Array.last(arr));
+      }),
+      Effect.map(Array.last),
+      Effect.map(Option.getOrThrow),
+      Effect.map((lastValue) => {
         expect(lastValue.climateEntityId).toBe('bedroom');
         expect(lastValue.temperature).toBe(22);
       }),
