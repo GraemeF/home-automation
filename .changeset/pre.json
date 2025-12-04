@@ -13,6 +13,7 @@
     "@home-automation/rxx": "0.1.0"
   },
   "changesets": [
+    "add-scheduled-target-logging",
     "fix-derived-store-update",
     "fix-nginx-ws",
     "fix-temperature-sorting",
