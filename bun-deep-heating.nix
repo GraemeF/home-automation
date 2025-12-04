@@ -1912,9 +1912,9 @@
      url = "https://registry.npmjs.org/prettier/-/prettier-2.8.8.tgz";
      hash = "sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==";
   };
-  "prettier@3.6.2" = fetchurl {
-     url = "https://registry.npmjs.org/prettier/-/prettier-3.6.2.tgz";
-     hash = "sha512-I7AIg5boAr5R0FFtJ6rCfD+LFsWHp81dolrFD8S79U9tb8Az2nGrJncnMSnys+bpQJfRUzqs9hnA81OAA3hCuQ==";
+  "prettier@3.7.2" = fetchurl {
+     url = "https://registry.npmjs.org/prettier/-/prettier-3.7.2.tgz";
+     hash = "sha512-n3HV2J6QhItCXndGa3oMWvWFAgN1ibnS7R9mt6iokScBOC0Ul9/iZORmU2IWUMcyAQaMPjTlY3uT34TqocUxMA==";
   };
   "pretty-format@27.5.1" = fetchurl {
      url = "https://registry.npmjs.org/pretty-format/-/pretty-format-27.5.1.tgz";
