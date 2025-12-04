@@ -284,6 +284,9 @@ export function createDeepHeating(
     rooms$,
     roomSchedules$,
   );
+  roomScheduledTargetTemperatures$.subscribe((x) => {
+    log(x.roomName, 'scheduled target is', x.targetTemperature);
+  });
   const roomTargetTemperatures$ = getRoomTargetTemperatures(
     rooms$,
     roomModes$,

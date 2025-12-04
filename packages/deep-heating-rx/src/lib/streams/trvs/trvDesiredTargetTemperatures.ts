@@ -4,13 +4,17 @@ import {
   Temperature,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
+import debug from 'debug';
 import { Observable } from 'rxjs';
-import { map, share } from 'rxjs/operators';
+import { map, share, tap } from 'rxjs/operators';
+
 import {
   MaximumTrvTargetTemperature,
   MinimumTrvTargetTemperature,
   TrvDecisionPoint,
 } from './trvDecisionPoints';
+
+const log = debug('deep-heating:trv-temp-flow');
 
 export interface TrvDesiredTargetTemperature {
   readonly climateEntityId: ClimateEntityId;
@@ -54,5 +58,12 @@ export const getTrvDesiredTargetTemperatures = (
       (trvDesiredTargetTemperature) =>
         trvDesiredTargetTemperature.climateEntityId,
     ),
+    tap((x) => {
+      log(
+        '[3-trvDesiredTargetTemperatures] %s: target=%d°C',
+        x.climateEntityId,
+        x.targetTemperature,
+      );
+    }),
     share(),
   );
