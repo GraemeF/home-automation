@@ -44,12 +44,14 @@
     "dev": {
       "dependsOn": ["^build"],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["DEBUG"]
     },
     "serve": {
       "dependsOn": ["^build"],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["DEBUG"]
     },
     "sync": {
       "outputs": [".svelte-kit/**"]
