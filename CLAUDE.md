@@ -89,3 +89,5 @@ Brief description of what changed
 ```
 
 The frontmatter lists affected packages and bump type (`patch`, `minor`, `major`). Changes to libraries automatically bump `@home-automation/deep-heating` via dependencies.
+
+- The main branch is protected; changes must be made via a pull request.
