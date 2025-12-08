@@ -68,7 +68,7 @@ jobs:
 
       - name: Commit changeset cleanup
         if: steps.changesets.outputs.pullRequestNumber
-        uses: suzuki-shunsuke/commit-action@v1
+        uses: suzuki-shunsuke/commit-action@v0.0.14
         with:
           github_token: ${{ steps.github-app-token.outputs.token }}
           commit_message: 'chore: clean up consumed changesets'
