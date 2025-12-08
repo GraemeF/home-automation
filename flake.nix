@@ -5,7 +5,7 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
     bun2nix = {
-      url = "github:baileyluTCD/bun2nix";
+      url = "github:nix-community/bun2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -434,10 +434,11 @@ ${mkS6RunScript def}RUNSCRIPT
         in
         {
           default = pkgs.mkShell {
-            buildInputs = with pkgs; [
-              bun
-              git
-              docker
+            buildInputs = [
+              pkgs.bun
+              pkgs.git
+              pkgs.docker
+              bun2nix.packages.${system}.default
             ];
 
             shellHook = ''
