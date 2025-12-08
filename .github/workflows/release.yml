@@ -56,37 +56,44 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.github-app-token.outputs.token }}
 
-      # Workaround for dh-mun: changesets/action github-api mode doesn't delete
-      # changeset files (upstream bug: https://github.com/changesets/action/issues/510)
-      # We delete them via GitHub API to keep verified commits.
+      # Workaround for changesets/action github-api mode not deleting changeset files
+      # (upstream bug: https://github.com/changesets/action/issues/510)
+      # Uses Git Data API to create verified commits
       - name: Delete consumed changeset files
         if: steps.changesets.outputs.pullRequestNumber
         env:
           GH_TOKEN: ${{ steps.github-app-token.outputs.token }}
         run: |
           BRANCH="changeset-release/main"
+          REPO="${{ github.repository }}"
 
-          # Get list of changeset files to delete (excluding README.md and config files)
-          FILES=$(gh api "repos/${{ github.repository }}/contents/.changeset?ref=$BRANCH" \
-            --jq '.[] | select(.name | endswith(".md")) | select(.name != "README.md") | .path')
+          # 1. Get current commit and tree
+          COMMIT_SHA=$(gh api "repos/$REPO/git/refs/heads/$BRANCH" --jq '.object.sha')
+          TREE_SHA=$(gh api "repos/$REPO/git/commits/$COMMIT_SHA" --jq '.tree.sha')
 
-          if [ -z "$FILES" ]; then
+          # 2. Get full tree and filter out changeset .md files (keep README.md)
+          TREE=$(gh api "repos/$REPO/git/trees/$TREE_SHA?recursive=1" --jq '.tree')
+          NEW_TREE=$(echo "$TREE" | jq '[.[] | select(
+            (.path | startswith(".changeset/") and endswith(".md") and (. != ".changeset/README.md")) | not
+          ) | {path, mode, type, sha}]')
+
+          # 3. Check if anything was filtered
+          if [ "$(echo "$TREE" | jq length)" = "$(echo "$NEW_TREE" | jq length)" ]; then
             echo "No changeset files to delete"
             exit 0
           fi
 
-          echo "Deleting changeset files:"
-          echo "$FILES"
+          echo "Removing changeset files from tree"
 
-          # Delete each file via GitHub API (creates verified commits)
-          for FILE in $FILES; do
-            SHA=$(gh api "repos/${{ github.repository }}/contents/$FILE?ref=$BRANCH" --jq '.sha')
-            gh api --method DELETE "repos/${{ github.repository }}/contents/$FILE" \
-              -f message="chore: delete consumed changeset" \
-              -f sha="$SHA" \
-              -f branch="$BRANCH"
-            echo "Deleted: $FILE"
-          done
+          # 4. Create new tree, commit, and update ref
+          NEW_TREE_SHA=$(gh api "repos/$REPO/git/trees" -X POST -f tree="$NEW_TREE" --jq '.sha')
+          NEW_COMMIT_SHA=$(gh api "repos/$REPO/git/commits" -X POST \
+            -f message="chore: delete consumed changesets" \
+            -f tree="$NEW_TREE_SHA" \
+            -f "parents[]=$COMMIT_SHA" --jq '.sha')
+          gh api "repos/$REPO/git/refs/heads/$BRANCH" -X PATCH -f sha="$NEW_COMMIT_SHA"
+
+          echo "Done - commit $NEW_COMMIT_SHA"
 
       - name: Get release version
         if: steps.changesets.outputs.hasChangesets == 'false'
