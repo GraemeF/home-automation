@@ -58,21 +58,35 @@ jobs:
 
       # Workaround for dh-mun: changesets/action github-api mode doesn't delete
       # changeset files (upstream bug: https://github.com/changesets/action/issues/510)
-      # We use commit-action to delete them via GitHub API while keeping verified commits.
+      # We delete them via GitHub API to keep verified commits.
       - name: Delete consumed changeset files
         if: steps.changesets.outputs.pullRequestNumber
+        env:
+          GH_TOKEN: ${{ steps.github-app-token.outputs.token }}
         run: |
-          # Find and delete changeset markdown files (not README.md)
-          find .changeset -name '*.md' ! -name 'README.md' -type f -delete
-          echo "Deleted changeset files for PR #${{ steps.changesets.outputs.pullRequestNumber }}"
+          BRANCH="changeset-release/main"
 
-      - name: Commit changeset cleanup
-        if: steps.changesets.outputs.pullRequestNumber
-        uses: suzuki-shunsuke/commit-action@v1
-        with:
-          github_token: ${{ steps.github-app-token.outputs.token }}
-          commit_message: 'chore: clean up consumed changesets'
-          branch: changeset-release/main
+          # Get list of changeset files to delete (excluding README.md and config files)
+          FILES=$(gh api "repos/${{ github.repository }}/contents/.changeset?ref=$BRANCH" \
+            --jq '.[] | select(.name | endswith(".md")) | select(.name != "README.md") | .path')
+
+          if [ -z "$FILES" ]; then
+            echo "No changeset files to delete"
+            exit 0
+          fi
+
+          echo "Deleting changeset files:"
+          echo "$FILES"
+
+          # Delete each file via GitHub API (creates verified commits)
+          for FILE in $FILES; do
+            SHA=$(gh api "repos/${{ github.repository }}/contents/$FILE?ref=$BRANCH" --jq '.sha')
+            gh api --method DELETE "repos/${{ github.repository }}/contents/$FILE" \
+              -f message="chore: delete consumed changeset" \
+              -f sha="$SHA" \
+              -f branch="$BRANCH"
+            echo "Deleted: $FILE"
+          done
 
       - name: Get release version
         if: steps.changesets.outputs.hasChangesets == 'false'
