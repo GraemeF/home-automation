@@ -7,8 +7,11 @@ import {
   Temperature,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
+import debug from 'debug';
 import { Observable } from 'rxjs';
-import { mergeMap, share } from 'rxjs/operators';
+import { mergeMap, share, tap } from 'rxjs/operators';
+
+const log = debug('deep-heating:trv-temp-flow');
 
 export const getTrvDecisionPoints = (
   roomDecisionPoints$: Observable<RoomDecisionPoint>,
@@ -32,6 +35,15 @@ export const getTrvDecisionPoints = (
         })),
     ),
     shareReplayLatestDistinctByKey((x) => x.climateEntityId),
+    tap((x) => {
+      log(
+        '[2-trvDecisionPoints] %s: roomTarget=%d, roomTemp=%d, trvTemp=%d',
+        x.climateEntityId,
+        x.roomTargetTemperature,
+        x.roomTemperature,
+        x.trvTemperature,
+      );
+    }),
     share(),
   );
 

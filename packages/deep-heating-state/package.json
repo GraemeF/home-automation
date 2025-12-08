@@ -1,9 +1,9 @@
 {
   "name": "@home-automation/deep-heating-state",
-  "version": "0.1.3",
-  "main": "dist/src/index.js",
+  "version": "0.1.4-beta.4",
+  "main": "src/index.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.lib.json",
+    "build": "true",
     "typecheck": "tsc --noEmit -p tsconfig.lib.json",
     "lint": "eslint .",
     "format": "prettier --write ."
@@ -11,7 +11,7 @@
   "dependencies": {
     "@home-automation/deep-heating-rx": "workspace:*",
     "@home-automation/deep-heating-types": "workspace:*",
-    "effect": "3.19.6",
+    "effect": "3.19.7",
     "rxjs": "7.8.2"
   }
 }

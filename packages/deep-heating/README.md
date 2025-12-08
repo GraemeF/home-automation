@@ -29,6 +29,50 @@ temperatures.
   heating won't turn on again until needed, but never before 7am (because my
   heating is noisy).
 
+## TRV Mode Behaviour
+
+Deep Heating respects the HVAC mode set on your TRVs via Home Assistant. The
+mode determines how Deep Heating interacts with each valve:
+
+| TRV Mode | Behaviour                                                        |
+| -------- | ---------------------------------------------------------------- |
+| `off`    | Deep Heating backs off completely - no commands sent to the TRV  |
+| `auto`   | Deep Heating defers to the TRV's built-in schedule (e.g. Hive)   |
+| `heat`   | Deep Heating takes full control with its own temperature targets |
+
+### Mode Hierarchy
+
+The system uses a layered approach:
+
+1. **House Mode** - Time-based, switches between `Auto` and `Sleeping` (before
+   3am or after pressing the goodnight button)
+2. **Room Mode** - Derived from the TRVs in the room plus the house mode
+3. **TRV Mode** - The actual HVAC mode reported by each device via Home
+   Assistant
+
+### Room Mode Logic
+
+If **any TRV in a room is set to `off`**, the entire room switches to `Off`
+mode, targeting a minimum temperature of 7°C. This prevents the awkward
+situation where one radiator is working overtime to compensate for another
+that's been deliberately switched off.
+
+| Room Mode  | Target Temperature                  |
+| ---------- | ----------------------------------- |
+| `Off`      | 7°C (frost protection)              |
+| `Sleeping` | 15°C (energy-saving overnight mode) |
+| `Auto`     | Your scheduled temperature          |
+
+### Practical Tips
+
+- **Want to disable a room temporarily?** Set any TRV in that room to `off` via
+  Home Assistant. Deep Heating will leave it alone.
+- **Using the TRV's built-in schedules?** Leave TRVs in `auto` mode. Deep
+  Heating will use the device's internal schedule for target temperatures (e.g.
+  Hive schedules).
+- **Want Deep Heating in full control?** Set TRVs to `heat` mode. Deep Heating
+  will calculate and send temperature targets based on your external sensors.
+
 ## Why isn't everything configurable?
 
 Because this project was originally tailored for my own home, there are some

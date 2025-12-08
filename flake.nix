@@ -5,7 +5,7 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
     bun2nix = {
-      url = "github:baileyluTCD/bun2nix";
+      url = "github:nix-community/bun2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -82,10 +82,16 @@
           inherit (bun2nix.packages.${system}.default) mkDerivation fetchBunDeps;
 
           # Fetch Bun dependencies from pruned lockfile (for builds)
-          # patchShebangs = true required on Linux for tools like tsc to work in sandbox
-          bunDepsDeepHeating = fetchBunDeps {
+          # Web build needs patchShebangs for vite/svelte tooling
+          bunDepsWeb = fetchBunDeps {
             bunNix = ./bun-deep-heating.nix;
             patchShebangs = true;
+          };
+
+          # Server build uses production deps only - no shebangs to patch
+          bunDepsDeepHeating = fetchBunDeps {
+            bunNix = ./bun-deep-heating.nix;
+            patchShebangs = false;
           };
 
           # Fetch Bun dependencies from full lockfile (for CI validation)
@@ -153,9 +159,43 @@
             '';
           };
 
+          # WEB FRONTEND BUILD
+          # ===================
+          # Separate derivation for SvelteKit web build - needs devDeps for vite
+          # Using patchShebangs=true so vite can run in Nix sandbox
+          deep-heating-web = mkDerivation {
+            pname = "deep-heating-web";
+            version = "0.1.0";
+
+            src = prunedWorkspace;
+            bunDeps = bunDepsWeb;
+            SOURCE_DATE_EPOCH = lastModified;
+
+            # Skip lifecycle scripts - preinstall runs "bun x only-allow bun"
+            # which needs network access (not available in Nix sandbox)
+            bunLifecycleScriptsPhase = ''
+              echo "Skipping lifecycle scripts (no network in sandbox)"
+            '';
+
+            buildPhase = ''
+              echo "Building web frontend with Turbo + Vite..."
+              ${pkgs.turbo}/bin/turbo build --filter='@home-automation/deep-heating-web...'
+            '';
+
+            installPhase = ''
+              echo "Installing web build to $out..."
+              mkdir -p $out
+
+              # SvelteKit adapter-bun outputs to dist/packages/deep-heating-web (see svelte.config.js)
+              cp -r dist/packages/deep-heating-web/* $out/
+
+              echo "Web build installed: $(du -sh $out | cut -f1)"
+            '';
+          };
+
           # DEEP-HEATING BUILD
           # ==================
-          # Combined build of server backend and SvelteKit web frontend
+          # Server backend build - uses production deps only (no vite/tsc)
           deep-heating = mkDerivation {
             pname = "deep-heating";
             version = "0.1.0";
@@ -164,11 +204,11 @@
             bunDeps = bunDepsDeepHeating;
             SOURCE_DATE_EPOCH = lastModified;
 
-            # Override bun install to use hoisted linker
-            # NOTE: Not using --production because build requires devDependencies (tsc, vite)
+            # Production-only install - no devDependencies, no shebangs to patch
+            # Web frontend is built separately with full devDeps
             bunNodeModulesInstallPhase = ''
-              echo "Installing node modules with hoisted linker..."
-              ${pkgs.bun}/bin/bun install --frozen-lockfile --linker=hoisted --ignore-scripts
+              echo "Installing production dependencies only..."
+              ${pkgs.bun}/bin/bun install --frozen-lockfile --production --ignore-scripts
 
               echo "Normalizing timestamps to git commit time..."
               find node_modules -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} + || true
@@ -180,20 +220,14 @@
             '';
 
             buildPhase = ''
-              echo "Building deep-heating with Turbo..."
-              # Build both server and web (SvelteKit)
-              ${pkgs.turbo}/bin/turbo build --filter='deep-heating-server...' --filter='@home-automation/deep-heating-web...'
-
               echo "Bundling server backend with Bun..."
+              # Bun handles TypeScript natively - no need for turbo/tsc
               mkdir -p dist/server
               ${pkgs.bun}/bin/bun build packages/deep-heating-server/src/main.ts \
                 --target=bun \
                 --production \
                 --outfile=dist/server/bundle.js
               echo "  Backend bundle: $(du -h dist/server/bundle.js | cut -f1)"
-
-              echo "SvelteKit build output:"
-              ls -la dist/packages/deep-heating-web/ || echo "  (build output location may differ)"
             '';
 
             installPhase = ''
@@ -205,9 +239,9 @@
               echo "  Copying server bundle..."
               cp -r dist/server $out/lib/deep-heating/
 
-              # Copy SvelteKit web build
-              echo "  Copying web build..."
-              cp -r dist/packages/deep-heating-web $out/lib/deep-heating/web
+              # Copy pre-built web from separate derivation
+              echo "  Copying web build from ${deep-heating-web}..."
+              cp -r ${deep-heating-web} $out/lib/deep-heating/web
 
               # Create server wrapper script
               cat > $out/bin/deep-heating-server <<EOF
@@ -216,10 +250,10 @@ exec ${pkgs.bun}/bin/bun run $out/lib/deep-heating/server/bundle.js "\$@"
 EOF
               chmod +x $out/bin/deep-heating-server
 
-              # Create web wrapper script (runs with Node, adapter-node output)
+              # Create web wrapper script (runs with Bun, svelte-adapter-bun output)
               cat > $out/bin/deep-heating-web <<EOF
 #!/bin/sh
-exec ${pkgs.nodejs}/bin/node $out/lib/deep-heating/web/index.js "\$@"
+exec ${pkgs.bun}/bin/bun run $out/lib/deep-heating/web/index.js "\$@"
 EOF
               chmod +x $out/bin/deep-heating-web
 
@@ -248,7 +282,16 @@ EOF
           # Each service has: command (required), env (optional map)
           s6ServiceDefs = {
             nginx = {
-              command = ''${pkgs.nginx}/bin/nginx -g "daemon off;" -c /etc/nginx/nginx.conf'';
+              # Copy config to writable location, optionally removing IP restrictions for testing
+              command = ''
+                cp /etc/nginx/nginx.conf /run/nginx/nginx.conf
+                if [ -n "$ALLOW_ALL_IPS" ]; then
+                  echo "ALLOW_ALL_IPS set - removing IP restrictions for testing"
+                  ${pkgs.gnused}/bin/sed -i 's/allow  172.30.32.2;/allow all;/' /run/nginx/nginx.conf
+                  ${pkgs.gnused}/bin/sed -i 's/deny   all;//' /run/nginx/nginx.conf
+                fi
+                ${pkgs.nginx}/bin/nginx -g "daemon off;" -c /run/nginx/nginx.conf
+              '';
             };
             server = {
               env = { PORT = "3002"; };
@@ -261,15 +304,17 @@ EOF
           };
 
           # Helper to generate s6 run script content for a service
+          # Multi-line commands are run directly; single commands use exec for cleaner process tree
           mkS6RunScript = def:
             let
               envLines = pkgs.lib.concatStringsSep "\n"
                 (pkgs.lib.mapAttrsToList (k: v: "export ${k}=${v}") (def.env or {}));
+              isMultiLine = builtins.match ".*\n.*" def.command != null;
             in ''
 #!/bin/sh
 exec 2>&1
 ${envLines}
-exec ${def.command}
+${if isMultiLine then def.command else "exec ${def.command}"}
 '';
 
           # Helper to generate install commands for a service directory
@@ -339,7 +384,7 @@ ${mkS6RunScript def}RUNSCRIPT
           # Combined image with nginx, server, web, and s6 supervision
           dockerImage = if pkgs.stdenv.isLinux then pkgs.dockerTools.buildLayeredImage {
             name = "deep-heating";
-            tag = "latest";
+            tag = "nix-build";
 
             # Set timestamps to git commit time for reproducibility
             created = "@${lastModified}";
@@ -355,6 +400,7 @@ ${mkS6RunScript def}RUNSCRIPT
               pkgs.dockerTools.binSh      # /bin/sh for scripts
               pkgs.dockerTools.fakeNss    # Provides /etc/passwd and /etc/group (for nginx)
               pkgs.coreutils              # Basic utilities (cp, mkdir, etc)
+              pkgs.gnused                 # sed for nginx config modification (ALLOW_ALL_IPS)
             ];
 
             # OCI/Docker configuration
@@ -375,7 +421,7 @@ ${mkS6RunScript def}RUNSCRIPT
           } else null;
         in
         {
-          inherit prunedWorkspace bunDepsDeepHeating bunDepsFull validateDeps generateBunNix generateBunNixDeepHeating deep-heating;
+          inherit prunedWorkspace bunDepsWeb bunDepsDeepHeating bunDepsFull validateDeps generateBunNix generateBunNixDeepHeating deep-heating-web deep-heating;
         } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
           # Linux-only packages
           inherit s6Services nginxConfig containerInit dockerImage;
@@ -388,10 +434,11 @@ ${mkS6RunScript def}RUNSCRIPT
         in
         {
           default = pkgs.mkShell {
-            buildInputs = with pkgs; [
-              bun
-              git
-              docker
+            buildInputs = [
+              pkgs.bun
+              pkgs.git
+              pkgs.docker
+              bun2nix.packages.${system}.default
             ];
 
             shellHook = ''

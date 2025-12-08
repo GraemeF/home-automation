@@ -1,6 +1,10 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["eslint.config.mjs", "tsconfig.base.json"],
+  "globalDependencies": [
+    "eslint.config.mjs",
+    "tsconfig.base.json",
+    "package.json"
+  ],
   "tasks": {
     "all": {
       "dependsOn": ["ci"]
@@ -17,7 +21,7 @@
       "outputs": ["coverage/**"]
     },
     "typecheck": {
-      "dependsOn": ["^build", "^typecheck"],
+      "dependsOn": ["^build", "^typecheck", "sync"],
       "outputs": [],
       "inputs": [
         "src/**/*.ts",
@@ -25,7 +29,9 @@
         "**/*.test.ts",
         "**/*.spec.ts",
         "tsconfig*.json",
-        "package.json"
+        "package.json",
+        "svelte.config.js",
+        "vite.config.js"
       ],
       "cache": true
     },
@@ -38,12 +44,14 @@
     "dev": {
       "dependsOn": ["^build"],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["DEBUG"]
     },
     "serve": {
       "dependsOn": ["^build"],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["DEBUG"]
     },
     "sync": {
       "outputs": [".svelte-kit/**"]
@@ -75,10 +83,22 @@
         "packages/**/*.svelte",
         "packages/**/*.json",
         "packages/**/*.md",
+        "turbo.json",
         ".prettierrc*",
         "prettier.config.*"
       ],
       "cache": true
+    },
+    "e2e": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "outputs": []
+    },
+    "//#changeset:pre:beta": {
+      "cache": false
+    },
+    "//#changeset:pre:exit": {
+      "cache": false
     }
   }
 }

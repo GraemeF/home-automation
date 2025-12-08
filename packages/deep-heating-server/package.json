@@ -1,16 +1,16 @@
 {
   "name": "deep-heating-server",
-  "version": "0.1.3",
+  "version": "0.1.4-beta.4",
   "scripts": {
-    "build": "tsc -p tsconfig.app.json",
+    "build": "true",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "serve": "node ../../dist/out-tsc/main.js",
+    "serve": "bun run src/main.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "bun test"
   },
   "dependencies": {
-    "@effect/platform": "0.93.3",
+    "@effect/platform": "0.93.4",
     "@effect/platform-bun": "0.84.0",
     "@home-automation/deep-heating-home-assistant": "workspace:*",
     "@home-automation/deep-heating-rx": "workspace:*",
@@ -18,7 +18,7 @@
     "@home-automation/deep-heating-types": "workspace:*",
     "@home-automation/rxx": "workspace:*",
     "dotenv": "16.6.1",
-    "effect": "3.19.6",
+    "effect": "3.19.7",
     "rxjs": "7.8.2"
   }
 }

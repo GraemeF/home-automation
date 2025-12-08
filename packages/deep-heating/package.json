@@ -1,13 +1,18 @@
 {
   "name": "@home-automation/deep-heating",
-  "version": "0.1.0",
+  "version": "0.1.3-beta.11",
   "private": true,
   "description": "Deep Heating - Home Assistant add-on combining TRVs with external temperature sensors",
   "scripts": {
-    "version:sync": "bun scripts/sync-version.ts"
+    "version:sync": "bun scripts/sync-version.ts",
+    "format": "prettier --write .",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "deep-heating-server": "workspace:*",
     "@home-automation/deep-heating-web": "workspace:*"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.57.0"
   }
 }

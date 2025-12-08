@@ -1,7 +1,7 @@
 import { Schema } from 'effect';
 import { combineLatest, Observable } from 'rxjs';
 import { filter, map, shareReplay } from 'rxjs/operators';
-import { ClimateAction, HeatingStatus } from './deep-heating-types';
+import { ClimateAction, type HeatingStatus } from './deep-heating-types';
 import { ClimateEntityId } from './entities';
 import { OperationalClimateMode } from './home-assistant';
 import { decodeTemperature } from './temperature';

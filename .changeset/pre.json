@@ -1,0 +1,29 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "@home-automation/deep-heating": "0.1.2",
+    "@home-automation/deep-heating-home-assistant": "0.1.2",
+    "@home-automation/deep-heating-rx": "0.1.2",
+    "deep-heating-server": "0.1.3",
+    "@home-automation/deep-heating-state": "0.1.3",
+    "@home-automation/deep-heating-types": "0.2.0",
+    "@home-automation/deep-heating-web": "0.2.0",
+    "dictionary": "0.0.2",
+    "@home-automation/rxx": "0.1.0"
+  },
+  "changesets": [
+    "add-scheduled-target-logging",
+    "fix-derived-store-update",
+    "fix-nginx-ws",
+    "fix-temperature-sorting",
+    "fix-trv-availability-resync",
+    "fix-trv-control-states-replay",
+    "fix-trv-scheduled-temperatures-replay",
+    "fix-web-double-decode",
+    "reduce-docker-image-size",
+    "remove-trv-timer",
+    "smoke-test-ci",
+    "strict-type-checking"
+  ]
+}

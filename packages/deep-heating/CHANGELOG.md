@@ -1,5 +1,99 @@
 # @home-automation/deep-heating
 
+## 0.1.3-beta.11
+
+### Patch Changes
+
+- Updated dependencies []:
+  - deep-heating-server@0.1.4-beta.4
+  - @home-automation/deep-heating-web@0.2.1-beta.3
+
+## 0.1.3-beta.10
+
+### Patch Changes
+
+- Updated dependencies []:
+  - deep-heating-server@0.1.4-beta.3
+
+## 0.1.3-beta.9
+
+### Patch Changes
+
+- Updated dependencies []:
+  - deep-heating-server@0.1.4-beta.2
+
+## 0.1.3-beta.8
+
+### Patch Changes
+
+- Updated dependencies []:
+  - deep-heating-server@0.1.4-beta.1
+
+## 0.1.3-beta.7
+
+### Patch Changes
+
+- Updated dependencies []:
+  - deep-heating-server@0.1.4-beta.0
+
+## 0.1.3-beta.6
+
+### Patch Changes
+
+- Updated dependencies [[`93906a7`](https://github.com/GraemeF/home-automation/commit/93906a7b9966932deabae3f0b597484b8202ef8c)]:
+  - @home-automation/deep-heating-web@0.2.1-beta.2
+
+## 0.1.3-beta.5
+
+### Patch Changes
+
+- Updated dependencies [[`dfe608e`](https://github.com/GraemeF/home-automation/commit/dfe608e5accc49b2d96e8ed74615fe2754497984)]:
+  - @home-automation/deep-heating-web@0.2.1-beta.1
+
+## 0.1.3-beta.4
+
+### Patch Changes
+
+- Updated dependencies [[`209f367`](https://github.com/GraemeF/home-automation/commit/209f3677a5da613a0a49db801267f48905e0f48e)]:
+  - @home-automation/deep-heating-web@0.2.1-beta.0
+
+## 0.1.3-beta.3
+
+### Patch Changes
+
+- [#1169](https://github.com/GraemeF/home-automation/pull/1169) [`7b78008`](https://github.com/GraemeF/home-automation/commit/7b780080cfdf6cbf051a3fe7f7f10457ab552d67) Thanks [@GraemeF](https://github.com/GraemeF)! - Add strict type checking with typescript-eslint to catch type errors at lint time
+
+## 0.1.3-beta.2
+
+### Patch Changes
+
+- [#1166](https://github.com/GraemeF/home-automation/pull/1166) [`ccfcefd`](https://github.com/GraemeF/home-automation/commit/ccfcefda86221d606cf46a7093d9758344d8402c) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix nginx WebSocket proxying by routing /ws to backend instead of unused /socket.io path
+
+## 0.1.3-beta.1
+
+### Patch Changes
+
+- [#1163](https://github.com/GraemeF/home-automation/pull/1163) [`f5c792c`](https://github.com/GraemeF/home-automation/commit/f5c792cfb097487964ff1a885e99f5d712b057e0) Thanks [@GraemeF](https://github.com/GraemeF)! - Add smoke test to CI that verifies frontend and backend communicate through nginx before releasing Docker images
+
+## 0.1.3-beta.0
+
+### Patch Changes
+
+- [#1158](https://github.com/GraemeF/home-automation/pull/1158) [`7fdc88d`](https://github.com/GraemeF/home-automation/commit/7fdc88da00172f135589d100cf158d370e492809) Thanks [@GraemeF](https://github.com/GraemeF)! - Reduce Docker image size by ~100MB
+
+## 0.1.2
+
+### Patch Changes
+
+- [#1154](https://github.com/GraemeF/home-automation/pull/1154) [`af83dd4`](https://github.com/GraemeF/home-automation/commit/af83dd4e9af7e86855f7c5b899d2c599d315a1ea) Thanks [@GraemeF](https://github.com/GraemeF)! - Revert patchShebangs change that broke Docker builds
+
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [[`6b93928`](https://github.com/GraemeF/home-automation/commit/6b939286d0c17d4b5f8efa74525a6c03f9da811d)]:
+  - @home-automation/deep-heating-web@0.2.0
+
 ## 0.1.0
 
 ### Minor Changes

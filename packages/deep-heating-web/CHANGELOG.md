@@ -1,5 +1,36 @@
 # @home-automation/deep-heating-web
 
+## 0.2.1-beta.3
+
+### Patch Changes
+
+- Updated dependencies [[`c8db588`](https://github.com/GraemeF/home-automation/commit/c8db588e1ebd50f43e83b39039028bc02c40ff06)]:
+  - @home-automation/deep-heating-types@0.2.1-beta.0
+
+## 0.2.1-beta.2
+
+### Patch Changes
+
+- [#1180](https://github.com/GraemeF/home-automation/pull/1180) [`93906a7`](https://github.com/GraemeF/home-automation/commit/93906a7b9966932deabae3f0b597484b8202ef8c) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix UI crash caused by incorrect use of Svelte derived store API - use update() instead of set() with updater functions
+
+## 0.2.1-beta.1
+
+### Patch Changes
+
+- [#1174](https://github.com/GraemeF/home-automation/pull/1174) [`dfe608e`](https://github.com/GraemeF/home-automation/commit/dfe608e5accc49b2d96e8ed74615fe2754497984) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix room temperature sorting by using decodeTemperature helper
+
+## 0.2.1-beta.0
+
+### Patch Changes
+
+- [#1171](https://github.com/GraemeF/home-automation/pull/1171) [`209f367`](https://github.com/GraemeF/home-automation/commit/209f3677a5da613a0a49db801267f48905e0f48e) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix runtime error when receiving WebSocket state updates. The home store was attempting to decode already-decoded state data, causing "Cannot read properties of undefined (reading '\_tag')" errors on Option fields.
+
+## 0.2.0
+
+### Minor Changes
+
+- [#1148](https://github.com/GraemeF/home-automation/pull/1148) [`6b93928`](https://github.com/GraemeF/home-automation/commit/6b939286d0c17d4b5f8efa74525a6c03f9da811d) Thanks [@GraemeF](https://github.com/GraemeF)! - Upgrade to Svelte 5 and Vite 6 with latest SvelteKit
+
 ## 0.1.0
 
 ### Minor Changes

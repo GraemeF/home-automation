@@ -1,5 +1,47 @@
 # deep-heating-socketio
 
+## 0.1.4-beta.4
+
+### Patch Changes
+
+- Updated dependencies [[`c8db588`](https://github.com/GraemeF/home-automation/commit/c8db588e1ebd50f43e83b39039028bc02c40ff06)]:
+  - @home-automation/deep-heating-rx@0.1.3-beta.4
+  - @home-automation/deep-heating-types@0.2.1-beta.0
+  - @home-automation/deep-heating-state@0.1.4-beta.4
+  - @home-automation/deep-heating-home-assistant@0.1.3-beta.0
+
+## 0.1.4-beta.3
+
+### Patch Changes
+
+- Updated dependencies [[`1197dbc`](https://github.com/GraemeF/home-automation/commit/1197dbc465e5ef26d0eb5573f0f3ef6520d40903)]:
+  - @home-automation/deep-heating-rx@0.1.3-beta.3
+  - @home-automation/deep-heating-state@0.1.4-beta.3
+
+## 0.1.4-beta.2
+
+### Patch Changes
+
+- Updated dependencies [[`2cc324b`](https://github.com/GraemeF/home-automation/commit/2cc324b4e80f6f4958bc823c7642d156bd6ccb0b)]:
+  - @home-automation/deep-heating-rx@0.1.3-beta.2
+  - @home-automation/deep-heating-state@0.1.4-beta.2
+
+## 0.1.4-beta.1
+
+### Patch Changes
+
+- Updated dependencies [[`896b6ae`](https://github.com/GraemeF/home-automation/commit/896b6ae80cc81829d06015a9b907dcdf6ca4d8e9)]:
+  - @home-automation/deep-heating-rx@0.1.3-beta.1
+  - @home-automation/deep-heating-state@0.1.4-beta.1
+
+## 0.1.4-beta.0
+
+### Patch Changes
+
+- Updated dependencies [[`9aed2df`](https://github.com/GraemeF/home-automation/commit/9aed2dfe12ccd16404201a348cbf911a6dc469f6)]:
+  - @home-automation/deep-heating-rx@0.1.3-beta.0
+  - @home-automation/deep-heating-state@0.1.4-beta.0
+
 ## 0.1.3
 
 ### Patch Changes

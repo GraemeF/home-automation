@@ -7,7 +7,7 @@ import {
   TrvControlState,
   TrvScheduledTargetTemperature,
 } from '@home-automation/deep-heating-types';
-import { Predicate } from 'effect';
+import { Data, Either, Predicate } from 'effect';
 import { Observable, combineLatest } from 'rxjs';
 import {
   distinctUntilChanged,
@@ -19,6 +19,15 @@ import {
 } from 'rxjs/operators';
 import { isDeepStrictEqual } from 'util';
 import { TrvDesiredTargetTemperature } from './trvDesiredTargetTemperatures';
+
+export class MismatchedClimateEntityIds extends Data.TaggedError(
+  'MismatchedClimateEntityIds',
+)<{
+  readonly desiredId: ClimateEntityId;
+  readonly controlStateId: ClimateEntityId;
+  readonly temperatureId: ClimateEntityId;
+  readonly scheduledId: ClimateEntityId;
+}> {}
 
 function getTrvAction(new_target: Temperature): {
   readonly mode: OperationalClimateMode;
@@ -32,7 +41,7 @@ export function determineAction(
   trvControlState: TrvControlState,
   trvTemperature: ClimateTemperatureReading,
   trvScheduledTargetTemperature: TrvScheduledTargetTemperature,
-): ClimateAction | null {
+): Readonly<Either.Either<ClimateAction | null, MismatchedClimateEntityIds>> {
   if (
     trvControlState.climateEntityId !==
       trvDesiredTargetTemperature.climateEntityId ||
@@ -40,31 +49,39 @@ export function determineAction(
       trvTemperature.climateEntityId ||
     trvTemperature.climateEntityId !==
       trvScheduledTargetTemperature.climateEntityId
-  )
-    throw Error('mismatched climateEntityIds');
+  ) {
+    return Either.left(
+      new MismatchedClimateEntityIds({
+        desiredId: trvDesiredTargetTemperature.climateEntityId,
+        controlStateId: trvControlState.climateEntityId,
+        temperatureId: trvTemperature.climateEntityId,
+        scheduledId: trvScheduledTargetTemperature.climateEntityId,
+      }),
+    );
+  }
 
-  if (trvControlState.mode === 'off') return null;
+  if (trvControlState.mode === 'off') return Either.right(null);
 
   const possibleAction = getTrvAction(
     trvDesiredTargetTemperature.targetTemperature,
   );
 
   if (possibleAction.mode !== trvControlState.mode)
-    return {
+    return Either.right({
       climateEntityId: trvControlState.climateEntityId,
       ...possibleAction,
-    };
+    });
 
   if (
     possibleAction.targetTemperature &&
     possibleAction.targetTemperature !== trvControlState.targetTemperature
   )
-    return {
+    return Either.right({
       climateEntityId: trvControlState.climateEntityId,
       ...possibleAction,
-    };
+    });
 
-  return null;
+  return Either.right(null);
 }
 
 export const getTrvActions = (
@@ -115,6 +132,10 @@ export const getTrvActions = (
               trvScheduledTargetTemperature,
             ),
         ),
+        // Either.left values indicate a bug (mismatched IDs) - filter them out
+        // The pipeline design should prevent this, but we handle it gracefully
+        filter(Either.isRight),
+        map((result) => result.right),
         filter(Predicate.isNotNull),
         shareReplay(1),
       ),

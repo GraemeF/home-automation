@@ -116,12 +116,14 @@ const createWebSocketServerWithLogging = (
   pipe(
     { port, path },
     createAndStartWebSocketServer,
-    Effect.tap(() => Effect.log(`WebSocket server listening on port ${port}`)),
+    Effect.tap(() =>
+      Effect.log(`WebSocket server listening on port ${String(port)}`),
+    ),
   );
 
 const shutdownWebSocketServerWithLogging = (
   wsServer: WebSocketServer,
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void> =>
   pipe(
     'Shutting down WebSocket server...',
     Effect.log,
@@ -178,7 +180,7 @@ const startServer = (
   pipe(
     loadRoomAdjustments(fs, config.roomAdjustmentsPath),
     Effect.tap((adjustments) =>
-      Effect.log(`Loaded ${adjustments.length} room adjustments`),
+      Effect.log(`Loaded ${String(adjustments.length)} room adjustments`),
     ),
     Effect.flatMap((initialRoomAdjustments) =>
       setupWebSocketServerAndRunHeatingSystem(
@@ -200,7 +202,9 @@ const loadAndStartServer = (
     fs.readFileString,
     Effect.andThen(Schema.decode(JsonHomeData)),
     Effect.tap((home) =>
-      Effect.log(`Home configuration loaded: ${home.rooms.length} rooms`),
+      Effect.log(
+        `Home configuration loaded: ${String(home.rooms.length)} rooms`,
+      ),
     ),
     Effect.andThen((home) =>
       startServer(fs, home, homeAssistantRuntime, config),

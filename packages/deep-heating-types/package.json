@@ -1,17 +1,17 @@
 {
   "name": "@home-automation/deep-heating-types",
-  "version": "0.2.0",
+  "version": "0.2.1-beta.0",
   "description": "Core TypeScript types and schemas for Deep Heating",
-  "main": "dist/src/index.js",
+  "main": "src/index.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.lib.json",
+    "build": "true",
     "typecheck": "tsc --noEmit -p tsconfig.lib.json",
     "lint": "eslint .",
     "test": "bun test",
     "format": "prettier --write ."
   },
   "dependencies": {
-    "effect": "3.19.6",
+    "effect": "3.19.7",
     "luxon": "3.7.2",
     "rxjs": "7.8.2"
   }

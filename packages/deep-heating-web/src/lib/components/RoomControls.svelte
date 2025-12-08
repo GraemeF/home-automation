@@ -10,22 +10,28 @@
   } from '@home-automation/deep-heating-types';
   import { Option, pipe } from 'effect';
 
-  const step = 0.5;
-  export let room: RoomState;
-  export let adjustment: number;
-  export let adjust: (amount: number) => void;
+  interface Props {
+    room: RoomState;
+    adjustment: number;
+    adjust: (amount: number) => void;
+  }
 
-  const isAuto = pipe(
-    room.mode,
-    Option.map((mode) => mode === 'Auto'),
-    Option.getOrElse(() => false)
+  const step = 0.5;
+  let { room, adjustment, adjust }: Props = $props();
+
+  const isAuto = $derived(
+    pipe(
+      room.mode,
+      Option.map((mode) => mode === 'Auto'),
+      Option.getOrElse(() => false),
+    ),
   );
 </script>
 
 {#if isAuto}
   <button
     class="btn btn-circle btn-ghost btn-sm"
-    on:click={() => adjust(adjustment - step)}
+    onclick={() => adjust(adjustment - step)}
   >
     {#if adjustment < 0}
       <ColderActiveIcon />
@@ -47,7 +53,7 @@
 {#if isAuto}
   <button
     class="btn btn-circle btn-ghost btn-sm"
-    on:click={() => adjust(adjustment + step)}
+    onclick={() => adjust(adjustment + step)}
   >
     {#if adjustment > 0}
       <WarmerActiveIcon />

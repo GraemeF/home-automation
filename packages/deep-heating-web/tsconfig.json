@@ -37,7 +37,6 @@
     "module": "esnext",
     "target": "esnext"
   },
-  "include": [],
   "references": [
     {
       "path": "./tsconfig.app.json"
