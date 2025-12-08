@@ -3,7 +3,7 @@
   "version": "0.1.4-beta.5",
   "scripts": {
     "build": "true",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "typecheck:tsc": "tsc --noEmit -p tsconfig.app.json",
     "serve": "bun run src/main.ts",
     "lint": "eslint .",
     "format": "prettier --write .",

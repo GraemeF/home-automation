@@ -5,7 +5,7 @@
   "main": "src/index.ts",
   "scripts": {
     "build": "true",
-    "typecheck": "tsc --noEmit -p tsconfig.lib.json",
+    "typecheck:tsc": "tsc --noEmit -p tsconfig.lib.json",
     "lint": "eslint .",
     "test": "bun test",
     "format": "prettier --write ."
