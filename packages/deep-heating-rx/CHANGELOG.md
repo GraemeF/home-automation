@@ -1,5 +1,11 @@
 # @home-automation/deep-heating-rx
 
+## 0.1.3-beta.5
+
+### Patch Changes
+
+- [#1197](https://github.com/GraemeF/home-automation/pull/1197) [`0b0c129`](https://github.com/GraemeF/home-automation/commit/0b0c1290426220ee7f1f4af697052de3126524cb) Thanks [@GraemeF](https://github.com/GraemeF)! - Improved error resilience in RxJS pipelines. Pipelines now gracefully handle mismatched data instead of terminating the entire stream, ensuring heating control continues even when encountering corrupted updates.
+
 ## 0.1.3-beta.4
 
 ### Patch Changes

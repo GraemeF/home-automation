@@ -1,6 +1,6 @@
 {
   "name": "@home-automation/deep-heating-state",
-  "version": "0.1.4-beta.4",
+  "version": "0.1.4-beta.5",
   "main": "src/index.ts",
   "scripts": {
     "build": "true",
