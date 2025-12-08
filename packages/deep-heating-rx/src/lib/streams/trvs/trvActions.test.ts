@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { pipe, Schema } from 'effect';
+import { Either, pipe, Schema } from 'effect';
 import {
   ClimateEntityId,
   ClimateTemperatureReading,
@@ -18,9 +18,47 @@ describe('TRV action', () => {
     'climate.the_trv',
     Schema.decodeUnknownSync(ClimateEntityId),
   );
+  it('returns Either.left when climateEntityIds mismatch', () => {
+    const result = determineAction(
+      {
+        climateEntityId: trvId,
+        targetTemperature: decodeTemperature(20),
+      },
+      {
+        climateEntityId: pipe(
+          'climate.other_trv',
+          Schema.decodeUnknownSync(ClimateEntityId),
+        ),
+        mode: 'heat',
+        source: 'Device',
+        targetTemperature: decodeTemperature(18),
+      },
+      {
+        climateEntityId: trvId,
+        temperatureReading: {
+          time: daytime.toJSDate(),
+          temperature: decodeTemperature(10),
+        },
+      },
+      {
+        climateEntityId: trvId,
+        scheduledTargetTemperature: decodeTemperature(18),
+      },
+    );
 
-  it('off', () => {
-    const action = determineAction(
+    expect(Either.isLeft(result)).toBe(true);
+    Either.match(result, {
+      onLeft: (error) => {
+        expect(error).toMatchObject({ _tag: 'MismatchedClimateEntityIds' });
+      },
+      onRight: () => {
+        expect.unreachable('Expected Either.left');
+      },
+    });
+  });
+
+  it('returns Either.right(null) when TRV is off', () => {
+    const result = determineAction(
       {
         climateEntityId: trvId,
         targetTemperature: decodeTemperature(20),
@@ -44,11 +82,14 @@ describe('TRV action', () => {
       },
     );
 
-    expect(action).toBeNull();
+    expect(Either.isRight(result)).toBe(true);
+    if (Either.isRight(result)) {
+      expect(result.right).toBeNull();
+    }
   });
 
-  it('should do something', () => {
-    const action = determineAction(
+  it('returns Either.right(action) when action needed', () => {
+    const result = determineAction(
       {
         targetTemperature: decodeTemperature(23),
         climateEntityId: trvId,
@@ -72,47 +113,18 @@ describe('TRV action', () => {
       },
     );
 
-    expect(action).toStrictEqual({
-      mode: 'heat',
-      targetTemperature: 23,
-      climateEntityId: trvId,
-    });
-  });
-
-  it('should not change from heat to auto', () => {
-    const action = determineAction(
-      {
-        targetTemperature: decodeTemperature(23),
-        climateEntityId: trvId,
-      },
-      {
-        climateEntityId: trvId,
+    expect(Either.isRight(result)).toBe(true);
+    if (Either.isRight(result)) {
+      expect(result.right).toStrictEqual({
         mode: 'heat',
-        targetTemperature: decodeTemperature(18.5),
-        source: 'Device',
-      },
-      {
+        targetTemperature: 23,
         climateEntityId: trvId,
-        temperatureReading: {
-          temperature: decodeTemperature(18.5),
-          time: daytime.toJSDate(),
-        },
-      },
-      {
-        climateEntityId: trvId,
-        scheduledTargetTemperature: decodeTemperature(23),
-      },
-    );
-
-    expect(action).toStrictEqual({
-      mode: 'heat',
-      targetTemperature: 23,
-      climateEntityId: trvId,
-    });
+      });
+    }
   });
 
-  it('should change from auto to heat', () => {
-    const action = determineAction(
+  it('returns Either.right(action) when mode needs to change from auto to heat', () => {
+    const result = determineAction(
       {
         targetTemperature: decodeTemperature(18.5),
         climateEntityId: trvId,
@@ -136,15 +148,18 @@ describe('TRV action', () => {
       },
     );
 
-    expect(action).toStrictEqual({
-      mode: 'heat',
-      targetTemperature: 18.5,
-      climateEntityId: trvId,
-    });
+    expect(Either.isRight(result)).toBe(true);
+    if (Either.isRight(result)) {
+      expect(result.right).toStrictEqual({
+        mode: 'heat',
+        targetTemperature: 18.5,
+        climateEntityId: trvId,
+      });
+    }
   });
 
-  it('should change heat target temperature', () => {
-    const action = determineAction(
+  it('returns Either.right(action) when target temperature needs to change', () => {
+    const result = determineAction(
       {
         targetTemperature: decodeTemperature(18.5),
         climateEntityId: trvId,
@@ -168,11 +183,45 @@ describe('TRV action', () => {
       },
     );
 
-    expect(action).toStrictEqual({
-      mode: 'heat',
-      targetTemperature: 18.5,
-      climateEntityId: trvId,
-    });
+    expect(Either.isRight(result)).toBe(true);
+    if (Either.isRight(result)) {
+      expect(result.right).toStrictEqual({
+        mode: 'heat',
+        targetTemperature: 18.5,
+        climateEntityId: trvId,
+      });
+    }
+  });
+
+  it('returns Either.right(null) when no action needed (mode and temp match)', () => {
+    const result = determineAction(
+      {
+        targetTemperature: decodeTemperature(20),
+        climateEntityId: trvId,
+      },
+      {
+        climateEntityId: trvId,
+        mode: 'heat',
+        targetTemperature: decodeTemperature(20),
+        source: 'Device',
+      },
+      {
+        climateEntityId: trvId,
+        temperatureReading: {
+          temperature: decodeTemperature(18),
+          time: daytime.toJSDate(),
+        },
+      },
+      {
+        climateEntityId: trvId,
+        scheduledTargetTemperature: decodeTemperature(20),
+      },
+    );
+
+    expect(Either.isRight(result)).toBe(true);
+    if (Either.isRight(result)) {
+      expect(result.right).toBeNull();
+    }
   });
 });
 
