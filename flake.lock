@@ -11,15 +11,15 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1763731225,
-        "narHash": "sha256-YxPBXh8/ZSH6sqDpc4kstfv+9QR6vIb0mB2n5oJGPy8=",
-        "owner": "baileyluTCD",
+        "lastModified": 1764866992,
+        "narHash": "sha256-SHueruNTEkcZTkvuAx4mfvwqP+IDI0r1Xq74itz23lw=",
+        "owner": "nix-community",
         "repo": "bun2nix",
-        "rev": "21f2aed3b1f1d4af93df1a6d34cb3e3f703ac6f9",
+        "rev": "6d259a3af59dde31ec57f4a93fddae07422107b6",
         "type": "github"
       },
       "original": {
-        "owner": "baileyluTCD",
+        "owner": "nix-community",
         "repo": "bun2nix",
         "type": "github"
       }
@@ -29,11 +29,11 @@
         "nixpkgs-lib": "nixpkgs-lib"
       },
       "locked": {
-        "lastModified": 1762980239,
-        "narHash": "sha256-8oNVE8TrD19ulHinjaqONf9QWCKK+w4url56cdStMpM=",
+        "lastModified": 1763759067,
+        "narHash": "sha256-LlLt2Jo/gMNYAwOgdRQBrsRoOz7BPRkzvNaI/fzXi2Q=",
         "owner": "hercules-ci",
         "repo": "flake-parts",
-        "rev": "52a2caecc898d0b46b2b905f058ccc5081f842da",
+        "rev": "2cccadc7357c0ba201788ae99c4dfa90728ef5e0",
         "type": "github"
       },
       "original": {
@@ -44,11 +44,11 @@
     },
     "import-tree": {
       "locked": {
-        "lastModified": 1763695721,
-        "narHash": "sha256-tMfN/JkwWJ129cXDW+lK2gUcjklJ+LpTHj9LlneJRXg=",
+        "lastModified": 1763762820,
+        "narHash": "sha256-ZvYKbFib3AEwiNMLsejb/CWs/OL/srFQ8AogkebEPF0=",
         "owner": "vic",
         "repo": "import-tree",
-        "rev": "ca69d64711265c68cf71f6c029ab9f1a55a767f8",
+        "rev": "3c23749d8013ec6daa1d7255057590e9ca726646",
         "type": "github"
       },
       "original": {
