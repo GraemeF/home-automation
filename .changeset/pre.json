@@ -23,6 +23,7 @@
     "fix-web-double-decode",
     "reduce-docker-image-size",
     "remove-trv-timer",
+    "resilient-rxjs-pipelines",
     "smoke-test-ci",
     "strict-type-checking"
   ]

@@ -1,6 +1,6 @@
 {
   "name": "deep-heating-server",
-  "version": "0.1.4-beta.4",
+  "version": "0.1.4-beta.5",
   "scripts": {
     "build": "true",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
