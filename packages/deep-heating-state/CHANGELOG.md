@@ -1,5 +1,12 @@
 # @home-automation/deep-heating-state
 
+## 0.1.4-beta.7
+
+### Patch Changes
+
+- Updated dependencies [[`e9453cb`](https://github.com/GraemeF/home-automation/commit/e9453cb8a30816cacf57ece62cf90c93f2f7f9a2)]:
+  - @home-automation/deep-heating-rx@0.1.3-beta.7
+
 ## 0.1.4-beta.6
 
 ### Patch Changes
