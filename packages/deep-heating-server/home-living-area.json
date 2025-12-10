@@ -1,0 +1,23 @@
+{
+  "rooms": [
+    {
+      "name": "Living Area",
+      "temperatureSensorEntityId": "sensor.living_area_temperature",
+      "climateEntityIds": [
+        "climate.lounge_radiator",
+        "climate.kitchen_radiator"
+      ],
+      "schedule": {
+        "monday": { "07:00": 20, "17:00": 21, "23:45": 15 },
+        "tuesday": { "07:00": 20, "17:00": 21, "23:45": 15 },
+        "wednesday": { "07:00": 20, "17:00": 21, "23:45": 15 },
+        "thursday": { "07:00": 20, "17:00": 21, "23:45": 15 },
+        "friday": { "07:00": 20, "17:00": 21, "23:45": 15 },
+        "saturday": { "07:00": 19, "10:00": 21, "17:00": 21, "23:45": 15 },
+        "sunday": { "07:00": 19, "10:00": 21, "17:00": 21, "23:45": 15 }
+      }
+    }
+  ],
+  "sleepSwitchId": "input_button.goodnight",
+  "heatingId": "climate.main"
+}

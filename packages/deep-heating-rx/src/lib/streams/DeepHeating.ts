@@ -184,7 +184,11 @@ export function createDeepHeating(
     shareReplayLatestDistinctByKey(
       (x) => x.climateEntityId,
       (a, b) =>
-        a.mode === b.mode && a.targetTemperature === b.targetTemperature,
+        // Always emit Device updates to ensure we resync after availability changes.
+        // Only suppress if both are from same source AND have same mode+temperature.
+        a.source === b.source &&
+        a.mode === b.mode &&
+        a.targetTemperature === b.targetTemperature,
     ),
   );
   const trvDisplayName = (trvId: ClimateEntityId): string =>
@@ -280,6 +284,9 @@ export function createDeepHeating(
     rooms$,
     roomSchedules$,
   );
+  roomScheduledTargetTemperatures$.subscribe((x) => {
+    log(x.roomName, 'scheduled target is', x.targetTemperature);
+  });
   const roomTargetTemperatures$ = getRoomTargetTemperatures(
     rooms$,
     roomModes$,

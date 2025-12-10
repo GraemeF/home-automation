@@ -4,18 +4,22 @@ import {
   TrvControlState,
   TrvScheduledTargetTemperature,
 } from '@home-automation/deep-heating-types';
+import debug from 'debug';
 import { Match } from 'effect';
 import { Observable } from 'rxjs';
 import {
+  distinctUntilChanged,
   filter,
   map,
   mergeAll,
   mergeMap,
   share,
   tap,
-  withLatestFrom,
 } from 'rxjs/operators';
+import { combineLatest } from 'rxjs';
 import { MinimumTrvTargetTemperature } from './trvs/trvDecisionPoints';
+
+const log = debug('deep-heating:apply-actions');
 
 const getNextTrvControlState = (
   latest: TrvControlState,
@@ -59,15 +63,30 @@ export const applyTrvActions = (
   trvIds$.pipe(
     mergeMap((trvIds) =>
       trvIds.map((trvId) =>
-        trvActions.pipe(
-          filter((x) => x.climateEntityId === trvId),
-          withLatestFrom(
-            trvControlStates$.pipe(filter((x) => x.climateEntityId === trvId)),
-            trvScheduledTargetTemperatures$.pipe(
-              filter((x) => x.climateEntityId === trvId),
-            ),
+        // Use combineLatest instead of withLatestFrom to avoid race condition
+        // at startup where actions could be dropped if the secondary streams
+        // hadn't emitted yet. combineLatest waits for ALL streams to emit.
+        combineLatest([
+          trvActions.pipe(filter((x) => x.climateEntityId === trvId)),
+          trvControlStates$.pipe(filter((x) => x.climateEntityId === trvId)),
+          trvScheduledTargetTemperatures$.pipe(
+            filter((x) => x.climateEntityId === trvId),
+          ),
+        ]).pipe(
+          // Only emit when the action changes (not when control state updates)
+          distinctUntilChanged(
+            ([prevAction], [currAction]) =>
+              prevAction.mode === currAction.mode &&
+              prevAction.targetTemperature === currAction.targetTemperature,
           ),
           tap(([action]) => {
+            log(
+              '[%s] ▶ action received: %s %d',
+              trvId,
+              action.mode,
+              action.targetTemperature,
+            );
+            log('[%s] ✓ combineLatest ready, publishing action', trvId);
             publishHiveTrvAction(action);
           }),
           map(([action, latest, scheduledTargetTemperature]) =>

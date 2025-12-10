@@ -4,15 +4,17 @@ import {
   Temperature,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
-import { Observable, combineLatest, timer } from 'rxjs';
-import { map, share } from 'rxjs/operators';
+import debug from 'debug';
+import { Observable } from 'rxjs';
+import { map, share, tap } from 'rxjs/operators';
+
 import {
   MaximumTrvTargetTemperature,
   MinimumTrvTargetTemperature,
   TrvDecisionPoint,
 } from './trvDecisionPoints';
 
-const refreshIntervalSeconds = 60;
+const log = debug('deep-heating:trv-temp-flow');
 
 export interface TrvDesiredTargetTemperature {
   readonly climateEntityId: ClimateEntityId;
@@ -50,14 +52,18 @@ function getTrvDesiredTargetTemperature({
 export const getTrvDesiredTargetTemperatures = (
   trvDecisionPoints: Observable<TrvDecisionPoint>,
 ): Observable<TrvDesiredTargetTemperature> =>
-  combineLatest([
-    trvDecisionPoints,
-    timer(0, refreshIntervalSeconds * 1000),
-  ]).pipe(
-    map(([decisionPoint]) => getTrvDesiredTargetTemperature(decisionPoint)),
+  trvDecisionPoints.pipe(
+    map(getTrvDesiredTargetTemperature),
     shareReplayLatestDistinctByKey(
       (trvDesiredTargetTemperature) =>
         trvDesiredTargetTemperature.climateEntityId,
     ),
+    tap((x) => {
+      log(
+        '[3-trvDesiredTargetTemperatures] %s: target=%d°C',
+        x.climateEntityId,
+        x.targetTemperature,
+      );
+    }),
     share(),
   );

@@ -20,19 +20,34 @@
       "dependsOn": ["^build", "lint"],
       "outputs": ["coverage/**"]
     },
-    "typecheck": {
-      "dependsOn": ["^build", "^typecheck", "sync"],
+    "typecheck:tsc": {
+      "dependsOn": ["^build", "sync"],
+      "outputs": [],
+      "inputs": [
+        "src/**/*.ts",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "tsconfig*.json",
+        "package.json"
+      ],
+      "cache": true
+    },
+    "typecheck:svelte": {
+      "dependsOn": ["^build", "sync"],
       "outputs": [],
       "inputs": [
         "src/**/*.ts",
         "src/**/*.svelte",
-        "**/*.test.ts",
-        "**/*.spec.ts",
         "tsconfig*.json",
         "package.json",
         "svelte.config.js",
         "vite.config.js"
       ],
+      "cache": true
+    },
+    "typecheck": {
+      "dependsOn": ["typecheck:tsc", "typecheck:svelte"],
+      "outputs": [],
       "cache": true
     },
     "lint": {
@@ -44,12 +59,14 @@
     "dev": {
       "dependsOn": ["^build"],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["DEBUG"]
     },
     "serve": {
       "dependsOn": ["^build"],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["DEBUG"]
     },
     "sync": {
       "outputs": [".svelte-kit/**"]

@@ -1,5 +1,24 @@
 # @home-automation/deep-heating-home-assistant
 
+## 0.1.3-beta.2
+
+### Patch Changes
+
+- [#1216](https://github.com/GraemeF/home-automation/pull/1216) [`3ef3e41`](https://github.com/GraemeF/home-automation/commit/3ef3e4166267dddf8e6df190332749094f579035) Thanks [@GraemeF](https://github.com/GraemeF)! - Add debug logging for TRV and room data pipelines to help diagnose issues with TRV command delivery
+
+## 0.1.3-beta.1
+
+### Patch Changes
+
+- [#1206](https://github.com/GraemeF/home-automation/pull/1206) [`41dedfc`](https://github.com/GraemeF/home-automation/commit/41dedfcd6ab348c6d2fe50bc65a37eba597bd253) Thanks [@GraemeF](https://github.com/GraemeF)! - Improve resilience of Home Assistant entity parsing by using Effect-based decoding instead of synchronous decoding, enabling proper error handling and retry logic when malformed entity data is received
+
+## 0.1.3-beta.0
+
+### Patch Changes
+
+- Updated dependencies [[`c8db588`](https://github.com/GraemeF/home-automation/commit/c8db588e1ebd50f43e83b39039028bc02c40ff06)]:
+  - @home-automation/deep-heating-types@0.2.1-beta.0
+
 ## 0.1.2
 
 ### Patch Changes

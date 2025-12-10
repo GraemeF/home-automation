@@ -1,6 +1,6 @@
 {
   "name": "@home-automation/deep-heating-web",
-  "version": "0.2.1-beta.2",
+  "version": "0.2.1-beta.3",
   "type": "module",
   "scripts": {
     "dev": "vite dev --host",
@@ -10,7 +10,8 @@
     "sync": "svelte-kit sync",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
-    "typecheck": "svelte-check --tsconfig ./tsconfig.json",
+    "typecheck:svelte": "svelte-check --tsconfig ./tsconfig.json",
+    "typecheck:tsc": "tsc -p .svelte-kit/tsconfig.json",
     "lint": "prettier --ignore-path .gitignore --check . && eslint .",
     "format": "prettier --ignore-path .gitignore --write --plugin-search-dir=. .",
     "test": "echo 'No tests for web package'",

@@ -70,3 +70,15 @@ export function logTrv<T extends { readonly trvId: string }>(
       }),
     );
 }
+
+export function logClimateEntity<
+  T extends { readonly climateEntityId: string },
+>(climateEntityId: string, title?: string) {
+  return (source: Observable<T>): Observable<T> =>
+    source.pipe(
+      tap((x) => {
+        if (x.climateEntityId === climateEntityId)
+          console.dir([title, x], { depth: 5, colors: true });
+      }),
+    );
+}

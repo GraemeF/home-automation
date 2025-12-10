@@ -1,5 +1,69 @@
 # @home-automation/deep-heating
 
+## 0.1.3-beta.16
+
+### Patch Changes
+
+- Updated dependencies []:
+  - deep-heating-server@0.1.4-beta.9
+
+## 0.1.3-beta.15
+
+### Patch Changes
+
+- Updated dependencies []:
+  - deep-heating-server@0.1.4-beta.8
+
+## 0.1.3-beta.14
+
+### Patch Changes
+
+- Updated dependencies []:
+  - deep-heating-server@0.1.4-beta.7
+
+## 0.1.3-beta.13
+
+### Patch Changes
+
+- Updated dependencies []:
+  - deep-heating-server@0.1.4-beta.6
+
+## 0.1.3-beta.12
+
+### Patch Changes
+
+- Updated dependencies []:
+  - deep-heating-server@0.1.4-beta.5
+
+## 0.1.3-beta.11
+
+### Patch Changes
+
+- Updated dependencies []:
+  - deep-heating-server@0.1.4-beta.4
+  - @home-automation/deep-heating-web@0.2.1-beta.3
+
+## 0.1.3-beta.10
+
+### Patch Changes
+
+- Updated dependencies []:
+  - deep-heating-server@0.1.4-beta.3
+
+## 0.1.3-beta.9
+
+### Patch Changes
+
+- Updated dependencies []:
+  - deep-heating-server@0.1.4-beta.2
+
+## 0.1.3-beta.8
+
+### Patch Changes
+
+- Updated dependencies []:
+  - deep-heating-server@0.1.4-beta.1
+
 ## 0.1.3-beta.7
 
 ### Patch Changes

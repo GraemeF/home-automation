@@ -165,13 +165,28 @@ export const HomeAssistantApiTest = (
     }),
   );
 
+const decodeEntities = Schema.decodeUnknown(Schema.Array(HomeAssistantEntity));
+
+const decodeEntitiesWithErrorMapping = (states: unknown) =>
+  pipe(
+    states,
+    decodeEntities,
+    Effect.mapError(
+      (parseError) =>
+        new HomeAssistantConnectionError({
+          message: 'Failed to decode entities from Home Assistant response',
+          cause: parseError,
+        }),
+    ),
+  );
+
 const decodeEntitiesFromStates = (
   api: Context.Tag.Service<typeof HomeAssistantApi>,
 ) =>
   pipe(
     api.getStates(),
-    Effect.map(Schema.decodeUnknownSync(Schema.Array(HomeAssistantEntity))),
-    Effect.withLogSpan(`fetch_entities`),
+    Effect.flatMap(decodeEntitiesWithErrorMapping),
+    Effect.withLogSpan('fetch_entities'),
   );
 
 /**
