@@ -13,6 +13,7 @@
     "@home-automation/rxx": "0.1.0"
   },
   "changesets": [
+    "add-debug-logging",
     "effect-based-entity-decode",
     "fix-startup-race-condition",
     "fix-trv-scheduled-temps"
