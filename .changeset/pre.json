@@ -14,6 +14,7 @@
   },
   "changesets": [
     "effect-based-entity-decode",
+    "fix-startup-race-condition",
     "fix-trv-scheduled-temps"
   ]
 }
