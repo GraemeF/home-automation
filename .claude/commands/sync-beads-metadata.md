@@ -109,6 +109,7 @@ cd /path/to/repo/.git/beads-worktrees/beads-metadata
 
 - The worktree path is `.git/beads-worktrees/beads-metadata/`
 - beads-metadata only contains `.beads/` (sparse checkout)
+- **Known bug (beads #464):** After merging, if `bd sync` triggers git-history-backfill and incorrectly purges beads, use `bd sync --no-git-history` to recover. The bug can occur when the JSONL changes due to merge timing.
 - The `bd merge` driver does intelligent 3-way JSONL merging:
   - Matches issues by ID
   - Takes max updated_at timestamp
