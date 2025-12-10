@@ -1,0 +1,54 @@
+name: Setup
+description: Set up Nix environment with caching for CI workflows
+
+inputs:
+  github-token:
+    description: 'GitHub token for Nix installer and cache API'
+    required: true
+  install-deps:
+    description: 'Whether to run bun install after setting up Nix'
+    default: 'true'
+  turbo-cache-key:
+    description: 'Additional cache key part for turbo cache'
+    default: 'default'
+  restore-turbo-cache-key:
+    description: 'Additional cache key part to find turbo cache from an earlier job'
+    default: 'default'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Nix
+      uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+      with:
+        github_access_token: ${{ inputs.github-token }}
+        nix_conf: |
+          experimental-features = nix-command flakes
+          accept-flake-config = true
+
+    - name: Cache Nix store
+      uses: nix-community/cache-nix-action@d8cff2f74b9341e0d90fbf3c0c0212a161ceaef6 # v6
+      with:
+        primary-key: nix-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.lock') }}
+        restore-prefixes-first-match: |
+          nix-${{ runner.os }}-${{ runner.arch }}-
+        # Keep Nix store under 2GB to leave room for turbo cache (10GB total limit)
+        gc-max-store-size-linux: 2G
+        gc-max-store-size-macos: 2G
+
+    - name: Cache turbo
+      if: inputs.install-deps == 'true'
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: .turbo/cache
+        key: ${{ runner.os }}-${{ runner.arch }}-turbo-${{ inputs.turbo-cache-key }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-turbo-${{ inputs.restore-turbo-cache-key }}-${{ github.sha }}
+          ${{ runner.os }}-${{ runner.arch }}-turbo-${{ inputs.turbo-cache-key }}-
+          ${{ runner.os }}-${{ runner.arch }}-turbo-${{ inputs.restore-turbo-cache-key }}-
+          ${{ runner.os }}-${{ runner.arch }}-turbo-
+
+    - name: Install dependencies
+      if: inputs.install-deps == 'true'
+      shell: bash
+      run: nix develop --command bun install --frozen-lockfile

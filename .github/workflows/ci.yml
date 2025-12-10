@@ -88,15 +88,11 @@ jobs:
         if: steps.changes.outputs.lockfile_changed == 'false'
         run: echo "✅ No lockfile changes, skipping validation"
 
-      - name: Install Nix
+      - name: Setup Nix with caching
         if: steps.changes.outputs.lockfile_changed == 'true'
-        uses: cachix/install-nix-action@v31
+        uses: ./.github/actions/setup
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install dependencies
-        if: steps.changes.outputs.lockfile_changed == 'true'
-        run: nix develop --command bun install --frozen-lockfile
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Validate bun-deep-heating.nix is in sync
         if: steps.changes.outputs.lockfile_changed == 'true'
@@ -140,12 +136,11 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - name: Install Nix
-        uses: cachix/install-nix-action@v31
+      - name: Setup Nix with caching
+        uses: ./.github/actions/setup
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: nix develop --command bun install --frozen-lockfile
       - run: nix develop --command bun run ci
 
       - name: Install Playwright Browsers

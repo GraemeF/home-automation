@@ -25,13 +25,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Nix
-        uses: cachix/install-nix-action@v31
+      - name: Setup Nix with caching
+        uses: ./.github/actions/setup
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install dependencies
-        run: nix develop --command bun install --frozen-lockfile
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate GitHub App Token
         id: github-app-token
