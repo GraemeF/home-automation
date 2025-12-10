@@ -21,7 +21,7 @@
       "outputs": ["coverage/**"]
     },
     "typecheck:tsc": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "sync"],
       "outputs": [],
       "inputs": [
         "src/**/*.ts",
