@@ -3,20 +3,30 @@ import {
   TrvWeekHeatingSchedule,
   toHeatingSchedule,
 } from '@home-automation/deep-heating-types';
-import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
+import {
+  shareReplayLatestDistinct,
+  shareReplayLatestDistinctByKey,
+} from '@home-automation/rxx';
 import { Observable, combineLatest, timer } from 'rxjs';
-import { map, shareReplay } from 'rxjs/operators';
+import { groupBy, map, mergeMap, shareReplay } from 'rxjs/operators';
 import { localNow } from '../../utils/datetime';
 const refreshIntervalSeconds = 60;
 
 export const getTrvScheduledTargetTemperatures = (
   trvHiveHeatingSchedule$: Observable<TrvWeekHeatingSchedule>,
 ): Observable<TrvScheduledTargetTemperature> =>
-  combineLatest([
-    trvHiveHeatingSchedule$,
-    timer(0, refreshIntervalSeconds * 1000).pipe(map(localNow), shareReplay(1)),
-  ]).pipe(
-    map(([trvSchedule, now]) => ({
+  trvHiveHeatingSchedule$.pipe(
+    groupBy((schedule) => schedule.climateEntityId),
+    mergeMap((trvScheduleGroup$) =>
+      combineLatest([
+        timer(0, refreshIntervalSeconds * 1000).pipe(
+          map(localNow),
+          shareReplay(1),
+        ),
+        trvScheduleGroup$,
+      ]).pipe(shareReplayLatestDistinct()),
+    ),
+    map(([now, trvSchedule]) => ({
       climateEntityId: trvSchedule.climateEntityId,
       scheduledTargetTemperature: toHeatingSchedule(
         trvSchedule.schedule,
