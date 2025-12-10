@@ -56,6 +56,45 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.github-app-token.outputs.token }}
 
+      # Workaround for changesets/action github-api mode not deleting changeset files
+      # (upstream bug: https://github.com/changesets/action/issues/510)
+      # Uses Git Data API to create verified commits
+      - name: Delete consumed changeset files
+        if: steps.changesets.outputs.pullRequestNumber
+        env:
+          GH_TOKEN: ${{ steps.github-app-token.outputs.token }}
+        run: |
+          BRANCH="changeset-release/main"
+          REPO="${{ github.repository }}"
+
+          # 1. Get current commit and tree
+          COMMIT_SHA=$(gh api "repos/$REPO/git/refs/heads/$BRANCH" --jq '.object.sha')
+          TREE_SHA=$(gh api "repos/$REPO/git/commits/$COMMIT_SHA" --jq '.tree.sha')
+
+          # 2. Get full tree and filter out changeset .md files (keep README.md)
+          TREE=$(gh api "repos/$REPO/git/trees/$TREE_SHA?recursive=1" --jq '.tree')
+          NEW_TREE=$(echo "$TREE" | jq '[.[] | select(
+            (.path | startswith(".changeset/") and endswith(".md") and (. != ".changeset/README.md")) | not
+          ) | {path, mode, type, sha}]')
+
+          # 3. Check if anything was filtered
+          if [ "$(echo "$TREE" | jq length)" = "$(echo "$NEW_TREE" | jq length)" ]; then
+            echo "No changeset files to delete"
+            exit 0
+          fi
+
+          echo "Removing changeset files from tree"
+
+          # 4. Create new tree, commit, and update ref
+          NEW_TREE_SHA=$(gh api "repos/$REPO/git/trees" -X POST -f tree="$NEW_TREE" --jq '.sha')
+          NEW_COMMIT_SHA=$(gh api "repos/$REPO/git/commits" -X POST \
+            -f message="chore: delete consumed changesets" \
+            -f tree="$NEW_TREE_SHA" \
+            -f "parents[]=$COMMIT_SHA" --jq '.sha')
+          gh api "repos/$REPO/git/refs/heads/$BRANCH" -X PATCH -f sha="$NEW_COMMIT_SHA"
+
+          echo "Done - commit $NEW_COMMIT_SHA"
+
       - name: Get release version
         if: steps.changesets.outputs.hasChangesets == 'false'
         id: version

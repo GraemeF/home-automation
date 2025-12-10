@@ -1,5 +1,30 @@
 # @home-automation/deep-heating-rx
 
+## 0.1.3-beta.8
+
+### Patch Changes
+
+- [#1210](https://github.com/GraemeF/home-automation/pull/1210) [`b390765`](https://github.com/GraemeF/home-automation/commit/b390765879a56761bd7426e60930def0c628903c) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix startup race condition where TRV actions could be silently dropped if emitted before control state streams were ready
+
+## 0.1.3-beta.7
+
+### Patch Changes
+
+- [#1208](https://github.com/GraemeF/home-automation/pull/1208) [`e9453cb`](https://github.com/GraemeF/home-automation/commit/e9453cb8a30816cacf57ece62cf90c93f2f7f9a2) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix TRV scheduled target temperatures to emit for all TRVs when timer fires, not just the last one. Previously only one TRV would receive scheduled temperature updates, blocking heating actions for other rooms.
+
+## 0.1.3-beta.6
+
+### Patch Changes
+
+- Updated dependencies [[`41dedfc`](https://github.com/GraemeF/home-automation/commit/41dedfcd6ab348c6d2fe50bc65a37eba597bd253)]:
+  - @home-automation/deep-heating-home-assistant@0.1.3-beta.1
+
+## 0.1.3-beta.5
+
+### Patch Changes
+
+- [#1197](https://github.com/GraemeF/home-automation/pull/1197) [`0b0c129`](https://github.com/GraemeF/home-automation/commit/0b0c1290426220ee7f1f4af697052de3126524cb) Thanks [@GraemeF](https://github.com/GraemeF)! - Improved error resilience in RxJS pipelines. Pipelines now gracefully handle mismatched data instead of terminating the entire stream, ensuring heating control continues even when encountering corrupted updates.
+
 ## 0.1.3-beta.4
 
 ### Patch Changes
