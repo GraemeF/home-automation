@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'bun:test';
-import { Schema } from 'effect';
+import { describe, expect, it } from '@codeforbreakfast/bun-test-effect';
+import { Array, Effect, pipe, Schema, Stream } from 'effect';
 import {
   ClimateEntityId,
   TrvWeekHeatingSchedule,
   WeekSchedule,
 } from '@home-automation/deep-heating-types';
+import { observableToStream } from '@home-automation/rxx';
 import { Subject, firstValueFrom, take, timeout, toArray } from 'rxjs';
 import { getTrvScheduledTargetTemperatures } from './trvScheduledTargetTemperatures';
 
@@ -61,53 +62,50 @@ describe('getTrvScheduledTargetTemperatures', () => {
     expect(bedroomResult?.scheduledTargetTemperature).toBe(18);
   });
 
-  it('emits for ALL stored TRVs when timer fires, not just the latest one', async () => {
-    // This test specifically verifies the bug: when the timer fires,
-    // ALL TRVs should get new scheduled temperatures, not just the
-    // last one that emitted a schedule update.
-    //
-    // Current broken behavior: only last TRV gets scheduled temp on timer
-    // Expected behavior: all TRVs get scheduled temp on timer
+  // This test specifically verifies the bug: when the timer fires,
+  // ALL TRVs should get new scheduled temperatures, not just the
+  // last one that emitted a schedule update.
+  //
+  // Current broken behavior: only last TRV gets scheduled temp on timer
+  // Expected behavior: all TRVs get scheduled temp on timer
+  it.effect(
+    'emits for ALL stored TRVs when timer fires, not just the latest one',
+    () => {
+      const trvHiveHeatingSchedule$ = new Subject<TrvWeekHeatingSchedule>();
 
-    const trvHiveHeatingSchedule$ = new Subject<TrvWeekHeatingSchedule>();
+      const scheduledTemps$ = getTrvScheduledTargetTemperatures(
+        trvHiveHeatingSchedule$,
+      );
 
-    const scheduledTemps$ = getTrvScheduledTargetTemperatures(
-      trvHiveHeatingSchedule$,
-    );
+      // Emit schedules for two TRVs after stream subscription is established
+      setTimeout(() => {
+        trvHiveHeatingSchedule$.next(
+          createTrvSchedule('climate.trv_living', 20),
+        );
+        trvHiveHeatingSchedule$.next(
+          createTrvSchedule('climate.trv_bedroom', 18),
+        );
+      }, 10);
 
-    // Collect all emissions over time - using mutable array for test collection
-    // eslint-disable-next-line functional/prefer-readonly-type
-    const emissions: {
-      readonly climateEntityId: string;
-      readonly scheduledTargetTemperature: number;
-    }[] = [];
+      return pipe(
+        scheduledTemps$,
+        observableToStream,
+        Stream.take(2),
+        Stream.runCollect,
+        Effect.map(Array.fromIterable),
+        Effect.map((emissions) => {
+          const livingEmissions = emissions.filter(
+            (e) => e.climateEntityId === 'climate.trv_living',
+          );
+          const bedroomEmissions = emissions.filter(
+            (e) => e.climateEntityId === 'climate.trv_bedroom',
+          );
 
-    const sub = scheduledTemps$.subscribe((x) => {
-      emissions.push({
-        climateEntityId: x.climateEntityId,
-        scheduledTargetTemperature: x.scheduledTargetTemperature,
-      });
-    });
-
-    // Emit schedules for two TRVs quickly
-    trvHiveHeatingSchedule$.next(createTrvSchedule('climate.trv_living', 20));
-    trvHiveHeatingSchedule$.next(createTrvSchedule('climate.trv_bedroom', 18));
-
-    // Wait for initial emissions and timer to potentially fire (timer starts at t=0)
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    sub.unsubscribe();
-
-    // We should have emissions for BOTH TRVs
-    const livingEmissions = emissions.filter(
-      (e) => e.climateEntityId === 'climate.trv_living',
-    );
-    const bedroomEmissions = emissions.filter(
-      (e) => e.climateEntityId === 'climate.trv_bedroom',
-    );
-
-    // Both TRVs should have received at least one scheduled temp emission
-    expect(livingEmissions.length).toBeGreaterThanOrEqual(1);
-    expect(bedroomEmissions.length).toBeGreaterThanOrEqual(1);
-  });
+          // Both TRVs should have received at least one scheduled temp emission
+          expect(livingEmissions.length).toBeGreaterThanOrEqual(1);
+          expect(bedroomEmissions.length).toBeGreaterThanOrEqual(1);
+        }),
+      );
+    },
+  );
 });
