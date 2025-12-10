@@ -19,9 +19,12 @@ runs:
   using: 'composite'
   steps:
     - name: Install Nix
-      uses: cachix/install-nix-action@ed706ab2cdb9d2f5533fd430f2c531e7340ed650 # v31
+      uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
       with:
         github_access_token: ${{ inputs.github-token }}
+        nix_conf: |
+          experimental-features = nix-command flakes
+          accept-flake-config = true
 
     - name: Cache Nix store
       uses: nix-community/cache-nix-action@d8cff2f74b9341e0d90fbf3c0c0212a161ceaef6 # v6
