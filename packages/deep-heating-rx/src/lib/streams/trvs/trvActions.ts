@@ -127,22 +127,30 @@ export const getTrvActions = (
         combineLatest([
           trvDesiredTargetTemperatures.pipe(
             filter((x) => x.climateEntityId === trvId),
-            tap(() => log('[%s] ✓ desiredTarget received', trvId)),
+            tap(() => {
+              log('[%s] ✓ desiredTarget received', trvId);
+            }),
           ),
           trvControlStates.pipe(
             filter((x) => x.climateEntityId === trvId),
-            tap(() => log('[%s] ✓ controlState received', trvId)),
+            tap(() => {
+              log('[%s] ✓ controlState received', trvId);
+            }),
           ),
           trvTemperatures.pipe(
             filter((x) => x.climateEntityId === trvId),
-            tap(() => log('[%s] ✓ temperature received', trvId)),
+            tap(() => {
+              log('[%s] ✓ temperature received', trvId);
+            }),
           ),
           trvScheduledTargetTemperatures.pipe(
             filter((x) => x.climateEntityId === trvId),
-            tap(() => log('[%s] ✓ scheduledTarget received', trvId)),
+            tap(() => {
+              log('[%s] ✓ scheduledTarget received', trvId);
+            }),
           ),
         ]).pipe(
-          tap(([desired, control, temp, sched]) =>
+          tap(([desired, control, temp, sched]) => {
             log(
               '[%s] ★ combineLatest: desired=%d, control=%s/%d, temp=%d, sched=%d',
               trvId,
@@ -151,8 +159,8 @@ export const getTrvActions = (
               control.targetTemperature,
               temp.temperatureReading.temperature,
               sched.scheduledTargetTemperature,
-            ),
-          ),
+            );
+          }),
           distinctUntilChanged<
             readonly [
               TrvDesiredTargetTemperature,
