@@ -13,6 +13,7 @@
     "@home-automation/rxx": "0.1.0"
   },
   "changesets": [
-    "effect-based-entity-decode"
+    "effect-based-entity-decode",
+    "fix-trv-scheduled-temps"
   ]
 }

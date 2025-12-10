@@ -1,5 +1,11 @@
 # @home-automation/deep-heating-rx
 
+## 0.1.3-beta.7
+
+### Patch Changes
+
+- [#1208](https://github.com/GraemeF/home-automation/pull/1208) [`e9453cb`](https://github.com/GraemeF/home-automation/commit/e9453cb8a30816cacf57ece62cf90c93f2f7f9a2) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix TRV scheduled target temperatures to emit for all TRVs when timer fires, not just the last one. Previously only one TRV would receive scheduled temperature updates, blocking heating actions for other rooms.
+
 ## 0.1.3-beta.6
 
 ### Patch Changes
