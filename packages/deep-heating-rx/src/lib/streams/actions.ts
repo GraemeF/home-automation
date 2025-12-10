@@ -4,6 +4,7 @@ import {
   TrvControlState,
   TrvScheduledTargetTemperature,
 } from '@home-automation/deep-heating-types';
+import debug from 'debug';
 import { Match } from 'effect';
 import { Observable } from 'rxjs';
 import {
@@ -16,6 +17,8 @@ import {
   withLatestFrom,
 } from 'rxjs/operators';
 import { MinimumTrvTargetTemperature } from './trvs/trvDecisionPoints';
+
+const log = debug('deep-heating:apply-actions');
 
 const getNextTrvControlState = (
   latest: TrvControlState,
@@ -61,13 +64,39 @@ export const applyTrvActions = (
       trvIds.map((trvId) =>
         trvActions.pipe(
           filter((x) => x.climateEntityId === trvId),
+          tap((action) =>
+            log(
+              '[%s] ▶ action received: %s %d',
+              trvId,
+              action.mode,
+              action.targetTemperature,
+            ),
+          ),
           withLatestFrom(
-            trvControlStates$.pipe(filter((x) => x.climateEntityId === trvId)),
+            trvControlStates$.pipe(
+              filter((x) => x.climateEntityId === trvId),
+              tap((x) =>
+                log(
+                  '[%s] ◆ withLatestFrom got controlState: %s/%d',
+                  trvId,
+                  x.mode,
+                  x.targetTemperature,
+                ),
+              ),
+            ),
             trvScheduledTargetTemperatures$.pipe(
               filter((x) => x.climateEntityId === trvId),
+              tap((x) =>
+                log(
+                  '[%s] ◆ withLatestFrom got scheduledTarget: %d',
+                  trvId,
+                  x.scheduledTargetTemperature,
+                ),
+              ),
             ),
           ),
           tap(([action]) => {
+            log('[%s] ✓ withLatestFrom SUCCESS, publishing action', trvId);
             publishHiveTrvAction(action);
           }),
           map(([action, latest, scheduledTargetTemperature]) =>
