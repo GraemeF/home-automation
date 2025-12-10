@@ -695,9 +695,9 @@
     url = "https://registry.npmjs.org/@sveltejs/acorn-typescript/-/acorn-typescript-1.0.7.tgz";
     hash = "sha512-znp1A/Y1Jj4l/Zy7PX5DZKBE0ZNY+5QBngiE21NJkfSTyzzC5iKNWOtwFXKtIrn7MXEFBck4jD95iBNkGjK92Q==";
   };
-  "@sveltejs/kit@2.49.0" = fetchurl {
-    url = "https://registry.npmjs.org/@sveltejs/kit/-/kit-2.49.0.tgz";
-    hash = "sha512-oH8tXw7EZnie8FdOWYrF7Yn4IKrqTFHhXvl8YxXxbKwTMcD/5NNCryUSEXRk2ZR4ojnub0P8rNrsVGHXWqIDtA==";
+  "@sveltejs/kit@2.49.1" = fetchurl {
+    url = "https://registry.npmjs.org/@sveltejs/kit/-/kit-2.49.1.tgz";
+    hash = "sha512-vByReCTTdlNM80vva8alAQC80HcOiHLkd8XAxIiKghKSHcqeNfyhp3VsYAV8VSiPKu4Jc8wWCfsZNAIvd1uCqA==";
   };
   "@sveltejs/vite-plugin-svelte-inspector@5.0.1" = fetchurl {
     url = "https://registry.npmjs.org/@sveltejs/vite-plugin-svelte-inspector/-/vite-plugin-svelte-inspector-5.0.1.tgz";
