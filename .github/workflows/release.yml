@@ -86,7 +86,7 @@ jobs:
           echo "Removing changeset files from tree"
 
           # 4. Create new tree, commit, and update ref
-          NEW_TREE_SHA=$(gh api "repos/$REPO/git/trees" -X POST -f tree="$NEW_TREE" --jq '.sha')
+          NEW_TREE_SHA=$(printf '{"tree": %s}' "$NEW_TREE" | gh api "repos/$REPO/git/trees" -X POST --input - --jq '.sha')
           NEW_COMMIT_SHA=$(gh api "repos/$REPO/git/commits" -X POST \
             -f message="chore: delete consumed changesets" \
             -f tree="$NEW_TREE_SHA" \
