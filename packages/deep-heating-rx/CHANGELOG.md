@@ -1,5 +1,11 @@
 # @home-automation/deep-heating-rx
 
+## 0.1.3-beta.8
+
+### Patch Changes
+
+- [#1210](https://github.com/GraemeF/home-automation/pull/1210) [`b390765`](https://github.com/GraemeF/home-automation/commit/b390765879a56761bd7426e60930def0c628903c) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix startup race condition where TRV actions could be silently dropped if emitted before control state streams were ready
+
 ## 0.1.3-beta.7
 
 ### Patch Changes
