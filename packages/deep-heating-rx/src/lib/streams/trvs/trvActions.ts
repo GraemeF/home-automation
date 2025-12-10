@@ -122,9 +122,11 @@ export const getTrvActions = (
   trvScheduledTargetTemperatures: Observable<TrvScheduledTargetTemperature>,
 ): Observable<ClimateAction> =>
   trvIds$.pipe(
-    mergeMap((trvIds) =>
-      trvIds.map((trvId) =>
-        combineLatest([
+    mergeMap((trvIds) => {
+      log('📋 Tracking TRVs: %s', trvIds.join(', '));
+      return trvIds.map((trvId) => {
+        log('[%s] 🔌 Subscribing to streams...', trvId);
+        return combineLatest([
           trvDesiredTargetTemperatures.pipe(
             filter((x) => x.climateEntityId === trvId),
             tap(() => {
@@ -173,9 +175,9 @@ export const getTrvActions = (
             if (x.mode === 'off') log('[%s] ✗ FILTERED: mode is off', trvId);
           }),
           filter(([, x]) => x.mode !== 'off'),
-        ),
-      ),
-    ),
+        );
+      });
+    }),
     mergeMap((x) =>
       x.pipe(
         map(
