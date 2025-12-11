@@ -16,6 +16,7 @@ env:
 jobs:
   check-changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       should_build: ${{ steps.filter.outputs.should_build }}
     steps:
@@ -56,6 +57,7 @@ jobs:
     name: Validate bun.nix files
     needs: check-changes
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: github.head_ref != 'changeset-release/main' && needs.check-changes.outputs.should_build == 'true'
     steps:
       - name: Checkout [main]
@@ -122,6 +124,7 @@ jobs:
   build:
     needs: [check-changes, validate-nix]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: github.head_ref != 'changeset-release/main' && needs.check-changes.outputs.should_build == 'true'
     steps:
       - name: Checkout [main]
