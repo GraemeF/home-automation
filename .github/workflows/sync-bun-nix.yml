@@ -11,6 +11,7 @@ jobs:
     # Skip main - PRs are already validated in sync before merge
     if: github.ref_name != 'main'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
 

@@ -17,6 +17,7 @@ jobs:
   docker-amd64:
     name: Build Docker (amd64)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,6 +69,7 @@ jobs:
   docker-arm64:
     name: Build Docker (arm64)
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -119,6 +121,7 @@ jobs:
   docker-manifest:
     name: Create multi-arch manifest
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [docker-amd64, docker-arm64]
     steps:
       - name: Login to GitHub Container Registry
@@ -155,6 +158,7 @@ jobs:
   github-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [docker-manifest]
     steps:
       - name: Checkout
