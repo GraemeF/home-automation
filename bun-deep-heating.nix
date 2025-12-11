@@ -113,13 +113,13 @@
     url = "https://registry.npmjs.org/@changesets/write/-/write-0.4.0.tgz";
     hash = "sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q==";
   };
-  "@codeforbreakfast/bun-test-effect@0.4.0" = fetchurl {
-    url = "https://registry.npmjs.org/@codeforbreakfast/bun-test-effect/-/bun-test-effect-0.4.0.tgz";
-    hash = "sha512-0Klmd8nmKACTEo7DCIDBvxdNOVG1rXJVvqUETZrkSYomUL2hH9KsNkqzjPHpuyge0OKALSlo1msR0lVcxLgP5g==";
+  "@codeforbreakfast/bun-test-effect@0.4.1" = fetchurl {
+    url = "https://registry.npmjs.org/@codeforbreakfast/bun-test-effect/-/bun-test-effect-0.4.1.tgz";
+    hash = "sha512-/+og3ocFNlVK/q3ECnXdmENjh1LjY98qhBSjrD3iTnM0CDhE94usnjg1A8b8TBUnHLzCl7mMuwF+kX3MSa/J3w==";
   };
-  "@codeforbreakfast/eslint-effect@0.8.4" = fetchurl {
-    url = "https://registry.npmjs.org/@codeforbreakfast/eslint-effect/-/eslint-effect-0.8.4.tgz";
-    hash = "sha512-dm0mUDrTIg5sA4lOre96cJIJjgzw6M2WJ/YP2MhFT7oeJO5+DeE/rk1NUH9+Qb9OaKR1zBetR26QHuz32tqjuw==";
+  "@codeforbreakfast/eslint-effect@0.8.5" = fetchurl {
+    url = "https://registry.npmjs.org/@codeforbreakfast/eslint-effect/-/eslint-effect-0.8.5.tgz";
+    hash = "sha512-kLPfNVgBMEXRR2lGtm4SwATNW6hVy2aU50cIk5CB1TuSR9bptXiILBnMRqNF1skBvztCdRKQl+2OaLD3/gtrjw==";
   };
   "@cspotcode/source-map-support@0.8.1" = fetchurl {
     url = "https://registry.npmjs.org/@cspotcode/source-map-support/-/source-map-support-0.8.1.tgz";
