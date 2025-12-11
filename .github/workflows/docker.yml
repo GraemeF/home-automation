@@ -22,11 +22,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Nix with caching
-        uses: ./.github/actions/setup
+      # Use simple Nix install for Docker builds - the setup action's 2GB cache
+      # limit is too small for Docker image builds (1500+ derivations)
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          install-deps: 'false'
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -74,11 +75,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Nix with caching
-        uses: ./.github/actions/setup
+      # Use simple Nix install for Docker builds - the setup action's 2GB cache
+      # limit is too small for Docker image builds (1500+ derivations)
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          install-deps: 'false'
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
