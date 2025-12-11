@@ -19,19 +19,17 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install Nix
-        uses: cachix/install-nix-action@v31
+      - name: Setup Nix with caching
+        uses: ./.github/actions/setup
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install dependencies
-        run: nix develop --command bun install --frozen-lockfile
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate GitHub App Token
         id: github-app-token
@@ -86,7 +84,7 @@ jobs:
           echo "Removing changeset files from tree"
 
           # 4. Create new tree, commit, and update ref
-          NEW_TREE_SHA=$(gh api "repos/$REPO/git/trees" -X POST -f tree="$NEW_TREE" --jq '.sha')
+          NEW_TREE_SHA=$(printf '{"tree": %s}' "$NEW_TREE" | gh api "repos/$REPO/git/trees" -X POST --input - --jq '.sha')
           NEW_COMMIT_SHA=$(gh api "repos/$REPO/git/commits" -X POST \
             -f message="chore: delete consumed changesets" \
             -f tree="$NEW_TREE_SHA" \

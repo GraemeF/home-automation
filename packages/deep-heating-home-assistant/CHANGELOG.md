@@ -1,5 +1,11 @@
 # @home-automation/deep-heating-home-assistant
 
+## 0.1.3-beta.2
+
+### Patch Changes
+
+- [#1216](https://github.com/GraemeF/home-automation/pull/1216) [`3ef3e41`](https://github.com/GraemeF/home-automation/commit/3ef3e4166267dddf8e6df190332749094f579035) Thanks [@GraemeF](https://github.com/GraemeF)! - Add debug logging for TRV and room data pipelines to help diagnose issues with TRV command delivery
+
 ## 0.1.3-beta.1
 
 ### Patch Changes

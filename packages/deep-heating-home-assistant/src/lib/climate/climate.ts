@@ -12,11 +12,14 @@ import {
   isSchema,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestByKey } from '@home-automation/rxx';
+import debug from 'debug';
 import { Effect, Option, pipe } from 'effect';
 import { isNotNull } from 'effect/Predicate';
 import { Observable } from 'rxjs';
-import { filter, map } from 'rxjs/operators';
+import { filter, map, tap } from 'rxjs/operators';
 import { HomeAssistantApi } from '../home-assistant-api';
+
+const log = debug('deep-heating:ha-climate');
 
 const decodeClimateEntityId = Schema.decodeSync(ClimateEntityId);
 const heatingEntityId = decodeClimateEntityId('climate.main');
@@ -30,12 +33,21 @@ export const getTrvApiUpdates =
   (p$: Observable<ClimateEntity>): Observable<TrvUpdate> =>
     p$.pipe(
       filter((entity) => entity.entity_id !== home.heatingId),
+      tap((entity) => {
+        if (!isAvailableClimateEntity(entity)) {
+          log(
+            '[%s] ⚠ FILTERED: state=%s (unavailable)',
+            entity.entity_id,
+            entity.state,
+          );
+        }
+      }),
       filter(isAvailableClimateEntity),
       map((response: AvailableClimateEntity) => {
         const room = home.rooms.find((room) =>
           room.climateEntityIds.includes(response.entity_id),
         );
-        return pipe(
+        const result = pipe(
           room,
           Option.fromNullable,
           Option.flatMap((room) => room.schedule),
@@ -56,8 +68,24 @@ export const getTrvApiUpdates =
           })),
           Option.getOrNull,
         );
+        if (result === null) {
+          log(
+            '[%s] ⚠ FILTERED: room=%s has no schedule',
+            response.entity_id,
+            room?.name ?? 'unknown',
+          );
+        }
+        return result;
       }),
       filter(isNotNull),
+      tap((x) => {
+        log(
+          '[%s] ✓ TRV update received: mode=%s, target=%d',
+          x.climateEntityId,
+          x.state.mode,
+          x.state.target,
+        );
+      }),
       shareReplayLatestByKey((x) => x.climateEntityId),
     );
 
