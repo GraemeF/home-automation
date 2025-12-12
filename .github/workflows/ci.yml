@@ -90,17 +90,18 @@ jobs:
         if: steps.changes.outputs.lockfile_changed == 'false'
         run: echo "✅ No lockfile changes, skipping validation"
 
-      - name: Setup Nix with caching
+      - name: Setup Nix (without deps)
         if: steps.changes.outputs.lockfile_changed == 'true'
         uses: ./.github/actions/setup
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          install-deps: 'false'
 
       - name: Check lockfile is parseable
         if: steps.changes.outputs.lockfile_changed == 'true'
         run: |
-          echo "Running bun install to check lockfile validity..."
-          OUTPUT=$(nix develop --command bun install 2>&1) || true
+          echo "Testing lockfile validity (no existing node_modules)..."
+          OUTPUT=$(nix develop --command bun install --dry-run 2>&1) || true
           echo "$OUTPUT"
 
           if echo "$OUTPUT" | grep -q "Ignoring lockfile"; then
@@ -119,6 +120,10 @@ jobs:
           fi
 
           echo "✅ bun.lock is valid and parseable"
+
+      - name: Install dependencies
+        if: steps.changes.outputs.lockfile_changed == 'true'
+        run: nix develop --command bun install --frozen-lockfile
 
       - name: Validate bun-deep-heating.nix is in sync
         if: steps.changes.outputs.lockfile_changed == 'true'
