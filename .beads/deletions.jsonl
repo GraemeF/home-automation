@@ -1,3 +1,5 @@
 {"id":"_placeholder-no-deletions","ts":"2025-11-28T00:00:00Z","by":"manual","reason":"Placeholder to satisfy pre-fix bd doctor check - no actual deletions"}
 {"id":"dh-ge2","ts":"2025-11-29T09:26:16.172216Z","by":"git-history-backfill","reason":"recovered from git history (pruned from manifest)"}
 {"id":"dh-zg9","ts":"2025-11-29T11:33:42.058862Z","by":"git-history-backfill","reason":"recovered from git history (pruned from manifest)"}
+{"id":"dh-edy","ts":"2025-12-11T19:15:32.785727Z","by":"git-history-backfill","reason":"recovered from git history (pruned from manifest)"}
+{"id":"dh-3g7","ts":"2025-12-11T19:15:32.795994Z","by":"git-history-backfill","reason":"recovered from git history (pruned from manifest)"}
