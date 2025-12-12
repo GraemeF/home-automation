@@ -52,6 +52,9 @@ out/
 # Claude
 *.local.json
 
+# Mise local config
+mise.local.toml
+
 # Local home config (contains actual Home Assistant entity IDs)
 packages/deep-heating-server/home.json
 
