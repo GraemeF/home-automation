@@ -96,6 +96,30 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check lockfile is parseable
+        if: steps.changes.outputs.lockfile_changed == 'true'
+        run: |
+          echo "Running bun install to check lockfile validity..."
+          OUTPUT=$(nix develop --command bun install 2>&1) || true
+          echo "$OUTPUT"
+
+          if echo "$OUTPUT" | grep -q "Ignoring lockfile"; then
+            echo ""
+            echo "❌ bun.lock is corrupted or has unresolvable peer dependencies!"
+            echo ""
+            echo "This usually happens when packages are removed but their peer"
+            echo "dependencies are still referenced in the lockfile."
+            echo ""
+            echo "To fix:"
+            echo "  1. Delete bun.lock and node_modules"
+            echo "  2. Run 'bun install' to regenerate"
+            echo "  3. Regenerate bun-deep-heating.nix"
+            echo ""
+            exit 1
+          fi
+
+          echo "✅ bun.lock is valid and parseable"
+
       - name: Validate bun-deep-heating.nix is in sync
         if: steps.changes.outputs.lockfile_changed == 'true'
         run: |
