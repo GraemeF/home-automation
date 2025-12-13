@@ -1,5 +1,11 @@
 # @home-automation/deep-heating
 
+## 0.1.3-beta.17
+
+### Patch Changes
+
+- [#1237](https://github.com/GraemeF/home-automation/pull/1237) [`f17fd4e`](https://github.com/GraemeF/home-automation/commit/f17fd4e053a1b5c2aea00f18d9ebe191956befab) Thanks [@GraemeF](https://github.com/GraemeF)! - Add sidebar icon and AppArmor security profile for Home Assistant addon
+
 ## 0.1.3-beta.16
 
 ### Patch Changes

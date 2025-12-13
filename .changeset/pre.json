@@ -14,6 +14,7 @@
   },
   "changesets": [
     "add-debug-logging",
+    "addon-security-improvements",
     "effect-based-entity-decode",
     "fix-startup-race-condition",
     "fix-trv-scheduled-temps"
