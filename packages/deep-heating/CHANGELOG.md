@@ -1,5 +1,12 @@
 # @home-automation/deep-heating
 
+## 0.1.3-beta.17
+
+### Improved
+
+- Added a fire icon to the Home Assistant sidebar for easier navigation
+- Improved security with a custom AppArmor profile that restricts the addon to only the permissions it needs
+
 ## 0.1.3-beta.16
 
 ### Patch Changes
