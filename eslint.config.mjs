@@ -2,7 +2,7 @@ import tseslint from 'typescript-eslint';
 import typescript from '@typescript-eslint/eslint-plugin';
 import parser from '@typescript-eslint/parser';
 import unusedImports from 'eslint-plugin-unused-imports';
-import prettier from 'eslint-config-prettier';
+import prettierConfig from 'eslint-config-prettier/flat';
 import functionalPlugin from 'eslint-plugin-functional';
 import sveltePlugin from 'eslint-plugin-svelte';
 import svelteParser from 'svelte-eslint-parser';
@@ -42,7 +42,7 @@ const functionalPluginOnly = {
 // TypeScript base rules
 const typescriptBaseRules = {
   ...typescript.configs['recommended'].rules,
-  ...prettier.rules,
+  ...prettierConfig.rules,
   'unused-imports/no-unused-imports': 'error',
   '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
   '@typescript-eslint/explicit-function-return-type': 'off',
@@ -162,9 +162,14 @@ export default [
       'effect/no-if-statement': 'off', // Too strict for RxJS-heavy codebase
     },
   },
-  // Svelte files (web package)
+  // Svelte files (web package) - use flat config from eslint-plugin-svelte v3
+  ...sveltePlugin.configs['flat/recommended'].map((config) => ({
+    ...config,
+    name: config.name ? `svelte/${config.name}` : 'svelte',
+    files: ['packages/deep-heating-web/**/*.svelte'],
+  })),
   {
-    name: 'svelte',
+    name: 'svelte/overrides',
     files: ['packages/deep-heating-web/**/*.svelte'],
     languageOptions: {
       parser: svelteParser,
@@ -175,12 +180,13 @@ export default [
     },
     plugins: {
       ...commonPlugins,
-      svelte: sveltePlugin,
       compat: compatPlugin,
     },
     rules: {
       ...typescriptBaseRules,
-      ...sveltePlugin.configs.recommended.rules,
+      // Disable no-navigation-without-resolve - this app uses regular anchor links
+      // and doesn't need SvelteKit's resolve() for simple static hrefs
+      'svelte/no-navigation-without-resolve': 'off',
     },
   },
   // Test files - same Effect rules as production, use bun-test-effect instead of runPromise/runSync

@@ -107,8 +107,6 @@ const config: KnipConfig = {
     'c8', // Old coverage tool
     'ts-node', // Replaced by bun
     'webpack-merge', // Legacy
-    'eslint-plugin-expect-type', // May not be in use
-    'eslint-plugin-testing-library', // May not be in use
   ],
 };
 
