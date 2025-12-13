@@ -2,9 +2,9 @@
 
 ## 0.1.3-beta.19
 
-### Patch Changes
+### Improved
 
-- [#1241](https://github.com/GraemeF/home-automation/pull/1241) [`47657bb`](https://github.com/GraemeF/home-automation/commit/47657bb9adbd941dd294b5038b03967ea4e8c6cb) Thanks [@GraemeF](https://github.com/GraemeF)! - Re-add simplified AppArmor profile without child profiles
+- Re-added AppArmor security profile with a simplified structure for better compatibility
 
 ## 0.1.3-beta.18
 
