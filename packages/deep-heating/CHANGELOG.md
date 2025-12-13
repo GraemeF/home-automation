@@ -1,5 +1,11 @@
 # @home-automation/deep-heating
 
+## 0.1.3-beta.22
+
+### Patch Changes
+
+- [#1247](https://github.com/GraemeF/home-automation/pull/1247) [`b74f66b`](https://github.com/GraemeF/home-automation/commit/b74f66b7cdac139660c52e1cc4168ed29249968f) Thanks [@GraemeF](https://github.com/GraemeF)! - Add SETUID and SETGID capabilities to AppArmor profile for nginx privilege dropping
+
 ## 0.1.3-beta.21
 
 ### Fixed
