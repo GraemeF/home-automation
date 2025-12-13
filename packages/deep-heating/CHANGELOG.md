@@ -1,5 +1,25 @@
 # @home-automation/deep-heating
 
+## 0.1.3
+
+### Patch Changes
+
+- [#1237](https://github.com/GraemeF/home-automation/pull/1237) [`f17fd4e`](https://github.com/GraemeF/home-automation/commit/f17fd4e053a1b5c2aea00f18d9ebe191956befab) Thanks [@GraemeF](https://github.com/GraemeF)! - Add sidebar icon and AppArmor security profile for Home Assistant addon
+
+- [#1243](https://github.com/GraemeF/home-automation/pull/1243) [`6f87c6c`](https://github.com/GraemeF/home-automation/commit/6f87c6c9463cd17d791b9fcf58783c581f1fa5c8) Thanks [@GraemeF](https://github.com/GraemeF)! - Add chown capability to AppArmor profile for nginx temp directories
+
+- [#1245](https://github.com/GraemeF/home-automation/pull/1245) [`4f4e536`](https://github.com/GraemeF/home-automation/commit/4f4e536ad5a161a983c98cad75ff31d42ab53e48) Thanks [@GraemeF](https://github.com/GraemeF)! - Add DAC_OVERRIDE capability to AppArmor profile for nginx config file creation
+
+- [#1247](https://github.com/GraemeF/home-automation/pull/1247) [`b74f66b`](https://github.com/GraemeF/home-automation/commit/b74f66b7cdac139660c52e1cc4168ed29249968f) Thanks [@GraemeF](https://github.com/GraemeF)! - Add SETUID and SETGID capabilities to AppArmor profile for nginx privilege dropping
+
+- [#1239](https://github.com/GraemeF/home-automation/pull/1239) [`9e634c7`](https://github.com/GraemeF/home-automation/commit/9e634c7388268a8fd7741c53d132cf13c2a329f2) Thanks [@GraemeF](https://github.com/GraemeF)! - Remove custom AppArmor profile that prevented addon from starting on systems without AppArmor kernel support
+
+- [#1241](https://github.com/GraemeF/home-automation/pull/1241) [`47657bb`](https://github.com/GraemeF/home-automation/commit/47657bb9adbd941dd294b5038b03967ea4e8c6cb) Thanks [@GraemeF](https://github.com/GraemeF)! - Re-add simplified AppArmor profile without child profiles
+
+- Updated dependencies []:
+  - deep-heating-server@0.1.4
+  - @home-automation/deep-heating-web@0.2.1
+
 ## 0.1.3-beta.22
 
 ### Fixed

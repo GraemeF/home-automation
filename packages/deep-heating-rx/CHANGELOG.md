@@ -1,5 +1,19 @@
 # @home-automation/deep-heating-rx
 
+## 0.1.3
+
+### Patch Changes
+
+- [#1216](https://github.com/GraemeF/home-automation/pull/1216) [`3ef3e41`](https://github.com/GraemeF/home-automation/commit/3ef3e4166267dddf8e6df190332749094f579035) Thanks [@GraemeF](https://github.com/GraemeF)! - Add debug logging for TRV and room data pipelines to help diagnose issues with TRV command delivery
+
+- [#1210](https://github.com/GraemeF/home-automation/pull/1210) [`b390765`](https://github.com/GraemeF/home-automation/commit/b390765879a56761bd7426e60930def0c628903c) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix startup race condition where TRV actions could be silently dropped if emitted before control state streams were ready
+
+- [#1208](https://github.com/GraemeF/home-automation/pull/1208) [`e9453cb`](https://github.com/GraemeF/home-automation/commit/e9453cb8a30816cacf57ece62cf90c93f2f7f9a2) Thanks [@GraemeF](https://github.com/GraemeF)! - Fix TRV scheduled target temperatures to emit for all TRVs when timer fires, not just the last one. Previously only one TRV would receive scheduled temperature updates, blocking heating actions for other rooms.
+
+- Updated dependencies [[`3ef3e41`](https://github.com/GraemeF/home-automation/commit/3ef3e4166267dddf8e6df190332749094f579035), [`41dedfc`](https://github.com/GraemeF/home-automation/commit/41dedfcd6ab348c6d2fe50bc65a37eba597bd253)]:
+  - @home-automation/deep-heating-home-assistant@0.1.3
+  - @home-automation/deep-heating-types@0.2.1
+
 ## 0.1.3-beta.9
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @home-automation/deep-heating-web
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @home-automation/deep-heating-types@0.2.1
+
 ## 0.2.1-beta.3
 
 ### Patch Changes
