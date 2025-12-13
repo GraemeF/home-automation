@@ -1,5 +1,11 @@
 # @home-automation/deep-heating
 
+## 0.1.3-beta.20
+
+### Patch Changes
+
+- [#1243](https://github.com/GraemeF/home-automation/pull/1243) [`6f87c6c`](https://github.com/GraemeF/home-automation/commit/6f87c6c9463cd17d791b9fcf58783c581f1fa5c8) Thanks [@GraemeF](https://github.com/GraemeF)! - Add chown capability to AppArmor profile for nginx temp directories
+
 ## 0.1.3-beta.19
 
 ### Improved

@@ -16,6 +16,7 @@
     "add-debug-logging",
     "addon-security-improvements",
     "effect-based-entity-decode",
+    "fix-apparmor-chown",
     "fix-startup-race-condition",
     "fix-trv-scheduled-temps",
     "remove-apparmor-profile",
