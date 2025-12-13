@@ -18,6 +18,7 @@
     "effect-based-entity-decode",
     "fix-apparmor-chown",
     "fix-apparmor-dac-override",
+    "fix-apparmor-setuid-setgid",
     "fix-startup-race-condition",
     "fix-trv-scheduled-temps",
     "remove-apparmor-profile",

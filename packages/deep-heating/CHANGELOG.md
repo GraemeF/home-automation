@@ -1,5 +1,11 @@
 # @home-automation/deep-heating
 
+## 0.1.3-beta.22
+
+### Fixed
+
+- Fixed an issue where nginx failed to start silently due to missing permissions in the AppArmor security profile
+
 ## 0.1.3-beta.21
 
 ### Fixed
