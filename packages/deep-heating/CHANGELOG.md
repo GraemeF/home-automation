@@ -1,5 +1,11 @@
 # @home-automation/deep-heating
 
+## 0.1.3-beta.19
+
+### Improved
+
+- Re-added AppArmor security profile with a simplified structure for better compatibility
+
 ## 0.1.3-beta.18
 
 ### Fixed
