@@ -1,5 +1,11 @@
 # @home-automation/deep-heating-web
 
+## 0.2.2
+
+### Patch Changes
+
+- [#1255](https://github.com/GraemeF/home-automation/pull/1255) [`a45e6e1`](https://github.com/GraemeF/home-automation/commit/a45e6e1f64eff52bd8434fff8907383b82d2adc6) Thanks [@GraemeF](https://github.com/GraemeF)! - Add keyed each block for room list to improve Svelte rendering performance
+
 ## 0.2.1
 
 ### Patch Changes
