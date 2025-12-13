@@ -1,5 +1,11 @@
 # @home-automation/deep-heating
 
+## 0.1.3-beta.21
+
+### Patch Changes
+
+- [#1245](https://github.com/GraemeF/home-automation/pull/1245) [`4f4e536`](https://github.com/GraemeF/home-automation/commit/4f4e536ad5a161a983c98cad75ff31d42ab53e48) Thanks [@GraemeF](https://github.com/GraemeF)! - Add DAC_OVERRIDE capability to AppArmor profile for nginx config file creation
+
 ## 0.1.3-beta.20
 
 ### Fixed

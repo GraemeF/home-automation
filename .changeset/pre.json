@@ -17,6 +17,7 @@
     "addon-security-improvements",
     "effect-based-entity-decode",
     "fix-apparmor-chown",
+    "fix-apparmor-dac-override",
     "fix-startup-race-condition",
     "fix-trv-scheduled-temps",
     "remove-apparmor-profile",
