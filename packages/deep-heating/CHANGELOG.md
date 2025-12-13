@@ -1,5 +1,23 @@
 # @home-automation/deep-heating
 
+## 0.1.3
+
+### Improved
+
+- Added a fire icon to the Home Assistant sidebar for easier navigation to Deep Heating
+- Added a custom AppArmor security profile that restricts the addon to only the permissions it needs, reducing the potential impact if a vulnerability were ever discovered
+
+### Fixed
+
+- Fixed an issue where scheduled temperature changes wouldn't apply to all rooms. Previously, only one room would receive the scheduled temperature while others were ignored, preventing the heating from activating as expected.
+- Fixed an issue where heating actions could be silently dropped during startup, leaving rooms at the wrong temperature until the next schedule change.
+- Improved reliability when Home Assistant sends unexpected data, preventing occasional connection errors.
+
+### Dependencies
+
+- deep-heating-server@0.1.4
+- @home-automation/deep-heating-web@0.2.1
+
 ## 0.1.3-beta.22
 
 ### Fixed
