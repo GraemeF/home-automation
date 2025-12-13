@@ -17,6 +17,7 @@
     "addon-security-improvements",
     "effect-based-entity-decode",
     "fix-startup-race-condition",
-    "fix-trv-scheduled-temps"
+    "fix-trv-scheduled-temps",
+    "remove-apparmor-profile"
   ]
 }

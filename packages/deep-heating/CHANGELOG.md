@@ -1,5 +1,11 @@
 # @home-automation/deep-heating
 
+## 0.1.3-beta.18
+
+### Patch Changes
+
+- [#1239](https://github.com/GraemeF/home-automation/pull/1239) [`9e634c7`](https://github.com/GraemeF/home-automation/commit/9e634c7388268a8fd7741c53d132cf13c2a329f2) Thanks [@GraemeF](https://github.com/GraemeF)! - Remove custom AppArmor profile that prevented addon from starting on systems without AppArmor kernel support
+
 ## 0.1.3-beta.17
 
 ### Improved
