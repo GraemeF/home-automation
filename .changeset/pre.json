@@ -18,6 +18,7 @@
     "effect-based-entity-decode",
     "fix-startup-race-condition",
     "fix-trv-scheduled-temps",
-    "remove-apparmor-profile"
+    "remove-apparmor-profile",
+    "test-apparmor-v2"
   ]
 }
