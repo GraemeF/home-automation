@@ -9,6 +9,7 @@ arch:
 homeassistant_api: true
 init: false
 ingress: true
+panel_icon: mdi:fire
 ports:
   8099/tcp: 8099
 webui: 'http://[HOST]:[PORT:8099]/'
