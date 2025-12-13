@@ -2,11 +2,9 @@
 
 /dist
 /coverage
-/renovate.json
 .svelte-kit/
 
-.beads/*.jsonl
-.beads/*.json
+.beads/
 
 # Changeset-generated files
 .changeset/pre.json

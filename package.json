@@ -14,7 +14,7 @@
     "lint": "turbo run lint",
     "dev": "turbo run dev",
     "serve": "turbo run serve",
-    "format": "turbo run format",
+    "format": "prettier --write --ignore-unknown . '!packages/**'",
     "format:check": "prettier --check .",
     "ci": "turbo run ci",
     "deps:check": "knip-bun",

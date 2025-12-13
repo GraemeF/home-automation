@@ -74,6 +74,10 @@
     "format": {
       "outputs": []
     },
+    "//#format": {
+      "dependsOn": [],
+      "outputs": []
+    },
     "version:sync": {
       "inputs": ["package.json"],
       "outputs": ["config.yaml"]
