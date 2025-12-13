@@ -5,6 +5,7 @@ profile deep_heating flags=(attach_disconnected,mediate_deleted) {
 
   # Capabilities
   capability chown,
+  capability dac_override,
   file,
   signal,
 
