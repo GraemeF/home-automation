@@ -25,7 +25,7 @@
       {/if}
     </div>
     <div class="flex flex-row flex-wrap gap-2">
-      {#each pipe( $homeStore.state.value, (state) => pipe(state.rooms, Array.sort(compareByRoomTemperature)), ) as room}
+      {#each pipe( $homeStore.state.value, (state) => pipe(state.rooms, Array.sort(compareByRoomTemperature)), ) as room (room.name)}
         <Room {room} />
       {/each}
     </div>
