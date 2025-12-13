@@ -1,5 +1,11 @@
 # @home-automation/deep-heating
 
+## 0.1.3-beta.18
+
+### Fixed
+
+- Fixed an issue where the addon failed to start on Home Assistant systems without AppArmor kernel support
+
 ## 0.1.3-beta.17
 
 ### Improved
