@@ -1892,6 +1892,10 @@
     url = "https://registry.npmjs.org/postcss-selector-parser/-/postcss-selector-parser-6.1.2.tgz";
     hash = "sha512-Q8qQfPiZ+THO/3ZrOrO0cJJKfpYCagtMUkXbnEfmgUjwXg6z/WBeOyS9APBBPCTSiDV+s4SwQGu8yFsiMRIudg==";
   };
+  "postcss-selector-parser@7.1.1" = fetchurl {
+    url = "https://registry.npmjs.org/postcss-selector-parser/-/postcss-selector-parser-7.1.1.tgz";
+    hash = "sha512-orRsuYpJVw8LdAwqqLykBj9ecS5/cRHlI5+nvTo8LcCKmzDmqVORXtOIYEEQuL9D4BxtA1lm5isAqzQZCoQ6Eg==";
+  };
   "postcss-value-parser@4.2.0" = fetchurl {
     url = "https://registry.npmjs.org/postcss-value-parser/-/postcss-value-parser-4.2.0.tgz";
     hash = "sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==";
@@ -2095,6 +2099,10 @@
   "svelte-eslint-parser@0.43.0" = fetchurl {
     url = "https://registry.npmjs.org/svelte-eslint-parser/-/svelte-eslint-parser-0.43.0.tgz";
     hash = "sha512-GpU52uPKKcVnh8tKN5P4UZpJ/fUDndmq7wfsvoVXsyP+aY0anol7Yqo01fyrlaWGMFfm4av5DyrjlaXdLRJvGA==";
+  };
+  "svelte-eslint-parser@1.4.1" = fetchurl {
+    url = "https://registry.npmjs.org/svelte-eslint-parser/-/svelte-eslint-parser-1.4.1.tgz";
+    hash = "sha512-1eqkfQ93goAhjAXxZiu1SaKI9+0/sxp4JIWQwUpsz7ybehRE5L8dNuz7Iry7K22R47p5/+s9EM+38nHV2OlgXA==";
   };
   "svelte-material-icons@3.0.5" = fetchurl {
     url = "https://registry.npmjs.org/svelte-material-icons/-/svelte-material-icons-3.0.5.tgz";
