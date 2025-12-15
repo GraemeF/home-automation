@@ -955,9 +955,9 @@
     url = "https://registry.npmjs.org/browserslist/-/browserslist-4.28.1.tgz";
     hash = "sha512-ZC5Bd0LgJXgwGqUknZY/vkUQ04r8NXnJZ3yYi4vDmSiZmC/pdSN0NbNRPxZpbtO4uAfDUAFffO8IZoM3Gj8IkA==";
   };
-  "bun-types@1.3.3" = fetchurl {
-    url = "https://registry.npmjs.org/bun-types/-/bun-types-1.3.3.tgz";
-    hash = "sha512-z3Xwlg7j2l9JY27x5Qn3Wlyos8YAp0kKRlrePAOjgjMGS5IG6E7Jnlx736vH9UVI4wUICwwhC9anYL++XeOgTQ==";
+  "bun-types@1.3.4" = fetchurl {
+    url = "https://registry.npmjs.org/bun-types/-/bun-types-1.3.4.tgz";
+    hash = "sha512-5ua817+BZPZOlNaRgGBpZJOSAQ9RQ17pkwPD0yR7CfJg+r8DgIILByFifDTa+IPDDxzf5VNhtNlcKqFzDgJvlQ==";
   };
   "c8@9.1.0" = fetchurl {
     url = "https://registry.npmjs.org/c8/-/c8-9.1.0.tgz";
