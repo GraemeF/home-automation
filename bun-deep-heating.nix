@@ -2036,9 +2036,9 @@
     url = "https://registry.npmjs.org/svelte/-/svelte-5.43.5.tgz";
     hash = "sha512-HQoZArIewxQVNedseDsgMgnRSC4XOXczxXLF9rOJaPIJkg58INOPUiL8aEtzqZIXNSZJyw8NmqObwg/voajiHQ==";
   };
-  "tailwindcss@3.4.18" = fetchurl {
-    url = "https://registry.npmjs.org/tailwindcss/-/tailwindcss-3.4.18.tgz";
-    hash = "sha512-6A2rnmW5xZMdw11LYjhcI5846rt9pbLSabY5XPxo+XWdxwZaFEn47Go4NzFiHu9sNNmr/kXivP1vStfvMaK1GQ==";
+  "tailwindcss@3.4.19" = fetchurl {
+    url = "https://registry.npmjs.org/tailwindcss/-/tailwindcss-3.4.19.tgz";
+    hash = "sha512-3ofp+LL8E+pK/JuPLPggVAIaEuhvIz4qNcf3nA1Xn2o/7fb7s/TYpHhwGDv1ZU3PkBluUVaF8PyCHcm48cKLWQ==";
   };
   "term-size@2.2.1" = fetchurl {
     url = "https://registry.npmjs.org/term-size/-/term-size-2.2.1.tgz";
