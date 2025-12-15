@@ -795,9 +795,9 @@
     url = "https://registry.npmjs.org/@types/node/-/node-12.20.55.tgz";
     hash = "sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ==";
   };
-  "@types/node@20.19.25" = fetchurl {
-    url = "https://registry.npmjs.org/@types/node/-/node-20.19.25.tgz";
-    hash = "sha512-ZsJzA5thDQMSQO788d7IocwwQbI8B5OPzmqNvpf3NY/+MHDAS759Wo0gd2WQeXYt5AAAQjzcrTVC6SKCuYgoCQ==";
+  "@types/node@20.19.26" = fetchurl {
+    url = "https://registry.npmjs.org/@types/node/-/node-20.19.26.tgz";
+    hash = "sha512-0l6cjgF0XnihUpndDhk+nyD3exio3iKaYROSgvh/qSevPXax3L8p5DBRFjbvalnwatGgHEQn2R88y2fA3g4irg==";
   };
   "@typescript-eslint/eslint-plugin@8.48.1" = fetchurl {
     url = "https://registry.npmjs.org/@typescript-eslint/eslint-plugin/-/eslint-plugin-8.48.1.tgz";
