@@ -27,7 +27,7 @@ runs:
           accept-flake-config = true
 
     - name: Cache Nix store
-      uses: nix-community/cache-nix-action@d8cff2f74b9341e0d90fbf3c0c0212a161ceaef6 # v6
+      uses: nix-community/cache-nix-action@135667ec418502fa5a3598af6fb9eb733888ce6a # v6
       with:
         primary-key: nix-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.lock') }}
         restore-prefixes-first-match: |
