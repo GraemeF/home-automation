@@ -16,7 +16,7 @@ pipe(
   Effect.flatMap(HeatingApp.initiatePopOut(returnTime)),
   Effect.flatMap(HeatingApp.expectAllRoomsAt(temperature)),
   // ...
-)
+);
 ```
 
 ### 2. Effect-Native
@@ -33,7 +33,7 @@ test('user can pop out and cancel', async ({ page }) => {
     pipe(
       HeatingApp.make(page),
       // Effect pipeline
-    ).pipe(Effect.provide(TestConfigLayer(config)))
+    ).pipe(Effect.provide(TestConfigLayer(config))),
   );
 });
 ```
@@ -43,9 +43,7 @@ test('user can pop out and cancel', async ({ page }) => {
 Supports both duration and specific time, matching feature requirements:
 
 ```typescript
-type ReturnTime =
-  | { readonly _tag: 'duration'; readonly value: Duration.Duration }
-  | { readonly _tag: 'specific'; readonly value: Date };
+type ReturnTime = { readonly _tag: 'duration'; readonly value: Duration.Duration } | { readonly _tag: 'specific'; readonly value: Date };
 ```
 
 ### 5. Ports and Adapters for Config
@@ -53,8 +51,7 @@ type ReturnTime =
 Test supplies config via Effect Layer (stub). Production uses file-reading adapter:
 
 ```typescript
-const TestConfigLayer = (config: PopOutConfig): Layer.Layer<PopOutConfig> =>
-  Layer.succeed(PopOutConfig, config);
+const TestConfigLayer = (config: PopOutConfig): Layer.Layer<PopOutConfig> => Layer.succeed(PopOutConfig, config);
 ```
 
 ## File Structure
@@ -75,16 +72,7 @@ test.describe('Popping Out', () => {
   const popOutTemperature = 10;
 
   test('user can pop out and cancel to return to normal schedule', async ({ page }) => {
-    await Effect.runPromise(
-      pipe(
-        HeatingApp.make(page),
-        Effect.flatMap(HeatingApp.initiatePopOut(ReturnTime.duration(Duration.hours(2)))),
-        Effect.flatMap(HeatingApp.expectAllRoomsAt(popOutTemperature)),
-        Effect.flatMap(HeatingApp.expectPopOutOverlay({ showsCancelOnly: true })),
-        Effect.flatMap(HeatingApp.cancelPopOut),
-        Effect.flatMap(HeatingApp.expectNormalSchedule)
-      ).pipe(Effect.provide(HeatingApp.TestConfigLayer({ popOutTemperature })))
-    );
+    await Effect.runPromise(pipe(HeatingApp.make(page), Effect.flatMap(HeatingApp.initiatePopOut(ReturnTime.duration(Duration.hours(2)))), Effect.flatMap(HeatingApp.expectAllRoomsAt(popOutTemperature)), Effect.flatMap(HeatingApp.expectPopOutOverlay({ showsCancelOnly: true })), Effect.flatMap(HeatingApp.cancelPopOut), Effect.flatMap(HeatingApp.expectNormalSchedule)).pipe(Effect.provide(HeatingApp.TestConfigLayer({ popOutTemperature }))));
   });
 });
 ```
@@ -92,11 +80,13 @@ test.describe('Popping Out', () => {
 ## GOOS Approach
 
 The test will fail immediately because:
+
 - No "pop-out-button" exists yet
 - No overlay component exists
 - No backend state management exists
 
 Each failure tells us what to implement next:
+
 1. `getByTestId('pop-out-button')` fails → build UI button
 2. `getByTestId('duration-selector')` fails → build time selection UI
 3. Server doesn't respond → build WebSocket handler
