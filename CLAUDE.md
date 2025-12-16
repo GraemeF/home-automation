@@ -91,3 +91,56 @@ Brief description of what changed
 The frontmatter lists affected packages and bump type (`patch`, `minor`, `major`). Changes to libraries automatically bump `@home-automation/deep-heating` via dependencies.
 
 - The main branch is protected; changes must be made via a pull request.
+
+## Issue Tracking with Beads
+
+This repo uses [beads](https://github.com/steveyegge/beads) for issue tracking.
+
+```bash
+bd ready                              # Show issues ready to work on
+bd list --status=open                 # All open issues
+bd show <id>                          # View issue details
+bd create --title="..." --type=task   # Create issue (type: task|bug|feature)
+bd update <id> --status=in_progress   # Claim work
+bd close <id>                         # Mark complete
+bd sync                               # Sync with remote (run at session end)
+```
+
+Issues sync to the `beads-metadata` branch automatically via daemon. The database is shared across all worktrees.
+
+## Git Worktree Workflow
+
+**All work happens in worktrees. Nothing is done directly on main.**
+
+### Repository Structure
+
+```
+home-automation/
+├── main/              # Main branch worktree (primary checkout)
+├── feature-foo/       # Feature branch worktree
+└── fix-bar/           # Fix branch worktree
+```
+
+### Creating a New Worktree
+
+```bash
+cd home-automation/main
+git fetch origin
+git worktree add ../feature-name -b feature/descriptive-name
+cd ../feature-name
+```
+
+### Cleaning Up After PR Merge
+
+```bash
+cd home-automation/main
+git worktree remove ../feature-name
+git branch -d feature/descriptive-name
+```
+
+### Useful Commands
+
+```bash
+git worktree list     # See all active worktrees
+git worktree prune    # Clean up stale references
+```
