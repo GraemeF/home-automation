@@ -29,7 +29,7 @@
     "@changesets/cli": "2.29.8",
     "@codeforbreakfast/bun-test-effect": "0.4.1",
     "@codeforbreakfast/eslint-effect": "0.8.5",
-    "@effect/language-service": "0.57.1",
+    "@effect/language-service": "0.62.0",
     "@testing-library/svelte": "5.2.9",
     "@tsconfig/svelte": "5.0.6",
     "@types/debug": "4.1.12",

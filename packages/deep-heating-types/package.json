@@ -11,7 +11,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "effect": "3.19.8",
+    "effect": "3.19.11",
     "luxon": "3.7.2",
     "rxjs": "7.8.2"
   }
