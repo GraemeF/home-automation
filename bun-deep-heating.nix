@@ -2032,9 +2032,9 @@
     url = "https://registry.npmjs.org/svelte-preprocess/-/svelte-preprocess-6.0.3.tgz";
     hash = "sha512-PLG2k05qHdhmRG7zR/dyo5qKvakhm8IJ+hD2eFRQmMLHp7X3eJnjeupUtvuRpbNiF31RjVw45W+abDwHEmP5OA==";
   };
-  "svelte@5.43.5" = fetchurl {
-    url = "https://registry.npmjs.org/svelte/-/svelte-5.43.5.tgz";
-    hash = "sha512-HQoZArIewxQVNedseDsgMgnRSC4XOXczxXLF9rOJaPIJkg58INOPUiL8aEtzqZIXNSZJyw8NmqObwg/voajiHQ==";
+  "svelte@5.45.8" = fetchurl {
+    url = "https://registry.npmjs.org/svelte/-/svelte-5.45.8.tgz";
+    hash = "sha512-1Jh7FwVh/2Uxg0T7SeE1qFKMhwYH45b2v53bcZpW7qHa6O8iU1ByEj56PF0IQ6dU4HE5gRkic6h+vx+tclHeiw==";
   };
   "tailwindcss@3.4.19" = fetchurl {
     url = "https://registry.npmjs.org/tailwindcss/-/tailwindcss-3.4.19.tgz";
