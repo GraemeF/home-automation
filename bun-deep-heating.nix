@@ -2024,33 +2024,33 @@
     url = "https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz";
     hash = "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==";
   };
-  "turbo-darwin-64@2.6.3" = fetchurl {
-    url = "https://registry.npmjs.org/turbo-darwin-64/-/turbo-darwin-64-2.6.3.tgz";
-    hash = "sha512-BlJJDc1CQ7SK5Y5qnl7AzpkvKSnpkfPmnA+HeU/sgny3oHZckPV2776ebO2M33CYDSor7+8HQwaodY++IINhYg==";
+  "turbo-darwin-64@2.7.1" = fetchurl {
+    url = "https://registry.npmjs.org/turbo-darwin-64/-/turbo-darwin-64-2.7.1.tgz";
+    hash = "sha512-EaA7UfYujbY9/Ku0WqPpvfctxm91h9LF7zo8vjielz+omfAPB54Si+ADmUoBczBDC6RoLgbURC3GmUW2alnjJg==";
   };
-  "turbo-darwin-arm64@2.6.3" = fetchurl {
-    url = "https://registry.npmjs.org/turbo-darwin-arm64/-/turbo-darwin-arm64-2.6.3.tgz";
-    hash = "sha512-MwVt7rBKiOK7zdYerenfCRTypefw4kZCue35IJga9CH1+S50+KTiCkT6LBqo0hHeoH2iKuI0ldTF2a0aB72z3w==";
+  "turbo-darwin-arm64@2.7.1" = fetchurl {
+    url = "https://registry.npmjs.org/turbo-darwin-arm64/-/turbo-darwin-arm64-2.7.1.tgz";
+    hash = "sha512-/pWGSygtBugd7sKQOeMm+jKY3qN1vyB0RiHBM6bN/6qUOo2VHo8IQwBTIaSgINN4Ue6fzEU+WfePNvonSU9yXw==";
   };
-  "turbo-linux-64@2.6.3" = fetchurl {
-    url = "https://registry.npmjs.org/turbo-linux-64/-/turbo-linux-64-2.6.3.tgz";
-    hash = "sha512-cqpcw+dXxbnPtNnzeeSyWprjmuFVpHJqKcs7Jym5oXlu/ZcovEASUIUZVN3OGEM6Y/OTyyw0z09tOHNt5yBAVg==";
+  "turbo-linux-64@2.7.1" = fetchurl {
+    url = "https://registry.npmjs.org/turbo-linux-64/-/turbo-linux-64-2.7.1.tgz";
+    hash = "sha512-Y5H11mdhASw/dJuRFyGtTCDFX5/MPT73EKsVEiHbw5MkFc77lx3nMc5L/Q7bKEhef/vYJAsAb61QuHsB6qdP8Q==";
   };
-  "turbo-linux-arm64@2.6.3" = fetchurl {
-    url = "https://registry.npmjs.org/turbo-linux-arm64/-/turbo-linux-arm64-2.6.3.tgz";
-    hash = "sha512-MterpZQmjXyr4uM7zOgFSFL3oRdNKeflY7nsjxJb2TklsYqiu3Z9pQ4zRVFFH8n0mLGna7MbQMZuKoWqqHb45w==";
+  "turbo-linux-arm64@2.7.1" = fetchurl {
+    url = "https://registry.npmjs.org/turbo-linux-arm64/-/turbo-linux-arm64-2.7.1.tgz";
+    hash = "sha512-L/r77jD7cqIEXoyu2LGBUrTY5GJSi/XcGLsQ2nZ/fefk6x3MpljTvwsXUVG1BUkiBPc4zaKRj6yGyWMo5MbLxQ==";
   };
-  "turbo-windows-64@2.6.3" = fetchurl {
-    url = "https://registry.npmjs.org/turbo-windows-64/-/turbo-windows-64-2.6.3.tgz";
-    hash = "sha512-biDU70v9dLwnBdLf+daoDlNJVvqOOP8YEjqNipBHzgclbQlXbsi6Gqqelp5er81Qo3BiRgmTNx79oaZQTPb07Q==";
+  "turbo-windows-64@2.7.1" = fetchurl {
+    url = "https://registry.npmjs.org/turbo-windows-64/-/turbo-windows-64-2.7.1.tgz";
+    hash = "sha512-rkeuviXZ/1F7lCare7TNKvYtT/SH9dZR55FAMrxrFRh88b+ZKwlXEBfq5/1OctEzRUo/VLIm+s5LJMOEy+QshA==";
   };
-  "turbo-windows-arm64@2.6.3" = fetchurl {
-    url = "https://registry.npmjs.org/turbo-windows-arm64/-/turbo-windows-arm64-2.6.3.tgz";
-    hash = "sha512-dDHVKpSeukah3VsI/xMEKeTnV9V9cjlpFSUs4bmsUiLu3Yv2ENlgVEZv65wxbeE0bh0jjpmElDT+P1KaCxArQQ==";
+  "turbo-windows-arm64@2.7.1" = fetchurl {
+    url = "https://registry.npmjs.org/turbo-windows-arm64/-/turbo-windows-arm64-2.7.1.tgz";
+    hash = "sha512-1rZk9htm3+iP/rWCf/h4/DFQey9sMs2TJPC4T5QQfwqAdMWsphgrxBuFqHdxczlbBCgbWNhVw0CH2bTxe1/GFg==";
   };
-  "turbo@2.6.3" = fetchurl {
-    url = "https://registry.npmjs.org/turbo/-/turbo-2.6.3.tgz";
-    hash = "sha512-bf6YKUv11l5Xfcmg76PyWoy/e2vbkkxFNBGJSnfdSXQC33ZiUfutYh6IXidc5MhsnrFkWfdNNLyaRk+kHMLlwA==";
+  "turbo@2.7.1" = fetchurl {
+    url = "https://registry.npmjs.org/turbo/-/turbo-2.7.1.tgz";
+    hash = "sha512-zAj9jGc7VDvuAo/5Jbos4QTtWz9uUpkMhMKGyTjDJkx//hdL2bM31qQoJSAbU+7JyK5vb0LPzpwf6DUt3zayqg==";
   };
   "type-check@0.4.0" = fetchurl {
     url = "https://registry.npmjs.org/type-check/-/type-check-0.4.0.tgz";
