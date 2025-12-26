@@ -33,7 +33,9 @@ export const initiatePopOut =
   (_returnTime: ReturnTime) =>
   (app: HeatingApp): Effect.Effect<HeatingApp, TestError> =>
     pipe(
-      Effect.promise(() => app.page.getByTestId('pop-out-button').click()),
+      Effect.promise(() =>
+        app.page.getByRole('button', { name: /pop.?out/i }).click(),
+      ),
       Effect.map(() => app),
       Effect.mapError((e) => new TestError(String(e))),
     );
@@ -42,7 +44,9 @@ export const cancelPopOut = (
   app: HeatingApp,
 ): Effect.Effect<HeatingApp, TestError> =>
   pipe(
-    Effect.promise(() => app.page.getByTestId('cancel-pop-out').click()),
+    Effect.promise(() =>
+      app.page.getByRole('button', { name: /cancel/i }).click(),
+    ),
     Effect.map(() => app),
     Effect.mapError((e) => new TestError(String(e))),
   );
@@ -52,8 +56,12 @@ export const expectAllRoomsAt =
   (app: HeatingApp): Effect.Effect<HeatingApp, TestError> =>
     pipe(
       Effect.promise(async () => {
-        const rooms = app.page.getByTestId('room-temperature');
-        await expect(rooms).toContainText(String(temperature));
+        // User sees target temperatures displayed for each room
+        const targetTemps = app.page.getByLabel(/target/i);
+        const count = await targetTemps.count();
+        for (let i = 0; i < count; i++) {
+          await expect(targetTemps.nth(i)).toContainText(String(temperature));
+        }
       }),
       Effect.map(() => app),
       Effect.mapError((e) => new TestError(String(e))),
@@ -64,8 +72,13 @@ export const expectPopOutOverlay =
   (app: HeatingApp): Effect.Effect<HeatingApp, TestError> =>
     pipe(
       Effect.promise(async () => {
-        await expect(app.page.getByTestId('pop-out-overlay')).toBeVisible();
-        await expect(app.page.getByTestId('cancel-pop-out')).toBeVisible();
+        // User sees a dialog indicating they're popping out
+        await expect(
+          app.page.getByRole('dialog', { name: /pop.?out/i }),
+        ).toBeVisible();
+        await expect(
+          app.page.getByRole('button', { name: /cancel/i }),
+        ).toBeVisible();
       }),
       Effect.map(() => app),
       Effect.mapError((e) => new TestError(String(e))),
@@ -76,7 +89,10 @@ export const expectNormalSchedule = (
 ): Effect.Effect<HeatingApp, TestError> =>
   pipe(
     Effect.promise(async () => {
-      await expect(app.page.getByTestId('pop-out-overlay')).not.toBeVisible();
+      // Pop-out dialog should no longer be visible
+      await expect(
+        app.page.getByRole('dialog', { name: /pop.?out/i }),
+      ).not.toBeVisible();
     }),
     Effect.map(() => app),
     Effect.mapError((e) => new TestError(String(e))),
