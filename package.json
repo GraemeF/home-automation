@@ -47,7 +47,7 @@
     "eslint-plugin-svelte": "3.13.1",
     "eslint-plugin-unused-imports": "4.3.0",
     "husky": "9.1.7",
-    "knip": "5.73.3",
+    "knip": "5.76.2",
     "postcss": "8.5.6",
     "prettier": "3.7.4",
     "prettier-plugin-svelte": "3.4.1",
