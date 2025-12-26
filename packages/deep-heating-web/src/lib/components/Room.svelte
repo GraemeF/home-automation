@@ -29,7 +29,7 @@
 </script>
 
 <div
-  class="card card-compact w-44"
+  class="card card-sm w-44"
   class:bg-heating={isHeating}
   class:bg-cooling={!isHeating}
   style="color: white;"

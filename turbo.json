@@ -66,7 +66,7 @@
       "dependsOn": ["^build"],
       "cache": false,
       "persistent": true,
-      "env": ["DEBUG"]
+      "env": ["DEBUG", "API_URL"]
     },
     "sync": {
       "outputs": [".svelte-kit/**"]
