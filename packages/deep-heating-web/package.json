@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@home-automation/deep-heating-types": "workspace:*",
-    "effect": "3.19.11"
+    "effect": "3.19.13"
   },
   "devDependencies": {
     "svelte-adapter-bun": "1.0.1",
