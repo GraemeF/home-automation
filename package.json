@@ -30,7 +30,7 @@
     "@codeforbreakfast/bun-test-effect": "0.4.1",
     "@codeforbreakfast/eslint-effect": "0.8.5",
     "@effect/language-service": "0.62.0",
-    "@testing-library/svelte": "5.2.9",
+    "@testing-library/svelte": "5.2.10",
     "@tsconfig/svelte": "5.0.6",
     "@types/debug": "4.1.12",
     "@types/luxon": "3.7.1",
