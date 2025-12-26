@@ -41,7 +41,7 @@
   </button>
 {/if}
 <div class="grid justify-items-center">
-  <p>
+  <p aria-label="Target temperature">
     {pipe(room.targetTemperature, formatTemperature)}
   </p>
   {#if adjustment}
