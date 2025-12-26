@@ -1792,9 +1792,9 @@
     url = "https://registry.npmjs.org/prelude-ls/-/prelude-ls-1.2.1.tgz";
     hash = "sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==";
   };
-  "prettier-plugin-svelte@3.4.0" = fetchurl {
-    url = "https://registry.npmjs.org/prettier-plugin-svelte/-/prettier-plugin-svelte-3.4.0.tgz";
-    hash = "sha512-pn1ra/0mPObzqoIQn/vUTR3ZZI6UuZ0sHqMK5x2jMLGrs53h0sXhkVuDcrlssHwIMk7FYrMjHBPoUSyyEEDlBQ==";
+  "prettier-plugin-svelte@3.4.1" = fetchurl {
+    url = "https://registry.npmjs.org/prettier-plugin-svelte/-/prettier-plugin-svelte-3.4.1.tgz";
+    hash = "sha512-xL49LCloMoZRvSwa6IEdN2GV6cq2IqpYGstYtMT+5wmml1/dClEoI0MZR78MiVPpu6BdQFfN0/y73yO6+br5Pg==";
   };
   "prettier@2.8.8" = fetchurl {
     url = "https://registry.npmjs.org/prettier/-/prettier-2.8.8.tgz";
@@ -1952,9 +1952,9 @@
     url = "https://registry.npmjs.org/svelte-adapter-bun/-/svelte-adapter-bun-1.0.1.tgz";
     hash = "sha512-tNOvfm8BGgG+rmEA7hkmqtq07v7zoo4skLQc+hIoQ79J+1fkEMpJEA2RzCIe3aPc8JdrsMJkv3mpiZPMsgahjA==";
   };
-  "svelte-check@4.3.4" = fetchurl {
-    url = "https://registry.npmjs.org/svelte-check/-/svelte-check-4.3.4.tgz";
-    hash = "sha512-DVWvxhBrDsd+0hHWKfjP99lsSXASeOhHJYyuKOFYJcP7ThfSCKgjVarE8XfuMWpS5JV3AlDf+iK1YGGo2TACdw==";
+  "svelte-check@4.3.5" = fetchurl {
+    url = "https://registry.npmjs.org/svelte-check/-/svelte-check-4.3.5.tgz";
+    hash = "sha512-e4VWZETyXaKGhpkxOXP+B/d0Fp/zKViZoJmneZWe/05Y2aqSKj3YN2nLfYPJBQ87WEiY4BQCQ9hWGu9mPT1a1Q==";
   };
   "svelte-eslint-parser@1.4.1" = fetchurl {
     url = "https://registry.npmjs.org/svelte-eslint-parser/-/svelte-eslint-parser-1.4.1.tgz";
@@ -1968,9 +1968,9 @@
     url = "https://registry.npmjs.org/svelte-preprocess/-/svelte-preprocess-6.0.3.tgz";
     hash = "sha512-PLG2k05qHdhmRG7zR/dyo5qKvakhm8IJ+hD2eFRQmMLHp7X3eJnjeupUtvuRpbNiF31RjVw45W+abDwHEmP5OA==";
   };
-  "svelte@5.45.8" = fetchurl {
-    url = "https://registry.npmjs.org/svelte/-/svelte-5.45.8.tgz";
-    hash = "sha512-1Jh7FwVh/2Uxg0T7SeE1qFKMhwYH45b2v53bcZpW7qHa6O8iU1ByEj56PF0IQ6dU4HE5gRkic6h+vx+tclHeiw==";
+  "svelte@5.46.0" = fetchurl {
+    url = "https://registry.npmjs.org/svelte/-/svelte-5.46.0.tgz";
+    hash = "sha512-ZhLtvroYxUxr+HQJfMZEDRsGsmU46x12RvAv/zi9584f5KOX7bUrEbhPJ7cKFmUvZTJXi/CFZUYwDC6M1FigPw==";
   };
   "tailwindcss@4.1.18" = fetchurl {
     url = "https://registry.npmjs.org/tailwindcss/-/tailwindcss-4.1.18.tgz";
