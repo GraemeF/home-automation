@@ -32,15 +32,18 @@ turbo serve
 ```
 
 This starts:
+
 - **Frontend**: http://localhost:5173/ (SvelteKit dev server)
 - **Backend**: WebSocket server on port 8085
 
 Environment variables are loaded from `.env.local`:
+
 - `API_URL` - tells the frontend where to find the backend WebSocket
 - `SUPERVISOR_URL` / `SUPERVISOR_TOKEN` - Home Assistant connection
 - `HOME_CONFIG_PATH` - path to room/TRV configuration
 
 To run just the backend (useful for debugging server-side issues):
+
 ```bash
 turbo serve --filter deep-heating-server
 ```
