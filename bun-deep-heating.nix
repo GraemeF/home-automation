@@ -911,9 +911,9 @@
     url = "https://registry.npmjs.org/ast-metadata-inferer/-/ast-metadata-inferer-0.8.1.tgz";
     hash = "sha512-ht3Dm6Zr7SXv6t1Ra6gFo0+kLDglHGrEbYihTkcycrbHw7WCcuhBzPlJYHEsIpycaUwzsJHje+vUcxXUX4ztTA==";
   };
-  "autoprefixer@10.4.22" = fetchurl {
-    url = "https://registry.npmjs.org/autoprefixer/-/autoprefixer-10.4.22.tgz";
-    hash = "sha512-ARe0v/t9gO28Bznv6GgqARmVqcWOV3mfgUPn9becPHMiD3o9BwlRgaeccZnwTpZ7Zwqrm+c1sUSsMxIzQzc8Xg==";
+  "autoprefixer@10.4.23" = fetchurl {
+    url = "https://registry.npmjs.org/autoprefixer/-/autoprefixer-10.4.23.tgz";
+    hash = "sha512-YYTXSFulfwytnjAPlw8QHncHJmlvFKtczb8InXaAx9Q0LbfDnfEYDE55omerIJKihhmU61Ft+cAOSzQVaBUmeA==";
   };
   "axobject-query@4.1.0" = fetchurl {
     url = "https://registry.npmjs.org/axobject-query/-/axobject-query-4.1.0.tgz";
@@ -967,9 +967,9 @@
     url = "https://registry.npmjs.org/camelcase-css/-/camelcase-css-2.0.1.tgz";
     hash = "sha512-QOSvevhslijgYwRx6Rv7zKdMF8lbRmx+uQGx2+vDc+KI/eBnsy9kit5aj23AgGu3pa4t9AgwbnXWqS+iOY+2aA==";
   };
-  "caniuse-lite@1.0.30001759" = fetchurl {
-    url = "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001759.tgz";
-    hash = "sha512-Pzfx9fOKoKvevQf8oCXoyNRQ5QyxJj+3O0Rqx2V5oxT61KGx8+n6hV/IUyJeifUci2clnmmKVpvtiqRzgiWjSw==";
+  "caniuse-lite@1.0.30001761" = fetchurl {
+    url = "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001761.tgz";
+    hash = "sha512-JF9ptu1vP2coz98+5051jZ4PwQgd2ni8A+gYSN7EA7dPKIMf0pDlSUxhdmVOaV3/fYK5uWBkgSXJaRLr4+3A6g==";
   };
   "chalk@4.1.2" = fetchurl {
     url = "https://registry.npmjs.org/chalk/-/chalk-4.1.2.tgz";
@@ -1659,10 +1659,6 @@
   "normalize-path@3.0.0" = fetchurl {
     url = "https://registry.npmjs.org/normalize-path/-/normalize-path-3.0.0.tgz";
     hash = "sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==";
-  };
-  "normalize-range@0.1.2" = fetchurl {
-    url = "https://registry.npmjs.org/normalize-range/-/normalize-range-0.1.2.tgz";
-    hash = "sha512-bdok/XvKII3nUpklnV6P2hxtMNrCboOjAcyBuQnWEhO665FwrSNRxU+AqpsyvO6LgGYPspN+lu5CLtw4jPRKNA==";
   };
   "npm-run-path@6.0.0" = fetchurl {
     url = "https://registry.npmjs.org/npm-run-path/-/npm-run-path-6.0.0.tgz";
