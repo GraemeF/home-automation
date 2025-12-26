@@ -58,7 +58,7 @@
       },
       "devDependencies": {
         "@playwright/test": "1.57.0",
-        "effect": "3.19.8",
+        "effect": "3.19.13",
       },
     },
     "packages/deep-heating-home-assistant": {
