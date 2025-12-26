@@ -59,6 +59,8 @@ export const expectAllRoomsAt =
         // User sees target temperatures displayed for each room
         const targetTemps = app.page.getByLabel(/target/i);
         const count = await targetTemps.count();
+        // Must have at least one room showing target temperature
+        expect(count).toBeGreaterThan(0);
         for (let i = 0; i < count; i++) {
           await expect(targetTemps.nth(i)).toContainText(String(temperature));
         }
