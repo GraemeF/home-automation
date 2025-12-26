@@ -1063,9 +1063,9 @@
     url = "https://registry.npmjs.org/cssesc/-/cssesc-3.0.0.tgz";
     hash = "sha512-/Tb/JcjK111nNScGob5MNtsntNM1aCNUDipB/TkwZFhyDrrE47SOx/18wF2bbjgc3ZzCSKW1T5nt5EbFoAz/Vg==";
   };
-  "daisyui@5.0.38" = fetchurl {
-    url = "https://registry.npmjs.org/daisyui/-/daisyui-5.0.38.tgz";
-    hash = "sha512-RsLsdePT/4ZU0N+vWivR/zJyAL9U9EeRtbis3K3VDvewrqY0NOFYBh6ib3n9GfN3Wb+FHwP80ae1qOA6ONWvyw==";
+  "daisyui@5.5.14" = fetchurl {
+    url = "https://registry.npmjs.org/daisyui/-/daisyui-5.5.14.tgz";
+    hash = "sha512-L47rvw7I7hK68TA97VB8Ee0woHew+/ohR6Lx6Ah/krfISOqcG4My7poNpX5Mo5/ytMxiR40fEaz6njzDi7cuSg==";
   };
   "dataloader@1.4.0" = fetchurl {
     url = "https://registry.npmjs.org/dataloader/-/dataloader-1.4.0.tgz";
