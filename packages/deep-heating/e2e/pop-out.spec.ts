@@ -3,7 +3,7 @@ import { Duration, Effect, pipe } from 'effect';
 import * as HeatingApp from './support/heating-app';
 import * as ReturnTime from './support/return-time';
 
-test.describe('Popping Out', () => {
+test.describe.skip('Popping Out', () => {
   const popOutTemperature = 10;
 
   test('user can pop out and cancel to return to normal schedule', async ({

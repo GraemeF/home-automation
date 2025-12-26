@@ -35,10 +35,14 @@
   </div>
 {/if}
 
-<dialog bind:this={popOutDialog} aria-label="Pop Out" class="p-4 rounded-lg shadow-lg backdrop:bg-black/50">
-  <h3 class="text-lg font-bold">Popping Out</h3>
-  <p class="py-4">You are currently popping out. All rooms are set to the away temperature.</p>
-  <div class="mt-4">
-    <button class="btn" type="button" onclick={() => popOutDialog.close()}>Cancel</button>
+<dialog bind:this={popOutDialog} aria-label="Pop Out" class="modal">
+  <div class="modal-box">
+    <h3 class="text-lg font-bold">Popping Out</h3>
+    <p class="py-4">You are currently popping out. All rooms are set to the away temperature.</p>
+    <div class="modal-action">
+      <form method="dialog">
+        <button class="btn">Cancel</button>
+      </form>
+    </div>
   </div>
 </dialog>
