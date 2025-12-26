@@ -731,9 +731,9 @@
     url = "https://registry.npmjs.org/@testing-library/dom/-/dom-10.4.1.tgz";
     hash = "sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==";
   };
-  "@testing-library/svelte@5.2.9" = fetchurl {
-    url = "https://registry.npmjs.org/@testing-library/svelte/-/svelte-5.2.9.tgz";
-    hash = "sha512-p0Lg/vL1iEsEasXKSipvW9nBCtItQGhYvxL8OZ4w7/IDdC+LGoSJw4mMS5bndVFON/gWryitEhMr29AlO4FvBg==";
+  "@testing-library/svelte@5.2.10" = fetchurl {
+    url = "https://registry.npmjs.org/@testing-library/svelte/-/svelte-5.2.10.tgz";
+    hash = "sha512-siiR6FknvRN0Tt4m8mf0ejvahSRi3/n10Awyns0R7huMCNBHSrSzzXa//hJqhtEstZ7b2ZZMZwuYhcD0BIk/bA==";
   };
   "@tsconfig/node10@1.0.12" = fetchurl {
     url = "https://registry.npmjs.org/@tsconfig/node10/-/node10-1.0.12.tgz";
