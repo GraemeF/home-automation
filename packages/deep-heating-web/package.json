@@ -1,6 +1,6 @@
 {
   "name": "@home-automation/deep-heating-web",
-  "version": "0.2.1-beta.3",
+  "version": "0.2.1",
   "type": "module",
   "scripts": {
     "dev": "vite dev --host",
@@ -19,11 +19,11 @@
   },
   "dependencies": {
     "@home-automation/deep-heating-types": "workspace:*",
-    "effect": "3.19.8"
+    "effect": "3.19.13"
   },
   "devDependencies": {
     "svelte-adapter-bun": "1.0.1",
-    "@sveltejs/kit": "2.49.1",
+    "@sveltejs/kit": "2.49.2",
     "@sveltejs/vite-plugin-svelte": "6.2.1",
     "vite": "6.4.1"
   }

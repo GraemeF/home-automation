@@ -1,6 +1,6 @@
 {
   "name": "@home-automation/deep-heating-rx",
-  "version": "0.1.3-beta.9",
+  "version": "0.1.3",
   "main": "src/index.ts",
   "scripts": {
     "build": "true",
@@ -14,7 +14,7 @@
     "@home-automation/deep-heating-types": "workspace:*",
     "@home-automation/rxx": "workspace:*",
     "debug": "4.4.3",
-    "effect": "3.19.8",
+    "effect": "3.19.13",
     "luxon": "3.7.2",
     "rxjs": "7.8.2"
   }

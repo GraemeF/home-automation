@@ -1,7 +1,3 @@
-import { config } from 'dotenv';
-
-config();
-
 import { BunContext, BunRuntime } from '@effect/platform-bun';
 import { Config, Effect, pipe } from 'effect';
 import { tmpdir } from 'os';

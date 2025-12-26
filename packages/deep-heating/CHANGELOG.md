@@ -1,5 +1,60 @@
 # @home-automation/deep-heating
 
+## 0.1.3
+
+### Improved
+
+- Added a fire icon to the Home Assistant sidebar for easier navigation to Deep Heating
+- Added a custom AppArmor security profile that restricts the addon to only the permissions it needs, reducing the potential impact if a vulnerability were ever discovered
+
+### Fixed
+
+- Fixed an issue where scheduled temperature changes wouldn't apply to all rooms. Previously, only one room would receive the scheduled temperature while others were ignored, preventing the heating from activating as expected.
+- Fixed an issue where heating actions could be silently dropped during startup, leaving rooms at the wrong temperature until the next schedule change.
+- Improved reliability when Home Assistant sends unexpected data, preventing occasional connection errors.
+
+### Dependencies
+
+- deep-heating-server@0.1.4
+- @home-automation/deep-heating-web@0.2.1
+
+## 0.1.3-beta.22
+
+### Fixed
+
+- Fixed an issue where nginx failed to start silently due to missing permissions in the AppArmor security profile
+
+## 0.1.3-beta.21
+
+### Fixed
+
+- Fixed an issue where nginx couldn't write configuration files due to missing permissions in the AppArmor security profile
+
+## 0.1.3-beta.20
+
+### Fixed
+
+- Fixed an issue where nginx couldn't start due to missing permissions in the AppArmor security profile
+
+## 0.1.3-beta.19
+
+### Improved
+
+- Re-added AppArmor security profile with a simplified structure for better compatibility
+
+## 0.1.3-beta.18
+
+### Fixed
+
+- Fixed an issue where the addon failed to start on Home Assistant systems without AppArmor kernel support
+
+## 0.1.3-beta.17
+
+### Improved
+
+- Added a fire icon to the Home Assistant sidebar for easier navigation
+- Improved security with a custom AppArmor profile that restricts the addon to only the permissions it needs
+
 ## 0.1.3-beta.16
 
 ### Patch Changes

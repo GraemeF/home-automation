@@ -45,6 +45,14 @@ const config: KnipConfig = {
     'packages/deep-heating-server': {
       entry: ['src/main.ts', 'src/index.ts', 'src/environments/*.ts'],
       ignore: ['dist/**'],
+      // Peer deps required by @effect/platform-bun but not directly imported
+      ignoreDependencies: [
+        '@effect/cluster',
+        '@effect/experimental',
+        '@effect/rpc',
+        '@effect/sql',
+        '@effect/workflow',
+      ],
     },
 
     // SvelteKit web application
@@ -99,8 +107,6 @@ const config: KnipConfig = {
     'c8', // Old coverage tool
     'ts-node', // Replaced by bun
     'webpack-merge', // Legacy
-    'eslint-plugin-expect-type', // May not be in use
-    'eslint-plugin-testing-library', // May not be in use
   ],
 };
 
