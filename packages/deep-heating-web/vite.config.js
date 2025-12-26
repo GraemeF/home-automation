@@ -1,4 +1,5 @@
 import { sveltekit } from '@sveltejs/kit/vite';
+import tailwindcss from '@tailwindcss/vite';
 import checker from 'vite-plugin-checker';
 
 // vite-plugin-checker spawns a worker that can hang in Nix sandbox during builds
@@ -8,7 +9,7 @@ const checkerPlugin =
 
 /** @type {import('vite').UserConfig} */
 const config = {
-  plugins: [sveltekit(), checkerPlugin].filter(Boolean),
+  plugins: [tailwindcss(), sveltekit(), checkerPlugin].filter(Boolean),
   ssr: process.env.NODE_ENV === 'production' ? {} : undefined,
   server: { fs: { strict: process.env.NODE_ENV === 'production' } },
 };
