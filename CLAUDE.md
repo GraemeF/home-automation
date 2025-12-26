@@ -10,10 +10,9 @@ Deep Heating is a Home Assistant add-on that combines TRVs (Thermostatic Radiato
 
 ```bash
 # Development
-bun run build          # Build all packages (uses turbo)
-bun run test           # Run all tests
-bun run lint           # Lint all packages
-bun run dev            # Start dev servers (server + web)
+turbo build            # Build all packages
+turbo test             # Run all tests
+turbo lint             # Lint all packages
 bun run format         # Format code with Prettier
 
 # Single package testing
@@ -22,6 +21,28 @@ bun test --filter deep-heating-rx -- --testNamePattern="pattern"
 
 # Docker image (via Nix)
 nix build .#dockerImage              # Build Docker image
+```
+
+## Running Locally
+
+To run the full stack locally (frontend + backend):
+
+```bash
+turbo serve
+```
+
+This starts:
+- **Frontend**: http://localhost:5173/ (SvelteKit dev server)
+- **Backend**: WebSocket server on port 8085
+
+Environment variables are loaded from `.env.local`:
+- `API_URL` - tells the frontend where to find the backend WebSocket
+- `SUPERVISOR_URL` / `SUPERVISOR_TOKEN` - Home Assistant connection
+- `HOME_CONFIG_PATH` - path to room/TRV configuration
+
+To run just the backend (useful for debugging server-side issues):
+```bash
+turbo serve --filter deep-heating-server
 ```
 
 ## Architecture
