@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(gh run:*), Bash(git checkout:*), Bash(git status:*), Bash(git branch:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(git fetch:*), Bash(git diff:*), Bash(bun install:*), Bash(bun pm:*), Bash(turbo:*), Read, Glob, Grep, Edit, Write, Task, WebFetch
+allowed-tools: Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(gh run:*), Bash(git checkout:*), Bash(git status:*), Bash(git branch:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(git fetch:*), Bash(git diff:*), Bash(git worktree:*), Bash(bun install:*), Bash(bun pm:*), Bash(turbo:*), Read, Glob, Grep, Edit, Write, Task, WebFetch
 description: Process open Renovate dependency update PRs
 ---
 
@@ -47,12 +47,9 @@ For MINOR and MAJOR version bumps:
 3. For minor bumps: look for new features we could leverage
 4. Identify any code changes required or recommended
 
-#### 2.4 Checkout the Branch
+#### 2.4 Work on the Branch
 
-```bash
-git checkout {BRANCH_NAME}
-git pull origin {BRANCH_NAME}
-```
+Follow the project's branch workflow (see CLAUDE.md) to work on the Renovate branch. Ensure you have the latest changes from origin.
 
 #### 2.5 Update Lock Files
 
@@ -117,12 +114,7 @@ gh pr merge {PR_NUMBER} --squash --auto
 
 ### Step 3: Clean Up
 
-After the PR is merged:
-
-```bash
-git checkout main
-git pull origin main
-```
+After the PR is merged, clean up according to the project's branch workflow (see CLAUDE.md).
 
 Report how many Renovate PRs remain (if any). The user can run `/renovate` again to process the next one.
 
