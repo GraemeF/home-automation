@@ -34,7 +34,7 @@
     "@tsconfig/svelte": "5.0.6",
     "@types/debug": "4.1.12",
     "@types/luxon": "3.7.1",
-    "@types/node": "20.19.26",
+    "@types/node": "20.19.27",
     "@typescript-eslint/eslint-plugin": "8.49.0",
     "@typescript-eslint/parser": "8.49.0",
     "autoprefixer": "10.4.22",
