@@ -2,10 +2,14 @@
 
 ## 0.1.4
 
-### Patch Changes
+### Internal
 
-- Updated dependencies [[`3507229`](https://github.com/GraemeF/home-automation/commit/3507229764bd35ee4035ca692d400fdf072dd445), [`a45e6e1`](https://github.com/GraemeF/home-automation/commit/a45e6e1f64eff52bd8434fff8907383b82d2adc6)]:
-  - @home-automation/deep-heating-web@0.2.2
+- Updated frontend framework dependencies
+- Performance and stability improvements
+
+### Dependencies
+
+- @home-automation/deep-heating-web@0.2.2
 
 ## 0.1.3
 
