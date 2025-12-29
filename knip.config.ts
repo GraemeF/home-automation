@@ -12,6 +12,8 @@ const config: KnipConfig = {
         'prettier-plugin-svelte',
         // Used by deep-heating-web via $packages path alias (must be at root for hoisting)
         'svelte-material-icons',
+        // CLI tool for beads issue tracker UI (run via `bdui`)
+        'beads-ui',
       ],
     },
 
