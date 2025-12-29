@@ -165,7 +165,9 @@ jobs:
           name: playwright-report
           path: |
             packages/deep-heating/playwright-report/
+            packages/deep-heating/test-results/
             packages/deep-heating/playwright-results.json
+          if-no-files-found: ignore
           retention-days: 7
 
   update-snapshots:
