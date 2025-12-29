@@ -19,5 +19,6 @@ const getApiUrl = (request: Request) => {
 export const load: LayoutServerLoad<AppSettings> = ({ request }) => {
   return {
     apiUrl: getApiUrl(request),
+    enablePopOut: process.env['ENABLE_POPOUT'] === 'true',
   };
 };

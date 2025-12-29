@@ -76,4 +76,13 @@ test.describe('E2E smoke test with local services', () => {
       expect(html).not.toContain(indicator);
     }
   });
+
+  test('pop-out button is hidden by default (feature flag off)', async ({
+    page,
+  }) => {
+    await page.goto('/', { waitUntil: 'networkidle' });
+
+    const popOutButton = page.getByRole('button', { name: /pop.?out/i });
+    await expect(popOutButton).not.toBeVisible();
+  });
 });
