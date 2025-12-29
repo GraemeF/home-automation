@@ -1968,9 +1968,9 @@
     url = "https://registry.npmjs.org/svelte-preprocess/-/svelte-preprocess-6.0.3.tgz";
     hash = "sha512-PLG2k05qHdhmRG7zR/dyo5qKvakhm8IJ+hD2eFRQmMLHp7X3eJnjeupUtvuRpbNiF31RjVw45W+abDwHEmP5OA==";
   };
-  "svelte@5.46.0" = fetchurl {
-    url = "https://registry.npmjs.org/svelte/-/svelte-5.46.0.tgz";
-    hash = "sha512-ZhLtvroYxUxr+HQJfMZEDRsGsmU46x12RvAv/zi9584f5KOX7bUrEbhPJ7cKFmUvZTJXi/CFZUYwDC6M1FigPw==";
+  "svelte@5.46.1" = fetchurl {
+    url = "https://registry.npmjs.org/svelte/-/svelte-5.46.1.tgz";
+    hash = "sha512-ynjfCHD3nP2el70kN5Pmg37sSi0EjOm9FgHYQdC4giWG/hzO3AatzXXJJgP305uIhGQxSufJLuYWtkY8uK/8RA==";
   };
   "tailwindcss@4.1.18" = fetchurl {
     url = "https://registry.npmjs.org/tailwindcss/-/tailwindcss-4.1.18.tgz";
