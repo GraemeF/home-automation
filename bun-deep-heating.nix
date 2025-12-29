@@ -787,9 +787,13 @@
     url = "https://registry.npmjs.org/@testing-library/dom/-/dom-10.4.1.tgz";
     hash = "sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==";
   };
-  "@testing-library/svelte@5.2.10" = fetchurl {
-    url = "https://registry.npmjs.org/@testing-library/svelte/-/svelte-5.2.10.tgz";
-    hash = "sha512-siiR6FknvRN0Tt4m8mf0ejvahSRi3/n10Awyns0R7huMCNBHSrSzzXa//hJqhtEstZ7b2ZZMZwuYhcD0BIk/bA==";
+  "@testing-library/svelte-core@1.0.0" = fetchurl {
+    url = "https://registry.npmjs.org/@testing-library/svelte-core/-/svelte-core-1.0.0.tgz";
+    hash = "sha512-VkUePoLV6oOYwSUvX6ShA8KLnJqZiYMIbP2JW2t0GLWLkJxKGvuH5qrrZBV/X7cXFnLGuFQEC7RheYiZOW68KQ==";
+  };
+  "@testing-library/svelte@5.3.0" = fetchurl {
+    url = "https://registry.npmjs.org/@testing-library/svelte/-/svelte-5.3.0.tgz";
+    hash = "sha512-N1b+OAZNF34iMmtTbj5TyE0Ff+NJ/Mp6E483qOIeyzRUKOTcj2N5jEEl56RJeNq5jeQ4kZp/oMA0hCybXydrtQ==";
   };
   "@tsconfig/node10@1.0.12" = fetchurl {
     url = "https://registry.npmjs.org/@tsconfig/node10/-/node10-1.0.12.tgz";
