@@ -252,9 +252,9 @@ jobs:
           NEW_TREE_SHA=$(printf '{"tree": %s}' "$COMBINED_TREE" | \
             gh api "repos/$REPO/git/trees" -X POST --input - --jq '.sha')
 
-          # Create commit
+          # Create commit (skip ci to prevent recursive trigger)
           NEW_COMMIT_SHA=$(gh api "repos/$REPO/git/commits" -X POST \
-            -f message="chore: update visual snapshots" \
+            -f message="chore: update visual snapshots [skip ci]" \
             -f tree="$NEW_TREE_SHA" \
             -f "parents[]=$COMMIT_SHA" --jq '.sha')
 
