@@ -1,14 +1,16 @@
 import { FetchHttpClient, FileSystem } from '@effect/platform';
 import { BunFileSystem } from '@effect/platform-bun';
-import { Effect, Layer, pipe, Runtime, Schema, Scope, Stream } from 'effect';
+import { Effect, Layer, pipe, Schema, Scope } from 'effect';
 import {
-  getEntityUpdatesStream,
-  HomeAssistantApi,
   HomeAssistantApiLive,
   HomeAssistantConfigLive,
+  HomeAssistantHeatingSystemLive,
 } from '@home-automation/deep-heating-home-assistant';
-import { streamToObservable } from '@home-automation/rxx';
-import { Home, RoomAdjustment } from '@home-automation/deep-heating-types';
+import {
+  HeatingSystem,
+  Home,
+  RoomAdjustment,
+} from '@home-automation/deep-heating-types';
 import { createDeepHeating } from '@home-automation/deep-heating-rx';
 import { maintainState } from '@home-automation/deep-heating-state';
 import { throttleTime } from 'rxjs/operators';
@@ -17,6 +19,7 @@ import {
   subscribeAndBroadcast,
   type WebSocketServer,
 } from './app/websocket-server';
+import { createHeatingSystemAdapter } from './app/heatingSystemAdapter';
 
 export interface ServerConfig {
   readonly port: number;
@@ -59,50 +62,48 @@ const startHeatingSystem = (
   wsServer: WebSocketServer,
   home: Home,
   initialRoomAdjustments: readonly RoomAdjustment[],
-  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
   roomAdjustmentsPath: string,
-): Effect.Effect<void, never, Scope.Scope> =>
+): Effect.Effect<void, never, Scope.Scope | HeatingSystem> =>
   pipe(
-    () => {
-      // Convert the Effect Stream to RxJS Observable for the heating system
-      const entityUpdates$ = streamToObservable(
-        getEntityUpdatesStream.pipe(Stream.provideLayer(HomeAssistantLayer)),
-      );
+    HeatingSystem,
+    Effect.flatMap((heatingSystem) =>
+      Effect.sync(() => {
+        // Create the adapter that bridges HeatingSystem to HeatingSystemStreams
+        const { streams, cleanup } = createHeatingSystemAdapter(heatingSystem);
 
-      // Create the deep heating reactive system
-      const deepHeating = createDeepHeating(
-        home,
-        [...initialRoomAdjustments],
-        wsServer.roomAdjustments$,
-        entityUpdates$,
-        homeAssistantRuntime,
-      );
+        // Create the deep heating reactive system
+        const deepHeating = createDeepHeating(
+          home,
+          [...initialRoomAdjustments],
+          wsServer.roomAdjustments$,
+          streams,
+        );
 
-      // Maintain state with throttling
-      const state$ = maintainState(deepHeating).pipe(
-        throttleTime(100, undefined, { leading: true, trailing: true }),
-      );
+        // Maintain state with throttling
+        const state$ = maintainState(deepHeating).pipe(
+          throttleTime(100, undefined, { leading: true, trailing: true }),
+        );
 
-      // Subscribe to state changes and broadcast to WebSocket clients
-      const broadcastSubscription = subscribeAndBroadcast(wsServer, state$);
+        // Subscribe to state changes and broadcast to WebSocket clients
+        const broadcastSubscription = subscribeAndBroadcast(wsServer, state$);
 
-      // Save room adjustments on state changes
-      const saveSubscription = state$.subscribe((state) => {
-        const roomAdjustments = state.rooms.map((room) => ({
-          roomName: room.name,
-          adjustment: room.adjustment,
-        }));
-        // Fire-and-forget async write using Bun native API
-        void Bun.write(roomAdjustmentsPath, JSON.stringify(roomAdjustments));
-      });
+        // Save room adjustments on state changes
+        const saveSubscription = state$.subscribe((state) => {
+          const roomAdjustments = state.rooms.map((room) => ({
+            roomName: room.name,
+            adjustment: room.adjustment,
+          }));
+          // Fire-and-forget async write using Bun native API
+          void Bun.write(roomAdjustmentsPath, JSON.stringify(roomAdjustments));
+        });
 
-      return { broadcastSubscription, saveSubscription };
-    },
-    Effect.sync,
-    Effect.tap(() =>
+        return { broadcastSubscription, saveSubscription, cleanup };
+      }),
+    ),
+    Effect.tap(({ cleanup }) =>
       Effect.addFinalizer(() =>
         Effect.sync(() => {
-          // Subscriptions will be cleaned up when the scope closes
+          cleanup();
         }),
       ),
     ),
@@ -135,15 +136,13 @@ const runHeatingSystemWithCleanup = (
   wsServer: WebSocketServer,
   home: Home,
   initialRoomAdjustments: readonly RoomAdjustment[],
-  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
   roomAdjustmentsPath: string,
-): Effect.Effect<never, never, Scope.Scope> =>
+): Effect.Effect<never, never, Scope.Scope | HeatingSystem> =>
   pipe(
     startHeatingSystem(
       wsServer,
       home,
       initialRoomAdjustments,
-      homeAssistantRuntime,
       roomAdjustmentsPath,
     ),
     Effect.zipRight(
@@ -155,9 +154,8 @@ const runHeatingSystemWithCleanup = (
 const setupWebSocketServerAndRunHeatingSystem = (
   home: Home,
   initialRoomAdjustments: readonly RoomAdjustment[],
-  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
   config: ServerConfig,
-): Effect.Effect<never, never, Scope.Scope> =>
+): Effect.Effect<never, never, Scope.Scope | HeatingSystem> =>
   pipe(
     createWebSocketServerWithLogging(config.port, config.websocketPath),
     Effect.flatMap((wsServer) =>
@@ -165,7 +163,6 @@ const setupWebSocketServerAndRunHeatingSystem = (
         wsServer,
         home,
         initialRoomAdjustments,
-        homeAssistantRuntime,
         config.roomAdjustmentsPath,
       ),
     ),
@@ -174,9 +171,8 @@ const setupWebSocketServerAndRunHeatingSystem = (
 const startServer = (
   fs: FileSystem.FileSystem,
   home: Home,
-  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
   config: ServerConfig,
-): Effect.Effect<void, never, Scope.Scope> =>
+): Effect.Effect<void, never, Scope.Scope | HeatingSystem> =>
   pipe(
     loadRoomAdjustments(fs, config.roomAdjustmentsPath),
     Effect.tap((adjustments) =>
@@ -186,17 +182,28 @@ const startServer = (
       setupWebSocketServerAndRunHeatingSystem(
         home,
         initialRoomAdjustments,
-        homeAssistantRuntime,
         config,
       ),
     ),
   );
 
-const loadAndStartServer = (
+/**
+ * Creates a HeatingSystem layer for production use with Home Assistant.
+ */
+const createHeatingSystemLayer = (home: Home) =>
+  HomeAssistantHeatingSystemLive(home).pipe(Layer.provide(HomeAssistantLayer));
+
+const startServerWithHeatingSystem = (
   fs: FileSystem.FileSystem,
-  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
+  home: Home,
   config: ServerConfig,
 ) =>
+  pipe(
+    startServer(fs, home, config),
+    Effect.provide(createHeatingSystemLayer(home)),
+  );
+
+const loadAndStartServer = (fs: FileSystem.FileSystem, config: ServerConfig) =>
   pipe(
     config.homeConfigPath,
     fs.readFileString,
@@ -206,9 +213,7 @@ const loadAndStartServer = (
         `Home configuration loaded: ${String(home.rooms.length)} rooms`,
       ),
     ),
-    Effect.andThen((home) =>
-      startServer(fs, home, homeAssistantRuntime, config),
-    ),
+    Effect.andThen((home) => startServerWithHeatingSystem(fs, home, config)),
   );
 
 /**
@@ -218,16 +223,8 @@ const loadAndStartServer = (
 export const runServer = (config: ServerConfig) =>
   pipe(
     Effect.void,
-    Effect.andThen(() =>
-      Effect.all({
-        fs: FileSystem.FileSystem,
-        // Creates HomeAssistantApi runtime with proper Effect lifecycle
-        homeAssistantRuntime: Layer.toRuntime(HomeAssistantLayer),
-      }),
-    ),
-    Effect.andThen(({ fs, homeAssistantRuntime }) =>
-      loadAndStartServer(fs, homeAssistantRuntime, config),
-    ),
+    Effect.andThen(() => FileSystem.FileSystem),
+    Effect.andThen((fs) => loadAndStartServer(fs, config)),
     Effect.scoped,
     Effect.provide(BunFileSystem.layer),
   );

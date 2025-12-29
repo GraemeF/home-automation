@@ -1,19 +1,13 @@
 import {
-  createHomeAssistantButtonEventProvider,
-  createHomeAssistantHeatingProvider,
-  createHomeAssistantSensorProvider,
-  HomeAssistantApi,
-} from '@home-automation/deep-heating-home-assistant';
-import {
   ClimateAction,
   ClimateEntityId,
   ClimateEntityStatus,
-  HomeAssistantEntity,
   ClimateTargetTemperature,
   ClimateTemperatureReading,
   getHeatingActions,
   GoodnightEventEntity,
   HeatingStatus,
+  HeatingUpdate,
   Home,
   HouseModeValue,
   RoomAdjustment,
@@ -35,11 +29,12 @@ import {
   TrvControlState,
   TrvMode,
   TrvScheduledTargetTemperature,
+  TrvUpdate,
   TrvWeekHeatingSchedule,
 } from '@home-automation/deep-heating-types';
 import { shareReplayLatestDistinctByKey } from '@home-automation/rxx';
 import debug from 'debug';
-import { HashSet, Predicate, Runtime } from 'effect';
+import { HashSet, Predicate } from 'effect';
 import { from, GroupedObservable, Observable, Subject } from 'rxjs';
 import { groupBy, map, mergeAll, mergeMap } from 'rxjs/operators';
 import { applyHeatingActions, applyTrvActions } from './actions';
@@ -126,12 +121,25 @@ export interface DeepHeating {
   readonly publishHeatingStatus: (newStatus: HeatingStatus) => void;
 }
 
+/**
+ * Interface for streams and actions provided by a HeatingSystem implementation.
+ * This abstracts the underlying device communication layer (e.g., Home Assistant)
+ * from the core heating logic.
+ */
+export interface HeatingSystemStreams {
+  readonly trvUpdates$: Observable<TrvUpdate>;
+  readonly heatingUpdates$: Observable<HeatingUpdate>;
+  readonly temperatureReadings$: Observable<TemperatureSensorEntity>;
+  readonly sleepModeEvents$: Observable<GoodnightEventEntity>;
+  readonly applyTrvAction: (action: ClimateAction) => void;
+  readonly applyHeatingAction: (action: ClimateAction) => void;
+}
+
 export function createDeepHeating(
   home: Home,
   initialRoomAdjustments: readonly RoomAdjustment[],
   roomAdjustmentCommands$: Observable<RoomAdjustment>,
-  entityUpdates$: Observable<HomeAssistantEntity>,
-  homeAssistantRuntime: Runtime.Runtime<HomeAssistantApi>,
+  heatingSystem: HeatingSystemStreams,
 ): DeepHeating {
   const trvControlStateSubject: Subject<TrvControlState> =
     new Subject<TrvControlState>();
@@ -152,18 +160,8 @@ export function createDeepHeating(
     heatingStatusSubject.next(newStatus);
   };
 
-  const heatingProvider = createHomeAssistantHeatingProvider(
-    home,
-    entityUpdates$,
-    homeAssistantRuntime,
-  );
-
-  const temperatureSensorUpdate$ =
-    createHomeAssistantSensorProvider(entityUpdates$).sensorUpdates$;
-  const buttonEvents$ = createHomeAssistantButtonEventProvider(
-    home,
-    entityUpdates$,
-  ).buttonPressEvents$;
+  const temperatureSensorUpdate$ = heatingSystem.temperatureReadings$;
+  const buttonEvents$ = heatingSystem.sleepModeEvents$;
   buttonEvents$.subscribe((x) => {
     log(x.entity_id, x.attributes.friendly_name, 'last happened at', x.state);
   });
@@ -226,7 +224,7 @@ export function createDeepHeating(
     log('Heating', x.heatingId, x.isHeating ? 'is heating' : 'is cooling');
   });
 
-  heatingProvider.trvApiUpdates$.subscribe((x) => {
+  heatingSystem.trvUpdates$.subscribe((x) => {
     publishTrvControlState({
       climateEntityId: x.climateEntityId,
       mode: x.state.mode,
@@ -235,7 +233,7 @@ export function createDeepHeating(
     });
   });
 
-  const trvReportedStatuses$ = heatingProvider.trvApiUpdates$.pipe(
+  const trvReportedStatuses$ = heatingSystem.trvUpdates$.pipe(
     map((x) => ({
       climateEntityId: x.climateEntityId,
       isHeating: x.state.isHeating,
@@ -244,7 +242,7 @@ export function createDeepHeating(
 
   trvReportedStatuses$.subscribe(publishTrvStatus);
 
-  const heatingReportedStatuses$ = heatingProvider.heatingApiUpdates$.pipe(
+  const heatingReportedStatuses$ = heatingSystem.heatingUpdates$.pipe(
     map((x) => ({
       heatingId: x.heatingId,
       isHeating: x.state.isHeating,
@@ -255,7 +253,7 @@ export function createDeepHeating(
   heatingReportedStatuses$.subscribe(publishHeatingStatus);
 
   const trvHiveHeatingSchedules$ = getTrvWeekHeatingSchedules(
-    heatingProvider.trvApiUpdates$,
+    heatingSystem.trvUpdates$,
   );
 
   const roomTrvs$ = getRoomClimateEntities(rooms$);
@@ -303,7 +301,7 @@ export function createDeepHeating(
     roomTrvs$,
     trvTargetTemperatures$,
   );
-  const trvTemperatures$ = getTrvTemperatures(heatingProvider.trvApiUpdates$);
+  const trvTemperatures$ = getTrvTemperatures(heatingSystem.trvUpdates$);
   const roomTrvTemperatures$ = getRoomTrvTemperatures(
     roomTrvs$,
     trvTemperatures$,
@@ -346,13 +344,8 @@ export function createDeepHeating(
   );
   trvSynthesisedStatuses.subscribe(publishTrvStatus);
 
-  const publishTrvAction = (newAction: ClimateAction): void => {
-    heatingProvider.trvActions.next(newAction);
-  };
-
-  const publishHeatingAction = (newAction: ClimateAction): void => {
-    heatingProvider.heatingActions.next(newAction);
-  };
+  const publishTrvAction = heatingSystem.applyTrvAction;
+  const publishHeatingAction = heatingSystem.applyHeatingAction;
 
   const appliedTrvActions$ = applyTrvActions(
     trvIds$,
