@@ -99,3 +99,14 @@ export const expectNormalSchedule = (
     Effect.map(() => app),
     Effect.mapError((e) => new TestError(String(e))),
   );
+
+export const captureVisualSnapshot =
+  (name: string) =>
+  (app: HeatingApp): Effect.Effect<HeatingApp, TestError> =>
+    pipe(
+      Effect.promise(async () => {
+        await expect(app.page).toHaveScreenshot(`${name}.png`);
+      }),
+      Effect.map(() => app),
+      Effect.mapError((e) => new TestError(String(e))),
+    );
