@@ -252,9 +252,15 @@ jobs:
           NEW_TREE_SHA=$(printf '{"tree": %s}' "$COMBINED_TREE" | \
             gh api "repos/$REPO/git/trees" -X POST --input - --jq '.sha')
 
-          # Create commit (skip ci to prevent recursive trigger)
+          # Only commit if tree actually changed (prevents infinite loop)
+          if [ "$NEW_TREE_SHA" = "$TREE_SHA" ]; then
+            echo "No snapshot changes to commit"
+            exit 0
+          fi
+
+          # Create commit
           NEW_COMMIT_SHA=$(gh api "repos/$REPO/git/commits" -X POST \
-            -f message="chore: update visual snapshots [skip ci]" \
+            -f message="chore: update visual snapshots" \
             -f tree="$NEW_TREE_SHA" \
             -f "parents[]=$COMMIT_SHA" --jq '.sha')
 
