@@ -35,7 +35,7 @@
     "@tsconfig/svelte": "5.0.6",
     "@types/debug": "4.1.12",
     "@types/luxon": "3.7.1",
-    "@types/node": "20.19.27",
+    "@types/node": "25.0.3",
     "@typescript-eslint/eslint-plugin": "8.50.1",
     "@typescript-eslint/parser": "8.50.1",
     "beads-ui": "^0.8.0",
