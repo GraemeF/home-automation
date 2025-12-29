@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # Use cachix/install-nix-action (multi-user mode) for Docker builds
       # Multi-user mode enables the sandbox, which is required for bun2nix derivations
@@ -77,7 +77,7 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # Use cachix/install-nix-action (multi-user mode) for Docker builds
       # Multi-user mode enables the sandbox, which is required for bun2nix derivations
@@ -172,7 +172,7 @@ jobs:
     needs: [docker-manifest]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get version
         id: version
