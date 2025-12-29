@@ -78,7 +78,6 @@
       "name": "@home-automation/deep-heating-rx",
       "version": "0.1.3",
       "dependencies": {
-        "@home-automation/deep-heating-home-assistant": "workspace:*",
         "@home-automation/deep-heating-types": "workspace:*",
         "@home-automation/rxx": "workspace:*",
         "debug": "4.4.3",
@@ -102,7 +101,6 @@
         "@home-automation/deep-heating-rx": "workspace:*",
         "@home-automation/deep-heating-state": "workspace:*",
         "@home-automation/deep-heating-types": "workspace:*",
-        "@home-automation/rxx": "workspace:*",
         "effect": "3.19.13",
         "rxjs": "7.8.2",
       },
