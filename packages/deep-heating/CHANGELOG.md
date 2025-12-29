@@ -1,5 +1,16 @@
 # @home-automation/deep-heating
 
+## 0.1.4
+
+### Internal
+
+- Updated frontend framework dependencies
+- Performance and stability improvements
+
+### Dependencies
+
+- @home-automation/deep-heating-web@0.2.2
+
 ## 0.1.3
 
 ### Improved

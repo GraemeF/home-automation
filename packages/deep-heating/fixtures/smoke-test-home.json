@@ -4,7 +4,15 @@
       "name": "Test Room",
       "temperatureSensorEntityId": "sensor.test_temperature",
       "climateEntityIds": ["climate.test_trv"],
-      "schedule": null
+      "schedule": {
+        "monday": { "00:00": 20 },
+        "tuesday": { "00:00": 20 },
+        "wednesday": { "00:00": 20 },
+        "thursday": { "00:00": 20 },
+        "friday": { "00:00": 20 },
+        "saturday": { "00:00": 20 },
+        "sunday": { "00:00": 20 }
+      }
     }
   ],
   "sleepSwitchId": "event.goodnight",

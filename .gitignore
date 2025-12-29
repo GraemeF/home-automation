@@ -58,6 +58,9 @@ mise.local.toml
 # Local home config (contains actual Home Assistant entity IDs)
 packages/deep-heating-server/home.json
 
+# Runtime data (room adjustments, etc.)
+packages/deep-heating-server/data/
+
 # Nix
 result
 

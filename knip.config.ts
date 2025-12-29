@@ -69,7 +69,11 @@ const config: KnipConfig = {
     // Combined deployment package
     'packages/deep-heating': {
       entry: ['scripts/*.ts', '*.test.ts'],
-      ignore: ['dist/**'],
+      ignore: [
+        'dist/**',
+        // Referenced by playwright.config.ts stylePath, not directly imported
+        'e2e/screenshot.css',
+      ],
       // These are workspace deps for deployment
       ignoreDependencies: [
         'deep-heating-server',

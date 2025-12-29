@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { resolve } from 'path';
+import { resolve } from 'node:path';
 
 const SERVER_PORT = 3099;
 const WEB_PORT = 5199;
@@ -24,6 +24,13 @@ export default defineConfig({
       ]
     : 'list',
   timeout: 30_000,
+  snapshotPathTemplate: '{testDir}/snapshots/{arg}{ext}',
+  expect: {
+    toHaveScreenshot: {
+      stylePath: resolve(__dirname, 'e2e/screenshot.css'),
+      maxDiffPixelRatio: 0.01,
+    },
+  },
 
   use: {
     ...devices['Desktop Chrome'],
