@@ -5,6 +5,7 @@ on:
   pull_request:
     branches:
       - main
+    types: [opened, synchronize, reopened, labeled]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -165,5 +166,105 @@ jobs:
           name: playwright-report
           path: |
             packages/deep-heating/playwright-report/
+            packages/deep-heating/test-results/
             packages/deep-heating/playwright-results.json
+          if-no-files-found: ignore
           retention-days: 7
+
+  update-snapshots:
+    needs: [check-changes]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: |
+      github.head_ref != 'changeset-release/main' &&
+      needs.check-changes.outputs.should_build == 'true' &&
+      contains(github.event.pull_request.labels.*.name, 'update-snapshots')
+    steps:
+      - name: Checkout [pr]
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Setup Nix with caching
+        uses: ./.github/actions/setup
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Playwright Browsers
+        run: nix develop --command bunx playwright install chromium --with-deps
+
+      - name: Update snapshots
+        run: nix develop --command bunx turbo e2e --filter=@home-automation/deep-heating -- --update-snapshots
+
+      - name: Generate GitHub App Token
+        id: github-app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Commit snapshots via GitHub API
+        env:
+          GH_TOKEN: ${{ steps.github-app-token.outputs.token }}
+        run: |
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          REPO="${{ github.repository }}"
+          SNAPSHOT_DIR="packages/deep-heating/e2e/snapshots"
+
+          # Check if snapshots directory exists and has files
+          if [ ! -d "$SNAPSHOT_DIR" ] || [ -z "$(ls -A "$SNAPSHOT_DIR" 2>/dev/null)" ]; then
+            echo "No snapshots to commit"
+            exit 0
+          fi
+
+          # Get current commit SHA
+          COMMIT_SHA=$(gh api "repos/$REPO/git/refs/heads/$BRANCH" --jq '.object.sha')
+          TREE_SHA=$(gh api "repos/$REPO/git/commits/$COMMIT_SHA" --jq '.tree.sha')
+
+          # Get existing tree
+          TREE=$(gh api "repos/$REPO/git/trees/$TREE_SHA?recursive=1" --jq '.tree')
+
+          # Build new tree entries for snapshots
+          NEW_ENTRIES="[]"
+          for file in "$SNAPSHOT_DIR"/*; do
+            if [ -f "$file" ]; then
+              FILENAME=$(basename "$file")
+              FILEPATH="$SNAPSHOT_DIR/$FILENAME"
+
+              # Create blob for the file
+              CONTENT_BASE64=$(base64 -w0 "$file")
+              BLOB_SHA=$(gh api "repos/$REPO/git/blobs" -X POST \
+                -f content="$CONTENT_BASE64" \
+                -f encoding="base64" --jq '.sha')
+
+              NEW_ENTRIES=$(echo "$NEW_ENTRIES" | jq --arg path "$FILEPATH" --arg sha "$BLOB_SHA" \
+                '. + [{"path": $path, "mode": "100644", "type": "blob", "sha": $sha}]')
+            fi
+          done
+
+          # Filter out old snapshot entries and add new ones
+          FILTERED_TREE=$(echo "$TREE" | jq --arg dir "$SNAPSHOT_DIR" \
+            '[.[] | select(.path | startswith($dir) | not) | {path, mode, type, sha}]')
+          COMBINED_TREE=$(echo "$FILTERED_TREE" "$NEW_ENTRIES" | jq -s 'add')
+
+          # Create new tree
+          NEW_TREE_SHA=$(printf '{"tree": %s}' "$COMBINED_TREE" | \
+            gh api "repos/$REPO/git/trees" -X POST --input - --jq '.sha')
+
+          # Only commit if tree actually changed (prevents infinite loop)
+          if [ "$NEW_TREE_SHA" = "$TREE_SHA" ]; then
+            echo "No snapshot changes to commit"
+            exit 0
+          fi
+
+          # Create commit
+          NEW_COMMIT_SHA=$(gh api "repos/$REPO/git/commits" -X POST \
+            -f message="chore: update visual snapshots" \
+            -f tree="$NEW_TREE_SHA" \
+            -f "parents[]=$COMMIT_SHA" --jq '.sha')
+
+          # Update ref
+          gh api "repos/$REPO/git/refs/heads/$BRANCH" -X PATCH -f sha="$NEW_COMMIT_SHA"
+
+          echo "Committed snapshots in $NEW_COMMIT_SHA"
