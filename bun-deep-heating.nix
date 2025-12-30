@@ -779,9 +779,9 @@
     url = "https://registry.npmjs.org/@testing-library/svelte-core/-/svelte-core-1.0.0.tgz";
     hash = "sha512-VkUePoLV6oOYwSUvX6ShA8KLnJqZiYMIbP2JW2t0GLWLkJxKGvuH5qrrZBV/X7cXFnLGuFQEC7RheYiZOW68KQ==";
   };
-  "@testing-library/svelte@5.3.0" = fetchurl {
-    url = "https://registry.npmjs.org/@testing-library/svelte/-/svelte-5.3.0.tgz";
-    hash = "sha512-N1b+OAZNF34iMmtTbj5TyE0Ff+NJ/Mp6E483qOIeyzRUKOTcj2N5jEEl56RJeNq5jeQ4kZp/oMA0hCybXydrtQ==";
+  "@testing-library/svelte@5.3.1" = fetchurl {
+    url = "https://registry.npmjs.org/@testing-library/svelte/-/svelte-5.3.1.tgz";
+    hash = "sha512-8Ez7ZOqW5geRf9PF5rkuopODe5RGy3I9XR+kc7zHh26gBiktLaxTfKmhlGaSHYUOTQE7wFsLMN9xCJVCszw47w==";
   };
   "@tsconfig/svelte@5.0.6" = fetchurl {
     url = "https://registry.npmjs.org/@tsconfig/svelte/-/svelte-5.0.6.tgz";
