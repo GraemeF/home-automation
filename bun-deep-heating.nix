@@ -1512,9 +1512,9 @@
     url = "https://registry.npmjs.org/kleur/-/kleur-4.1.5.tgz";
     hash = "sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==";
   };
-  "knip@5.77.3" = fetchurl {
-    url = "https://registry.npmjs.org/knip/-/knip-5.77.3.tgz";
-    hash = "sha512-Jd990wMD1l6EdZ5g8oU4I0uCTIGfZB2dFJ2BDEDyz2yYlEiARjoCnza3YMK57dxmrfqU6qf956R7DehjSsXYNw==";
+  "knip@5.77.4" = fetchurl {
+    url = "https://registry.npmjs.org/knip/-/knip-5.77.4.tgz";
+    hash = "sha512-CmRd3UabOBqA4lDUAMA8CJeepIoQPD2qRqq0wCnLz9Z3FTlG1iucZ7puwe+i3zV0gUaIWVYgC8cXoDMZEC+DyA==";
   };
   "known-css-properties@0.37.0" = fetchurl {
     url = "https://registry.npmjs.org/known-css-properties/-/known-css-properties-0.37.0.tgz";
