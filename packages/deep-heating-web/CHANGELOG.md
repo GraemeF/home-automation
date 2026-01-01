@@ -1,5 +1,12 @@
 # @home-automation/deep-heating-web
 
+## 0.2.3
+
+### Patch Changes
+
+- Updated dependencies [[`6579ec2`](https://github.com/GraemeF/home-automation/commit/6579ec2ef9a557ff81b4d8dcb9479c89e3101dce), [`8a025cd`](https://github.com/GraemeF/home-automation/commit/8a025cd3adba716771d37ae40cf09c1939edf539)]:
+  - @home-automation/deep-heating-types@0.3.0
+
 ## 0.2.2
 
 ### Patch Changes
