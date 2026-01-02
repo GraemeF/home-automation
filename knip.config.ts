@@ -12,6 +12,8 @@ const config: KnipConfig = {
         'prettier-plugin-svelte',
         // Used by deep-heating-web via $packages path alias (must be at root for hoisting)
         'svelte-material-icons',
+        // CLI tool for beads issue tracker UI (run via `bdui`)
+        'beads-ui',
       ],
     },
 
@@ -105,13 +107,6 @@ const config: KnipConfig = {
     unlisted: 'error',
     unresolved: 'error',
   },
-
-  // Ignore dependencies that should be cleaned up separately (tracked as future work)
-  ignoreDependencies: [
-    'c8', // Old coverage tool
-    'ts-node', // Replaced by bun
-    'webpack-merge', // Legacy
-  ],
 };
 
 export default config;

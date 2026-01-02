@@ -66,7 +66,14 @@
       "dependsOn": ["^build"],
       "cache": false,
       "persistent": true,
-      "env": ["DEBUG", "API_URL"]
+      "env": [
+        "DEBUG",
+        "API_URL",
+        "SUPERVISOR_URL",
+        "SUPERVISOR_TOKEN",
+        "HOME_CONFIG_PATH",
+        "ROOM_ADJUSTMENTS_PATH"
+      ]
     },
     "sync": {
       "outputs": [".svelte-kit/**"]
