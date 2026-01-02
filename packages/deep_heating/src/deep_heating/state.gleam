@@ -1,6 +1,6 @@
-import gleam/option.{type Option}
-import deep_heating/temperature.{type Temperature}
 import deep_heating/mode.{type RoomMode}
+import deep_heating/temperature.{type Temperature}
+import gleam/option.{type Option}
 
 /// A temperature reading with a timestamp.
 pub type TemperatureReading {
@@ -55,4 +55,9 @@ pub type DeepHeatingState {
     /// Whether the boiler/heating system is active
     is_heating: Option(Bool),
   )
+}
+
+/// Create an empty initial state with no rooms.
+pub fn empty_deep_heating_state() -> DeepHeatingState {
+  DeepHeatingState(rooms: [], is_heating: option.None)
 }
