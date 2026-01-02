@@ -1,13 +1,10 @@
-import gleeunit/should
 import deep_heating/mode.{
-  HouseModeAuto, HouseModeSleeping,
-  RoomModeOff, RoomModeAuto, RoomModeSleeping,
-  HvacOff, HvacHeat, HvacAuto,
-  house_mode_to_string, house_mode_from_string,
-  room_mode_to_string, room_mode_from_string,
-  hvac_mode_to_string, hvac_mode_from_string,
-  house_mode_to_room_mode,
+  HouseModeAuto, HouseModeSleeping, HvacAuto, HvacHeat, HvacOff, RoomModeAuto,
+  RoomModeOff, RoomModeSleeping, house_mode_from_string, house_mode_to_room_mode,
+  house_mode_to_string, hvac_mode_from_string, hvac_mode_to_string,
+  room_mode_from_string, room_mode_to_string,
 }
+import gleeunit/should
 
 // HouseMode tests
 

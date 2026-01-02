@@ -1,9 +1,9 @@
+import deep_heating/temperature.{
+  add, compare, eq, gt, gte, lt, lte, min_room_target, min_trv_target, subtract,
+  temperature, unwrap,
+}
 import gleam/order
 import gleeunit/should
-import deep_heating/temperature.{
-  temperature, unwrap, min_room_target, min_trv_target,
-  add, subtract, compare, eq, gt, lt, gte, lte,
-}
 
 // Construction tests
 

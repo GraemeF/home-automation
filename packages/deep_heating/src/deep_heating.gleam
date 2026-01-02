@@ -1,5 +1,5 @@
-import gleam/io
 import gleam/erlang/process
+import gleam/io
 
 /// Main entry point for Deep Heating.
 /// Will start the supervision tree once actors are implemented.

@@ -1,8 +1,8 @@
+import deep_heating/temperature.{type Temperature}
 import gleam/int
 import gleam/list
 import gleam/order.{type Order}
 import gleam/string
-import deep_heating/temperature.{type Temperature}
 
 /// Time of day with validated hour (0-23) and minute (0-59).
 /// Use time_of_day() smart constructor to create.

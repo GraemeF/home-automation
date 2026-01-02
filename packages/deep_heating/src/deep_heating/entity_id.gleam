@@ -49,14 +49,11 @@ pub opaque type GoodnightEntityId {
 /// Create a GoodnightEntityId from a string, validating the prefix.
 pub fn goodnight_entity_id(id: String) -> Result(GoodnightEntityId, String) {
   case
-    string.starts_with(id, "event.")
-    || string.starts_with(id, "input_button.")
+    string.starts_with(id, "event.") || string.starts_with(id, "input_button.")
   {
     True -> Ok(GoodnightEntityId(id))
     False ->
-      Error(
-        "Goodnight entity ID must start with 'event.' or 'input_button.'",
-      )
+      Error("Goodnight entity ID must start with 'event.' or 'input_button.'")
   }
 }
 

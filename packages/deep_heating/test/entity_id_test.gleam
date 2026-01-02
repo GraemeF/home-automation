@@ -1,9 +1,8 @@
-import gleeunit/should
 import deep_heating/entity_id.{
-  climate_entity_id, climate_entity_id_to_string,
-  sensor_entity_id, sensor_entity_id_to_string,
-  goodnight_entity_id, goodnight_entity_id_to_string,
+  climate_entity_id, climate_entity_id_to_string, goodnight_entity_id,
+  goodnight_entity_id_to_string, sensor_entity_id, sensor_entity_id_to_string,
 }
+import gleeunit/should
 
 // ClimateEntityId tests
 

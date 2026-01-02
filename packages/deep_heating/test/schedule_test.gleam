@@ -1,14 +1,11 @@
+import deep_heating/schedule.{
+  Monday, Saturday, ScheduleEntry, Tuesday, WeekSchedule,
+  get_scheduled_temperature, hour, minute, time_of_day, time_of_day_compare,
+  time_of_day_from_string, time_of_day_to_minutes, time_of_day_to_string,
+}
+import deep_heating/temperature.{temperature, unwrap}
 import gleam/order
 import gleeunit/should
-import deep_heating/temperature.{temperature, unwrap}
-import deep_heating/schedule.{
-  time_of_day, time_of_day_from_string, time_of_day_to_string,
-  time_of_day_compare, time_of_day_to_minutes, hour, minute,
-  ScheduleEntry,
-  WeekSchedule,
-  Monday, Tuesday, Saturday,
-  get_scheduled_temperature,
-}
 
 // TimeOfDay construction tests
 
@@ -163,15 +160,16 @@ pub fn week_schedule_construction_test() {
     ScheduleEntry(start: night, target_temperature: temperature(16.0)),
   ]
 
-  let schedule = WeekSchedule(
-    monday: day,
-    tuesday: day,
-    wednesday: day,
-    thursday: day,
-    friday: day,
-    saturday: day,
-    sunday: day,
-  )
+  let schedule =
+    WeekSchedule(
+      monday: day,
+      tuesday: day,
+      wednesday: day,
+      thursday: day,
+      friday: day,
+      saturday: day,
+      sunday: day,
+    )
 
   let assert [first, ..] = schedule.monday
   first.target_temperature |> unwrap |> should.equal(20.0)
@@ -182,10 +180,16 @@ pub fn week_schedule_construction_test() {
 pub fn get_scheduled_temperature_single_entry_test() {
   let assert Ok(start) = time_of_day(0, 0)
   let day = [ScheduleEntry(start: start, target_temperature: temperature(18.0))]
-  let schedule = WeekSchedule(
-    monday: day, tuesday: day, wednesday: day, thursday: day,
-    friday: day, saturday: day, sunday: day,
-  )
+  let schedule =
+    WeekSchedule(
+      monday: day,
+      tuesday: day,
+      wednesday: day,
+      thursday: day,
+      friday: day,
+      saturday: day,
+      sunday: day,
+    )
 
   let assert Ok(now) = time_of_day(12, 0)
   get_scheduled_temperature(schedule, Monday, now)
@@ -203,10 +207,16 @@ pub fn get_scheduled_temperature_morning_entry_test() {
     ScheduleEntry(start: evening, target_temperature: temperature(21.0)),
     ScheduleEntry(start: night, target_temperature: temperature(16.0)),
   ]
-  let schedule = WeekSchedule(
-    monday: day, tuesday: day, wednesday: day, thursday: day,
-    friday: day, saturday: day, sunday: day,
-  )
+  let schedule =
+    WeekSchedule(
+      monday: day,
+      tuesday: day,
+      wednesday: day,
+      thursday: day,
+      friday: day,
+      saturday: day,
+      sunday: day,
+    )
 
   // At 10:00, should be in morning slot (20.0)
   let assert Ok(now) = time_of_day(10, 0)
@@ -225,10 +235,16 @@ pub fn get_scheduled_temperature_evening_entry_test() {
     ScheduleEntry(start: evening, target_temperature: temperature(21.0)),
     ScheduleEntry(start: night, target_temperature: temperature(16.0)),
   ]
-  let schedule = WeekSchedule(
-    monday: day, tuesday: day, wednesday: day, thursday: day,
-    friday: day, saturday: day, sunday: day,
-  )
+  let schedule =
+    WeekSchedule(
+      monday: day,
+      tuesday: day,
+      wednesday: day,
+      thursday: day,
+      friday: day,
+      saturday: day,
+      sunday: day,
+    )
 
   // At 19:00, should be in evening slot (21.0)
   let assert Ok(now) = time_of_day(19, 0)
@@ -247,10 +263,16 @@ pub fn get_scheduled_temperature_night_entry_test() {
     ScheduleEntry(start: evening, target_temperature: temperature(21.0)),
     ScheduleEntry(start: night, target_temperature: temperature(16.0)),
   ]
-  let schedule = WeekSchedule(
-    monday: day, tuesday: day, wednesday: day, thursday: day,
-    friday: day, saturday: day, sunday: day,
-  )
+  let schedule =
+    WeekSchedule(
+      monday: day,
+      tuesday: day,
+      wednesday: day,
+      thursday: day,
+      friday: day,
+      saturday: day,
+      sunday: day,
+    )
 
   // At 23:00, should be in night slot (16.0)
   let assert Ok(now) = time_of_day(23, 0)
@@ -268,10 +290,16 @@ pub fn get_scheduled_temperature_before_first_entry_test() {
     ScheduleEntry(start: morning, target_temperature: temperature(20.0)),
     ScheduleEntry(start: night, target_temperature: temperature(16.0)),
   ]
-  let schedule = WeekSchedule(
-    monday: day, tuesday: day, wednesday: day, thursday: day,
-    friday: day, saturday: day, sunday: day,
-  )
+  let schedule =
+    WeekSchedule(
+      monday: day,
+      tuesday: day,
+      wednesday: day,
+      thursday: day,
+      friday: day,
+      saturday: day,
+      sunday: day,
+    )
 
   // At 05:00 on Tuesday (before 07:00), should use Monday night's temp (16.0)
   let assert Ok(now) = time_of_day(5, 0)
@@ -288,10 +316,16 @@ pub fn get_scheduled_temperature_exactly_at_entry_test() {
     ScheduleEntry(start: morning, target_temperature: temperature(20.0)),
     ScheduleEntry(start: evening, target_temperature: temperature(21.0)),
   ]
-  let schedule = WeekSchedule(
-    monday: day, tuesday: day, wednesday: day, thursday: day,
-    friday: day, saturday: day, sunday: day,
-  )
+  let schedule =
+    WeekSchedule(
+      monday: day,
+      tuesday: day,
+      wednesday: day,
+      thursday: day,
+      friday: day,
+      saturday: day,
+      sunday: day,
+    )
 
   // Exactly at 18:00, should be evening temp
   let assert Ok(now) = time_of_day(18, 0)
@@ -311,11 +345,16 @@ pub fn get_scheduled_temperature_different_weekend_test() {
     ScheduleEntry(start: weekend_morning, target_temperature: temperature(19.0)),
   ]
 
-  let schedule = WeekSchedule(
-    monday: weekday, tuesday: weekday, wednesday: weekday,
-    thursday: weekday, friday: weekday,
-    saturday: weekend, sunday: weekend,
-  )
+  let schedule =
+    WeekSchedule(
+      monday: weekday,
+      tuesday: weekday,
+      wednesday: weekday,
+      thursday: weekday,
+      friday: weekday,
+      saturday: weekend,
+      sunday: weekend,
+    )
 
   let assert Ok(now) = time_of_day(10, 0)
 
