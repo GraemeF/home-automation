@@ -444,6 +444,7 @@ ${mkS6RunScript def}RUNSCRIPT
               pkgs.bun        # For running changesets and other npm tools
               pkgs.git
               pkgs.docker
+              pkgs.pre-commit # Git hooks framework
               beads.packages.${system}.default  # bd CLI for beads issue tracker
 
               # Gleam toolchain
@@ -463,8 +464,28 @@ ${mkS6RunScript def}RUNSCRIPT
               echo "  gleam build      - Build the project"
               echo "  gleam test       - Run tests"
               echo "  gleam run        - Run the project"
+
+              # Install pre-commit hooks
+              pre-commit install --allow-missing-config 2>/dev/null || true
             '';
           };
+        }
+      );
+
+      checks = forAllSystems (system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        {
+          # Gleam format check - validates code is formatted
+          # Note: gleam build requires network for deps, use pre-commit instead
+          format = pkgs.runCommand "gleam-format-check" {
+            buildInputs = [ pkgs.gleam ];
+            src = ./packages/deep_heating;
+          } ''
+            cd $src
+            gleam format --check src test && touch $out
+          '';
         }
       );
     };

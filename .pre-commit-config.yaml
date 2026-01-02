@@ -1,0 +1,16 @@
+repos:
+  - repo: local
+    hooks:
+      - id: gleam-format
+        name: gleam format
+        entry: bash -c 'gleam format && git add -u "*.gleam"'
+        language: system
+        files: '\.gleam$'
+        pass_filenames: false
+
+      - id: gleam-build
+        name: gleam build (warnings as errors)
+        entry: gleam build --warnings-as-errors
+        language: system
+        files: '\.gleam$'
+        pass_filenames: false
