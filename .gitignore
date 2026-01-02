@@ -1,12 +1,8 @@
-# See http://help.github.com/ignore-files/ for more about ignoring files.
+# Gleam build output
+build/
 
-# compiled output
-/dist
-/tmp
-/out-tsc
-
-# dependencies
-node_modules
+# Dependencies
+node_modules/
 
 # IDEs and editors
 /.idea
@@ -24,50 +20,28 @@ node_modules
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# misc
-/.sass-cache
-/connect.lock
-/coverage
-/libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
-/typings
-
 # System Files
 .DS_Store
 Thumbs.db
 
-/home
-/data
-/.env
-/migrations.json
-/packages/*/.env
+# Environment
+.env
 .env.local
+.envrc
+.direnv/
 
-# Turbo
-.turbo
-out/
-
-# Claude
-*.local.json
-
-# Mise local config
+# Mise local config (for local env vars)
 mise.local.toml
-
-# Local home config (contains actual Home Assistant entity IDs)
-packages/deep-heating-server/home.json
-
-# Runtime data (room adjustments, etc.)
-packages/deep-heating-server/data/
 
 # Nix
 result
 
-# Vite temp files
-*.timestamp-*.mjs
+# Coverage
+/coverage
 
-# Playwright
-test-results/
-playwright-report/
-playwright/.cache/
+# Misc
+*.local.json
+
+# Logs
+npm-debug.log
+yarn-error.log

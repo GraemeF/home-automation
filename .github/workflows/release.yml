@@ -43,6 +43,9 @@ jobs:
           git config user.name "home-automation-releaser[bot]"
           git config user.email "home-automation-releaser[bot]@users.noreply.github.com"
 
+      - name: Install dependencies
+        run: nix develop --command bun install
+
       - name: Create Release Pull Request or Build Docker
         id: changesets
         uses: changesets/action@v1
@@ -97,7 +100,7 @@ jobs:
         if: steps.changesets.outputs.hasChangesets == 'false'
         id: version
         run: |
-          VERSION=$(jq -r '.version' packages/deep-heating/package.json)
+          VERSION=$(jq -r '.version' packages/deep_heating/package.json)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Released version: $VERSION"
     outputs:

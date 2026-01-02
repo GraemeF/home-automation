@@ -1,8 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "outDir": "../../dist/out-tsc",
-    "module": "esnext"
-  },
-  "include": ["**/*.spec.ts", "**/*.test.ts", "**/*.d.ts"]
-}

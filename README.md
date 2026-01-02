@@ -8,13 +8,32 @@ This monorepo houses projects that can be used to automate your home.
 
 This repository contains the following add-ons:
 
-### [Deep Heating](./packages/deep-heating/)
+### [Deep Heating](./packages/deep_heating/)
 
 Combine TRVs with external temperature sensors to heat your home more efficiently.
 
+Built with [Gleam](https://gleam.run/) on the BEAM (Erlang runtime) using an actor-based architecture.
+
 ## Development
 
-This monorepo uses [Turborepo](https://turbo.build/repo) for task orchestration and caching.
+### Prerequisites
+
+This project uses [Nix](https://nixos.org/) for reproducible development environments:
+
+```bash
+nix develop
+```
+
+This provides Gleam, Erlang/OTP, and all required tools.
+
+### Development Tasks
+
+```bash
+cd packages/deep_heating
+gleam build      # Build the project
+gleam test       # Run tests
+gleam run        # Run the project
+```
 
 ### Building Docker Images
 
@@ -26,9 +45,6 @@ nix build .#dockerImage
 
 The resulting image is loaded into Docker via `docker load < result`.
 
-### Development Tasks
+## Architecture
 
-- `bun run build` - Build all packages
-- `bun run test` - Run all tests
-- `bun run lint` - Lint all packages
-- `bun run dev` - Start development servers
+See the [architecture docs](./docs/) for details on the actor-based design.

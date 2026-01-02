@@ -5,15 +5,6 @@ inputs:
   github-token:
     description: 'GitHub token for Nix installer and cache API'
     required: true
-  install-deps:
-    description: 'Whether to run bun install after setting up Nix'
-    default: 'true'
-  turbo-cache-key:
-    description: 'Additional cache key part for turbo cache'
-    default: 'default'
-  restore-turbo-cache-key:
-    description: 'Additional cache key part to find turbo cache from an earlier job'
-    default: 'default'
 
 runs:
   using: 'composite'
@@ -32,23 +23,5 @@ runs:
         primary-key: nix-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.lock') }}
         restore-prefixes-first-match: |
           nix-${{ runner.os }}-${{ runner.arch }}-
-        # Keep Nix store under 2GB to leave room for turbo cache (10GB total limit)
         gc-max-store-size-linux: 2G
         gc-max-store-size-macos: 2G
-
-    - name: Cache turbo
-      if: inputs.install-deps == 'true'
-      uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5
-      with:
-        path: .turbo/cache
-        key: ${{ runner.os }}-${{ runner.arch }}-turbo-${{ inputs.turbo-cache-key }}-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-${{ runner.arch }}-turbo-${{ inputs.restore-turbo-cache-key }}-${{ github.sha }}
-          ${{ runner.os }}-${{ runner.arch }}-turbo-${{ inputs.turbo-cache-key }}-
-          ${{ runner.os }}-${{ runner.arch }}-turbo-${{ inputs.restore-turbo-cache-key }}-
-          ${{ runner.os }}-${{ runner.arch }}-turbo-
-
-    - name: Install dependencies
-      if: inputs.install-deps == 'true'
-      shell: bash
-      run: nix develop --command bun install --frozen-lockfile

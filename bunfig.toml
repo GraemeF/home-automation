@@ -1,3 +1,0 @@
-[install]
-minimumReleaseAge = 432000
-minimumReleaseAgeExcludes = ["@codeforbreakfast/bun-test-effect", "@codeforbreakfast/eslint-effect"]

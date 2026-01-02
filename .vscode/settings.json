@@ -1,11 +1,6 @@
 {
-  "editor.codeActionsOnSave": {
-    "source.organizeImports": "explicit"
-  },
   "editor.formatOnSave": true,
-
-  "typescript.format.enable": true,
-  "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  "[gleam]": {
+    "editor.defaultFormatter": "gleam.gleam"
   }
 }

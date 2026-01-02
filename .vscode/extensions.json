@@ -1,7 +1,5 @@
 {
   "recommendations": [
-    "esbenp.prettier-vscode",
-    "firsttris.vscode-jest-runner",
-    "dbaeumer.vscode-eslint"
+    "gleam.gleam"
   ]
 }

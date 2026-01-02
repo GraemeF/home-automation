@@ -441,13 +441,12 @@ ${mkS6RunScript def}RUNSCRIPT
         {
           default = pkgs.mkShell {
             buildInputs = [
-              pkgs.bun
+              pkgs.bun        # For running changesets and other npm tools
               pkgs.git
               pkgs.docker
-              bun2nix.packages.${system}.default
               beads.packages.${system}.default  # bd CLI for beads issue tracker
 
-              # Gleam toolchain for actor-based port
+              # Gleam toolchain
               pkgs.gleam
               pkgs.erlang_27  # OTP 27 for BEAM runtime
               pkgs.rebar3     # Erlang build tool (Gleam dependency)
@@ -455,15 +454,15 @@ ${mkS6RunScript def}RUNSCRIPT
 
             shellHook = ''
               echo "Deep Heating development environment loaded!"
-              echo "Bun version: $(bun --version)"
               echo "Gleam version: $(gleam --version)"
               echo "Erlang/OTP version: $(erl -noshell -eval 'io:format("~s~n", [erlang:system_info(otp_release)]), halt().')"
+              echo "Bun version: $(bun --version)"
               echo "System: ${system}"
               echo ""
               echo "Available commands:"
-              echo "  bun run build    - Build all packages"
-              echo "  bun run test     - Run all tests"
-              echo "  bun run dev      - Start dev servers"
+              echo "  gleam build      - Build the project"
+              echo "  gleam test       - Run tests"
+              echo "  gleam run        - Run the project"
             '';
           };
         }
