@@ -446,11 +446,18 @@ ${mkS6RunScript def}RUNSCRIPT
               pkgs.docker
               bun2nix.packages.${system}.default
               beads.packages.${system}.default  # bd CLI for beads issue tracker
+
+              # Gleam toolchain for actor-based port
+              pkgs.gleam
+              pkgs.erlang_27  # OTP 27 for BEAM runtime
+              pkgs.rebar3     # Erlang build tool (Gleam dependency)
             ];
 
             shellHook = ''
               echo "Deep Heating development environment loaded!"
               echo "Bun version: $(bun --version)"
+              echo "Gleam version: $(gleam --version)"
+              echo "Erlang/OTP version: $(erl -noshell -eval 'io:format("~s~n", [erlang:system_info(otp_release)]), halt().')"
               echo "System: ${system}"
               echo ""
               echo "Available commands:"
