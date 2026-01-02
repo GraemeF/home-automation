@@ -8,9 +8,15 @@
       url = "github:nix-community/bun2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # beads: Git-based issue tracker designed for AI coding workflows
+    beads = {
+      url = "github:steveyegge/beads/v0.42.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, bun2nix }:
+  outputs = { self, nixpkgs, bun2nix, beads }:
     let
       # Multi-architecture support
       systems = nixpkgs.lib.systems.flakeExposed;
@@ -439,6 +445,7 @@ ${mkS6RunScript def}RUNSCRIPT
               pkgs.git
               pkgs.docker
               bun2nix.packages.${system}.default
+              beads.packages.${system}.default  # bd CLI for beads issue tracker
             ];
 
             shellHook = ''
