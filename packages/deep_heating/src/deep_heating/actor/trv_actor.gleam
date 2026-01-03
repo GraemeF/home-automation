@@ -1,0 +1,180 @@
+//// TrvActor - holds state for a single TRV (Thermostatic Radiator Valve).
+////
+//// Responsibilities:
+//// - Store current TRV state (temperature, target, mode, isHeating)
+//// - Receive updates from HaPollerActor
+//// - Notify parent RoomActor when state changes
+//// - Forward SetTarget/SetMode commands to HaCommandActor
+
+import deep_heating/entity_id.{type ClimateEntityId}
+import deep_heating/mode.{type HvacMode, HvacOff}
+import deep_heating/temperature.{type Temperature}
+import gleam/erlang/process.{type Subject}
+import gleam/option.{type Option, None}
+import gleam/otp/actor
+
+/// State of the TRV actor
+pub type TrvState {
+  TrvState(
+    entity_id: ClimateEntityId,
+    temperature: Option(Temperature),
+    target: Option(Temperature),
+    mode: HvacMode,
+    is_heating: Bool,
+  )
+}
+
+/// Update from Home Assistant containing new TRV readings
+pub type TrvUpdate {
+  TrvUpdate(
+    temperature: Option(Temperature),
+    target: Option(Temperature),
+    mode: HvacMode,
+    is_heating: Bool,
+  )
+}
+
+/// Messages handled by the TrvActor
+pub type Message {
+  /// Get the current TRV state
+  GetState(reply_to: Subject(TrvState))
+  /// Update from Home Assistant poller
+  Update(TrvUpdate)
+  /// Command to set target temperature (from RoomDecisionActor)
+  SetTarget(target: Temperature)
+  /// Command to set HVAC mode (from RoomDecisionActor)
+  SetMode(hvac_mode: HvacMode)
+}
+
+/// Messages that can be sent to a RoomActor
+pub type RoomMessage {
+  /// TRV temperature reading changed
+  TrvTemperatureChanged(entity_id: ClimateEntityId, temperature: Temperature)
+  /// TRV target temperature changed
+  TrvTargetChanged(entity_id: ClimateEntityId, target: Temperature)
+}
+
+/// Commands to send to Home Assistant
+pub type HaCommand {
+  /// Set the TRV's target temperature
+  SetTrvTarget(entity_id: ClimateEntityId, target: Temperature)
+  /// Set the TRV's HVAC mode
+  SetTrvMode(entity_id: ClimateEntityId, hvac_mode: HvacMode)
+}
+
+/// Internal actor state including dependencies
+type ActorState {
+  ActorState(
+    trv: TrvState,
+    room_actor: Subject(RoomMessage),
+    ha_commands: Subject(HaCommand),
+  )
+}
+
+/// Start the TrvActor with the given entity ID and dependencies
+pub fn start(
+  entity_id: ClimateEntityId,
+  room_actor: Subject(RoomMessage),
+  ha_commands: Subject(HaCommand),
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  let initial_trv =
+    TrvState(
+      entity_id: entity_id,
+      temperature: None,
+      target: None,
+      mode: HvacOff,
+      is_heating: False,
+    )
+  let initial_state =
+    ActorState(
+      trv: initial_trv,
+      room_actor: room_actor,
+      ha_commands: ha_commands,
+    )
+
+  actor.new(initial_state)
+  |> actor.on_message(handle_message)
+  |> actor.start
+}
+
+fn handle_message(
+  state: ActorState,
+  message: Message,
+) -> actor.Next(ActorState, Message) {
+  case message {
+    GetState(reply_to) -> {
+      process.send(reply_to, state.trv)
+      actor.continue(state)
+    }
+    Update(update) -> {
+      let old_trv = state.trv
+      let new_trv =
+        TrvState(
+          ..old_trv,
+          temperature: update.temperature,
+          target: update.target,
+          mode: update.mode,
+          is_heating: update.is_heating,
+        )
+
+      // Notify room actor of temperature changes
+      notify_temperature_change(
+        state.room_actor,
+        old_trv.entity_id,
+        old_trv.temperature,
+        new_trv.temperature,
+      )
+
+      // Notify room actor of target changes
+      notify_target_change(
+        state.room_actor,
+        old_trv.entity_id,
+        old_trv.target,
+        new_trv.target,
+      )
+
+      actor.continue(ActorState(..state, trv: new_trv))
+    }
+    SetTarget(target) -> {
+      process.send(state.ha_commands, SetTrvTarget(state.trv.entity_id, target))
+      actor.continue(state)
+    }
+    SetMode(hvac_mode) -> {
+      process.send(
+        state.ha_commands,
+        SetTrvMode(state.trv.entity_id, hvac_mode),
+      )
+      actor.continue(state)
+    }
+  }
+}
+
+fn notify_temperature_change(
+  room_actor: Subject(RoomMessage),
+  entity_id: ClimateEntityId,
+  old_temp: Option(Temperature),
+  new_temp: Option(Temperature),
+) -> Nil {
+  case old_temp, new_temp {
+    // Temperature changed to a new value
+    _, option.Some(temp) if old_temp != new_temp -> {
+      process.send(room_actor, TrvTemperatureChanged(entity_id, temp))
+    }
+    _, _ -> Nil
+  }
+}
+
+fn notify_target_change(
+  room_actor: Subject(RoomMessage),
+  entity_id: ClimateEntityId,
+  old_target: Option(Temperature),
+  new_target: Option(Temperature),
+) -> Nil {
+  case old_target, new_target {
+    // Target changed to a new value
+    _, option.Some(target) if old_target != new_target -> {
+      process.send(room_actor, TrvTargetChanged(entity_id, target))
+    }
+    _, _ -> Nil
+  }
+}
