@@ -1,12 +1,19 @@
 //// StateAggregatorActor - collects state snapshots for UI broadcasting.
 ////
-//// This is a stub implementation for setting up the supervision tree.
-//// Full implementation will follow in dh-33jq.14.
+//// Responsibilities:
+//// - Receive state updates from all RoomActors
+//// - Maintain complete DeepHeatingState
+//// - Throttle updates (100ms) to avoid overwhelming clients
+//// - Broadcast state to WebSocket client subscribers
 
-import deep_heating/state.{type DeepHeatingState}
+import deep_heating/state.{type DeepHeatingState, type RoomState}
 import gleam/erlang/process.{type Name, type Subject}
+import gleam/list
 import gleam/otp/actor
 import gleam/otp/supervision
+
+/// Throttle period in milliseconds
+const throttle_ms: Int = 100
 
 /// Messages handled by the StateAggregatorActor
 pub type Message {
@@ -14,24 +21,58 @@ pub type Message {
   GetState(reply_to: Subject(DeepHeatingState))
   /// Subscribe to state updates (for WebSocket clients)
   Subscribe(subscriber: Subject(DeepHeatingState))
+  /// Unsubscribe from state updates
+  Unsubscribe(subscriber: Subject(DeepHeatingState))
+  /// Room state was updated (from RoomActor)
+  RoomUpdated(name: String, room_state: RoomState)
+  /// Internal: broadcast to subscribers (triggered by throttle timer)
+  Broadcast
 }
 
 /// Internal state of the aggregator
 pub type State {
-  State(current: DeepHeatingState, subscribers: List(Subject(DeepHeatingState)))
+  State(
+    current: DeepHeatingState,
+    subscribers: List(Subject(DeepHeatingState)),
+    broadcast_pending: Bool,
+    self_subject: Subject(Message),
+  )
+}
+
+/// Start the StateAggregatorActor without name registration (for testing)
+pub fn start_link() -> Result(Subject(Message), actor.StartError) {
+  actor.new_with_initialiser(1000, fn(self_subject) {
+    actor.initialised(State(
+      current: state.empty_deep_heating_state(),
+      subscribers: [],
+      broadcast_pending: False,
+      self_subject: self_subject,
+    ))
+    |> actor.returning(self_subject)
+    |> Ok
+  })
+  |> actor.on_message(handle_message)
+  |> actor.start
+  |> extract_subject
 }
 
 /// Start the StateAggregatorActor and register it with the given name
 pub fn start(
   name: Name(Message),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
-  let initial_state =
-    State(current: state.empty_deep_heating_state(), subscribers: [])
-
-  actor.new(initial_state)
+  actor.new_with_initialiser(1000, fn(self_subject) {
+    actor.initialised(State(
+      current: state.empty_deep_heating_state(),
+      subscribers: [],
+      broadcast_pending: False,
+      self_subject: self_subject,
+    ))
+    |> actor.returning(self_subject)
+    |> Ok
+  })
   |> actor.on_message(handle_message)
+  |> actor.named(name)
   |> actor.start
-  |> register_with_name(name)
 }
 
 /// Create a child specification for supervision
@@ -41,29 +82,91 @@ pub fn child_spec(
   supervision.worker(fn() { start(name) })
 }
 
-fn handle_message(state: State, message: Message) -> actor.Next(State, Message) {
+fn handle_message(
+  actor_state: State,
+  message: Message,
+) -> actor.Next(State, Message) {
   case message {
     GetState(reply_to) -> {
-      process.send(reply_to, state.current)
-      actor.continue(state)
+      process.send(reply_to, actor_state.current)
+      actor.continue(actor_state)
     }
     Subscribe(subscriber) -> {
       actor.continue(
-        State(..state, subscribers: [subscriber, ..state.subscribers]),
+        State(..actor_state, subscribers: [
+          subscriber,
+          ..actor_state.subscribers
+        ]),
       )
+    }
+    Unsubscribe(subscriber) -> {
+      let new_subscribers =
+        list.filter(actor_state.subscribers, fn(s) { s != subscriber })
+      actor.continue(State(..actor_state, subscribers: new_subscribers))
+    }
+    RoomUpdated(name, room_state) -> {
+      let new_current = update_room(actor_state.current, name, room_state)
+      let new_state = State(..actor_state, current: new_current)
+      schedule_broadcast_if_needed(new_state)
+    }
+    Broadcast -> {
+      // Broadcast to all subscribers
+      list.each(actor_state.subscribers, fn(subscriber) {
+        process.send(subscriber, actor_state.current)
+      })
+      actor.continue(State(..actor_state, broadcast_pending: False))
     }
   }
 }
 
-fn register_with_name(
-  result: Result(actor.Started(Subject(Message)), actor.StartError),
-  name: Name(Message),
-) -> Result(actor.Started(Subject(Message)), actor.StartError) {
-  case result {
-    Ok(started) -> {
-      let _ = process.register(started.pid, name)
-      Ok(started)
+fn update_room(
+  deep_state: DeepHeatingState,
+  name: String,
+  room_state: RoomState,
+) -> DeepHeatingState {
+  // Check if room already exists
+  let room_exists = list.any(deep_state.rooms, fn(r) { r.name == name })
+
+  let new_rooms = case room_exists {
+    True -> {
+      // Update existing room
+      list.map(deep_state.rooms, fn(r) {
+        case r.name == name {
+          True -> room_state
+          False -> r
+        }
+      })
     }
+    False -> {
+      // Add new room
+      [room_state, ..deep_state.rooms]
+    }
+  }
+
+  state.DeepHeatingState(..deep_state, rooms: new_rooms)
+}
+
+fn schedule_broadcast_if_needed(
+  actor_state: State,
+) -> actor.Next(State, Message) {
+  case actor_state.broadcast_pending {
+    True -> {
+      // Already have a broadcast pending, just continue
+      actor.continue(actor_state)
+    }
+    False -> {
+      // Schedule a broadcast after throttle period
+      process.send_after(actor_state.self_subject, throttle_ms, Broadcast)
+      actor.continue(State(..actor_state, broadcast_pending: True))
+    }
+  }
+}
+
+fn extract_subject(
+  result: Result(actor.Started(Subject(Message)), actor.StartError),
+) -> Result(Subject(Message), actor.StartError) {
+  case result {
+    Ok(started) -> Ok(started.data)
     Error(e) -> Error(e)
   }
 }
