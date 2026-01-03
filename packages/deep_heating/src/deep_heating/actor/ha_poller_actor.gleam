@@ -31,6 +31,8 @@ pub type Message {
   Configure(interval_ms: Int)
   /// For testing: inject a mock JSON response for the next poll
   InjectMockResponse(json: String)
+  /// For testing: inject a mock error for the next poll
+  InjectMockError(error: home_assistant.HaError)
 }
 
 /// Configuration for the poller
@@ -61,7 +63,14 @@ pub type PollerEvent {
   PollCompleted
   /// Poll failed
   PollFailed(error: String)
+  /// Exponential backoff was applied (next poll delayed)
+  BackoffApplied(delay_ms: Int)
+  /// Backoff was reset after successful poll
+  BackoffReset
 }
+
+/// Maximum backoff delay in milliseconds (60 seconds)
+const max_backoff_ms = 60_000
 
 /// Internal actor state
 type State {
@@ -74,6 +83,10 @@ type State {
     last_sleep_button_state: String,
     /// For testing: mock JSON response to use instead of calling HA
     mock_response: option.Option(String),
+    /// For testing: mock error to return instead of calling HA
+    mock_error: option.Option(home_assistant.HaError),
+    /// Current backoff multiplier (1 = no backoff, 2 = doubled, etc.)
+    backoff_multiplier: Int,
   )
 }
 
@@ -93,6 +106,8 @@ pub fn start(
         is_polling: False,
         last_sleep_button_state: "",
         mock_response: None,
+        mock_error: None,
+        backoff_multiplier: 1,
       )
     actor.initialised(initial_state)
     |> actor.returning(self_subject)
@@ -122,6 +137,8 @@ pub fn start_named(
         is_polling: False,
         last_sleep_button_state: "",
         mock_response: None,
+        mock_error: None,
+        backoff_multiplier: 1,
       )
     actor.initialised(initial_state)
     |> actor.returning(self_subject)
@@ -169,10 +186,26 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
       actor.continue(State(..state, is_polling: False))
     }
     PollNow -> {
-      // Get JSON either from mock or from real HA
-      let json_result = case state.mock_response {
-        Some(json) -> Ok(json)
-        None -> home_assistant.get_states(state.ha_client)
+      // Get JSON either from mock error, mock response, or real HA
+      let json_result = case state.mock_error {
+        Some(err) -> Error(err)
+        None ->
+          case state.mock_response {
+            Some(json) -> Ok(json)
+            None -> home_assistant.get_states(state.ha_client)
+          }
+      }
+
+      // Determine if poll succeeded and calculate new backoff state
+      let poll_succeeded = case json_result {
+        Ok(_) -> True
+        Error(_) -> False
+      }
+
+      // Calculate new backoff multiplier (doubles on each failure, resets on success)
+      let new_backoff_multiplier = case poll_succeeded {
+        True -> 1
+        False -> state.backoff_multiplier * 2
       }
 
       // Track new sleep button state for state update
@@ -231,32 +264,52 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
         }
       }
 
-      // Emit PollCompleted if we got JSON successfully
+      // Emit PollCompleted/PollFailed followed by backoff events
       case json_result {
-        Ok(_) -> process.send(state.event_spy, PollCompleted)
-        Error(_) -> Nil
+        Ok(_) -> {
+          process.send(state.event_spy, PollCompleted)
+          // Emit BackoffReset if we were in backoff state
+          case state.backoff_multiplier > 1 {
+            True -> process.send(state.event_spy, BackoffReset)
+            False -> Nil
+          }
+        }
+        Error(_) -> {
+          // BackoffApplied comes after PollFailed
+          let delay_ms =
+            int.min(
+              state.config.poll_interval_ms * new_backoff_multiplier,
+              max_backoff_ms,
+            )
+          process.send(state.event_spy, BackoffApplied(delay_ms))
+        }
       }
 
       // Schedule next poll if still polling
       case state.is_polling {
         True -> {
-          let _ =
-            process.send_after(
-              state.self_subject,
-              state.config.poll_interval_ms,
-              PollNow,
-            )
+          let delay_ms = case poll_succeeded {
+            True -> state.config.poll_interval_ms
+            False ->
+              int.min(
+                state.config.poll_interval_ms * new_backoff_multiplier,
+                max_backoff_ms,
+              )
+          }
+          let _ = process.send_after(state.self_subject, delay_ms, PollNow)
           Nil
         }
         False -> Nil
       }
 
-      // Clear mock response and update sleep button state
+      // Clear mock response/error and update state
       actor.continue(
         State(
           ..state,
           mock_response: None,
+          mock_error: None,
           last_sleep_button_state: new_sleep_button_state,
+          backoff_multiplier: new_backoff_multiplier,
         ),
       )
     }
@@ -267,6 +320,9 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
     }
     InjectMockResponse(json) -> {
       actor.continue(State(..state, mock_response: Some(json)))
+    }
+    InjectMockError(error) -> {
+      actor.continue(State(..state, mock_error: Some(error)))
     }
   }
 }

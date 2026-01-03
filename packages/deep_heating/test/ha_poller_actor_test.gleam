@@ -75,7 +75,16 @@ pub fn emits_polling_stopped_when_stop_polling_received_test() {
   // When StopPolling is received while polling, should emit PollingStopped event
   let event_spy: process.Subject(ha_poller_actor.PollerEvent) =
     process.new_subject()
-  let config = create_test_config()
+
+  // Use a long poll interval so no backoff polls interfere
+  let assert Ok(heating_id) = entity_id.climate_entity_id("climate.main")
+  let config =
+    ha_poller_actor.PollerConfig(
+      poll_interval_ms: 10_000,
+      heating_entity_id: heating_id,
+      sleep_button_entity_id: "input_button.goodnight",
+      managed_trv_ids: set.new(),
+    )
 
   let assert Ok(started) =
     ha_poller_actor.start(
@@ -84,12 +93,16 @@ pub fn emits_polling_stopped_when_stop_polling_received_test() {
       event_spy: event_spy,
     )
 
-  // Start polling first
+  // Inject empty mock response so poll completes instantly
+  process.send(started.data, ha_poller_actor.InjectMockResponse("[]"))
+
+  // Start polling
   process.send(started.data, ha_poller_actor.StartPolling)
   // Consume PollingStarted
-  let assert Ok(_) = process.receive(event_spy, 100)
+  let assert Ok(ha_poller_actor.PollingStarted) =
+    process.receive(event_spy, 100)
 
-  // Drain any poll events that happened
+  // Drain poll completion events
   drain_poll_events(event_spy)
 
   // Send StopPolling message
@@ -103,11 +116,13 @@ pub fn emits_polling_stopped_when_stop_polling_received_test() {
   }
 }
 
-/// Drain any poll completion events from the spy
+/// Drain any poll completion/backoff events from the spy
 fn drain_poll_events(spy: process.Subject(ha_poller_actor.PollerEvent)) -> Nil {
-  case process.receive(spy, 50) {
+  case process.receive(spy, 200) {
     Ok(ha_poller_actor.PollCompleted) -> drain_poll_events(spy)
     Ok(ha_poller_actor.PollFailed(_)) -> drain_poll_events(spy)
+    Ok(ha_poller_actor.BackoffApplied(_)) -> drain_poll_events(spy)
+    Ok(ha_poller_actor.BackoffReset) -> drain_poll_events(spy)
     _ -> Nil
   }
 }
@@ -453,4 +468,166 @@ pub fn does_not_emit_sleep_button_pressed_on_first_poll_test() {
     })
 
   has_sleep_button_pressed |> should.be_false
+}
+
+// =============================================================================
+// Exponential Backoff Tests
+// =============================================================================
+
+pub fn schedules_next_poll_with_backoff_after_failure_test() {
+  // When a poll fails, the next poll should be scheduled with exponential backoff
+  // Base interval: 100ms, after first failure: 200ms (doubled)
+  let event_spy: process.Subject(ha_poller_actor.PollerEvent) =
+    process.new_subject()
+
+  let assert Ok(heating_id) = entity_id.climate_entity_id("climate.main")
+  let config =
+    ha_poller_actor.PollerConfig(
+      poll_interval_ms: 100,
+      heating_entity_id: heating_id,
+      sleep_button_entity_id: "input_button.goodnight",
+      managed_trv_ids: set.new(),
+    )
+
+  let assert Ok(started) =
+    ha_poller_actor.start(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      config: config,
+      event_spy: event_spy,
+    )
+
+  // Inject an error for the first poll
+  process.send(
+    started.data,
+    ha_poller_actor.InjectMockError(home_assistant.ConnectionError(
+      "Connection refused",
+    )),
+  )
+
+  // Start polling
+  process.send(started.data, ha_poller_actor.StartPolling)
+
+  // Expect: PollingStarted, then PollFailed
+  let assert Ok(ha_poller_actor.PollingStarted) =
+    process.receive(event_spy, 100)
+  let assert Ok(ha_poller_actor.PollFailed(_)) = process.receive(event_spy, 100)
+
+  // The backoff event should tell us the delay
+  let assert Ok(ha_poller_actor.BackoffApplied(delay_ms)) =
+    process.receive(event_spy, 100)
+
+  // After first failure, backoff should be doubled from base (100 -> 200)
+  delay_ms |> should.equal(200)
+}
+
+pub fn resets_backoff_after_successful_poll_test() {
+  // After a successful poll, backoff should reset to base interval
+  let event_spy: process.Subject(ha_poller_actor.PollerEvent) =
+    process.new_subject()
+
+  let assert Ok(heating_id) = entity_id.climate_entity_id("climate.main")
+  let config =
+    ha_poller_actor.PollerConfig(
+      poll_interval_ms: 100,
+      heating_entity_id: heating_id,
+      sleep_button_entity_id: "input_button.goodnight",
+      managed_trv_ids: set.new(),
+    )
+
+  let assert Ok(started) =
+    ha_poller_actor.start(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      config: config,
+      event_spy: event_spy,
+    )
+
+  // First: inject an error to build up backoff
+  process.send(
+    started.data,
+    ha_poller_actor.InjectMockError(home_assistant.ConnectionError(
+      "Connection refused",
+    )),
+  )
+  process.send(started.data, ha_poller_actor.StartPolling)
+
+  // Drain error events
+  let _ = collect_events(event_spy, 5, 200)
+
+  // Now inject a successful response
+  let mock_json = "[]"
+  process.send(started.data, ha_poller_actor.InjectMockResponse(mock_json))
+
+  // Wait for the backoff poll to occur, then check the next scheduled delay
+  // After success, should emit BackoffReset and use base interval
+  let events = collect_events(event_spy, 5, 500)
+
+  let has_backoff_reset =
+    list.any(events, fn(event) {
+      case event {
+        ha_poller_actor.BackoffReset -> True
+        _ -> False
+      }
+    })
+
+  has_backoff_reset |> should.be_true
+}
+
+pub fn caps_backoff_at_max_value_test() {
+  // Backoff should not exceed max value (60 seconds)
+  let event_spy: process.Subject(ha_poller_actor.PollerEvent) =
+    process.new_subject()
+
+  let assert Ok(heating_id) = entity_id.climate_entity_id("climate.main")
+  // Use a large base interval so doubling quickly exceeds max
+  let config =
+    ha_poller_actor.PollerConfig(
+      poll_interval_ms: 30_000,
+      heating_entity_id: heating_id,
+      sleep_button_entity_id: "input_button.goodnight",
+      managed_trv_ids: set.new(),
+    )
+
+  let assert Ok(started) =
+    ha_poller_actor.start(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      config: config,
+      event_spy: event_spy,
+    )
+
+  // Inject multiple errors to build up backoff
+  // After 1st failure: 60000ms (30000 * 2)
+  // After 2nd failure: would be 120000ms but capped at 60000ms
+  process.send(
+    started.data,
+    ha_poller_actor.InjectMockError(home_assistant.ConnectionError(
+      "Connection refused",
+    )),
+  )
+  process.send(started.data, ha_poller_actor.PollNow)
+  let _ = collect_events(event_spy, 3, 100)
+
+  // Second failure
+  process.send(
+    started.data,
+    ha_poller_actor.InjectMockError(home_assistant.ConnectionError(
+      "Connection refused",
+    )),
+  )
+  process.send(started.data, ha_poller_actor.PollNow)
+
+  let events = collect_events(event_spy, 5, 200)
+
+  // Find the BackoffApplied event and check it's capped at 60000ms
+  let backoff_delays =
+    list.filter_map(events, fn(event) {
+      case event {
+        ha_poller_actor.BackoffApplied(delay) -> Ok(delay)
+        _ -> Error(Nil)
+      }
+    })
+
+  // All backoff values should be <= 60000ms (max backoff)
+  let all_capped = list.all(backoff_delays, fn(delay) { delay <= 60_000 })
+
+  all_capped |> should.be_true
 }
