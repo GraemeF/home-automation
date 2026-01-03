@@ -11,11 +11,12 @@
 import deep_heating/actor/trv_actor.{type TrvUpdate, TrvUpdate}
 import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/home_assistant.{type HaClient}
-import gleam/erlang/process.{type Subject}
+import gleam/erlang/process.{type Name, type Subject}
 import gleam/int
 import gleam/list
 import gleam/option.{None, Some}
 import gleam/otp/actor
+import gleam/otp/supervision
 import gleam/set.{type Set}
 
 /// Messages handled by the HaPollerActor
@@ -99,6 +100,58 @@ pub fn start(
   })
   |> actor.on_message(handle_message)
   |> actor.start
+}
+
+/// Start the HaPollerActor and register it with the given name
+pub fn start_named(
+  name: Name(Message),
+  ha_client: HaClient,
+  config: PollerConfig,
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  // Create an internal event spy - events are currently discarded
+  // TODO: Route events to appropriate actors
+  let event_spy: Subject(PollerEvent) = process.new_subject()
+
+  actor.new_with_initialiser(1000, fn(self_subject) {
+    let initial_state =
+      State(
+        ha_client: ha_client,
+        config: config,
+        event_spy: event_spy,
+        self_subject: self_subject,
+        is_polling: False,
+        last_sleep_button_state: "",
+        mock_response: None,
+      )
+    actor.initialised(initial_state)
+    |> actor.returning(self_subject)
+    |> Ok
+  })
+  |> actor.on_message(handle_message)
+  |> actor.start
+  |> register_with_name(name)
+}
+
+/// Create a child specification for supervision
+pub fn child_spec(
+  name: Name(Message),
+  ha_client: HaClient,
+  config: PollerConfig,
+) -> supervision.ChildSpecification(Subject(Message)) {
+  supervision.worker(fn() { start_named(name, ha_client, config) })
+}
+
+fn register_with_name(
+  result: Result(actor.Started(Subject(Message)), actor.StartError),
+  name: Name(Message),
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  case result {
+    Ok(started) -> {
+      let _ = process.register(started.pid, name)
+      Ok(started)
+    }
+    Error(e) -> Error(e)
+  }
 }
 
 fn handle_message(state: State, message: Message) -> actor.Next(State, Message) {
