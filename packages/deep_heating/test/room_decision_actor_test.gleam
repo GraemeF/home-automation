@@ -85,8 +85,8 @@ pub fn sends_room_target_when_room_at_temperature_test() {
 }
 
 pub fn pushes_trv_target_higher_when_room_is_cold_test() {
-  // When room is more than 0.5°C below target, push TRV 2°C higher
-  // to compensate for heat loss
+  // When room is cold, offset formula pushes TRV higher to compensate
+  // Formula: trvTarget = roomTarget + trvTemp - roomTemp
   let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
     process.new_subject()
 
@@ -94,7 +94,8 @@ pub fn pushes_trv_target_higher_when_room_is_cold_test() {
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
-  // Room at 19°C, target 20°C (diff = 1°C > 0.5) - TRV should be set to 22°C
+  // Room at 19°C, target 20°C, TRV reads 20°C
+  // Offset formula: 20 + 20 - 19 = 21°C
   let room_state =
     make_room_state_with_trv(
       room_temp: temperature.temperature(19.0),
@@ -110,14 +111,15 @@ pub fn pushes_trv_target_higher_when_room_is_cold_test() {
   case cmd {
     room_decision_actor.SetTrvTarget(entity_id, target) -> {
       entity_id |> should.equal(trv_id)
-      // Should be room target (20) + 2 = 22
-      temperature.unwrap(target) |> should.equal(22.0)
+      // Offset formula: 20 + 20 - 19 = 21
+      temperature.unwrap(target) |> should.equal(21.0)
     }
   }
 }
 
 pub fn backs_off_trv_when_room_is_hot_test() {
-  // When room is more than 0.5°C above target, back off TRV by 1°C
+  // When room is hot, offset formula backs off TRV
+  // Formula: trvTarget = roomTarget + trvTemp - roomTemp
   let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
     process.new_subject()
 
@@ -125,7 +127,8 @@ pub fn backs_off_trv_when_room_is_hot_test() {
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
-  // Room at 21°C, target 20°C (diff = -1°C < -0.5) - TRV should be set to 19°C
+  // Room at 21°C, target 20°C, TRV reads 20°C
+  // Offset formula: 20 + 20 - 21 = 19°C
   let room_state =
     make_room_state_with_trv(
       room_temp: temperature.temperature(21.0),
@@ -141,7 +144,7 @@ pub fn backs_off_trv_when_room_is_hot_test() {
   case cmd {
     room_decision_actor.SetTrvTarget(entity_id, target) -> {
       entity_id |> should.equal(trv_id)
-      // Should be room target (20) - 1 = 19
+      // Offset formula: 20 + 20 - 21 = 19
       temperature.unwrap(target) |> should.equal(19.0)
     }
   }
@@ -384,6 +387,46 @@ pub fn handles_completely_unknown_trv_test() {
       entity_id |> should.equal(trv_id)
       // Should fall back to room target
       temperature.unwrap(target) |> should.equal(20.0)
+    }
+  }
+}
+
+// =============================================================================
+// Offset-based Compensation Tests
+// =============================================================================
+
+pub fn offset_formula_accounts_for_trv_temperature_test() {
+  // The offset formula: trvTarget = roomTarget + trvTemp - roomTemp
+  // This compensates for TRVs that read differently from the room sensor
+  //
+  // Example: TRV reads 4°C higher than external sensor
+  // - Room target: 20°C, Room temp: 18°C, TRV temp: 22°C
+  // - Formula: 20 + 22 - 18 = 24°C
+  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+    process.new_subject()
+
+  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  let room_state =
+    make_room_state_with_trv(
+      room_temp: temperature.temperature(18.0),
+      target_temp: temperature.temperature(20.0),
+      trv_id: trv_id,
+      trv_temp: temperature.temperature(22.0),
+    )
+
+  process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
+
+  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+
+  case cmd {
+    room_decision_actor.SetTrvTarget(entity_id, target) -> {
+      entity_id |> should.equal(trv_id)
+      // Offset formula: 20 + 22 - 18 = 24°C
+      // Round up (heating required): 24.0
+      temperature.unwrap(target) |> should.equal(24.0)
     }
   }
 }

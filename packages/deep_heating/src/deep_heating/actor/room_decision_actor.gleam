@@ -66,9 +66,13 @@ fn evaluate_and_send_commands(
       dict.fold(
         room_state.trv_states,
         state,
-        fn(current_state, entity_id, _trv_state) {
+        fn(current_state, entity_id, trv_state) {
           let desired_target =
-            compute_desired_trv_target(room_target, room_state.temperature)
+            compute_desired_trv_target(
+              room_target,
+              room_state.temperature,
+              trv_state.temperature,
+            )
 
           // Only send if target has changed
           let last_target = dict.get(current_state.last_sent_targets, entity_id)
@@ -102,28 +106,27 @@ fn evaluate_and_send_commands(
   }
 }
 
-/// Compute the desired TRV target based on room temperature.
-/// If room is cold (>0.5°C below target), push TRV higher to compensate.
-/// If room is hot (>0.5°C above target), back off TRV.
+/// Compute the desired TRV target using offset-based compensation.
+/// Formula: trvTarget = roomTarget + trvTemp - roomTemp
+///
+/// This compensates for TRVs that read differently from the external room sensor.
+/// If TRV reads higher than room, we set a lower target on the TRV.
+/// If TRV reads lower than room, we set a higher target on the TRV.
 fn compute_desired_trv_target(
   room_target: Temperature,
   room_temp: option.Option(Temperature),
+  trv_temp: option.Option(Temperature),
 ) -> Temperature {
-  case room_temp {
-    option.None -> room_target
-    option.Some(actual) -> {
-      let diff = temperature.unwrap(room_target) -. temperature.unwrap(actual)
-      case diff {
-        d if d >. 0.5 ->
-          // Room is cold, push TRV higher
-          temperature.temperature(temperature.unwrap(room_target) +. 2.0)
-        d if d <. -0.5 ->
-          // Room is hot, back off TRV
-          temperature.temperature(temperature.unwrap(room_target) -. 1.0)
-        _ ->
-          // Room at target
-          room_target
-      }
+  case room_temp, trv_temp {
+    // Both temperatures available - use offset formula
+    option.Some(room), option.Some(trv) -> {
+      let target =
+        temperature.unwrap(room_target)
+        +. temperature.unwrap(trv)
+        -. temperature.unwrap(room)
+      temperature.temperature(target)
     }
+    // Missing room or TRV temp - fall back to room target
+    _, _ -> room_target
   }
 }
