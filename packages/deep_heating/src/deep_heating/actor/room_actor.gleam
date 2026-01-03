@@ -13,7 +13,8 @@ import deep_heating/schedule.{type WeekSchedule}
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Subject}
-import gleam/option.{type Option, None}
+import gleam/float
+import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
 
 /// State of a single TRV within the room
@@ -64,6 +65,10 @@ pub type Message {
   TrvTargetChanged(entity_id: ClimateEntityId, target: Temperature)
   /// House-wide mode changed (from HouseModeActor)
   HouseModeChanged(mode: HouseMode)
+  /// User adjustment changed (from WebSocket client)
+  AdjustmentChanged(adjustment: Float)
+  /// External temperature sensor reading changed (from HaPollerActor)
+  ExternalTempChanged(temperature: Temperature)
 }
 
 /// Internal actor state including dependencies
@@ -130,6 +135,19 @@ fn handle_message(
       notify_state_changed(new_state)
       actor.continue(new_state)
     }
+    AdjustmentChanged(adjustment) -> {
+      let clamped = clamp_adjustment(adjustment)
+      let new_room = RoomState(..state.room, adjustment: clamped)
+      let new_state = ActorState(..state, room: new_room)
+      notify_state_changed(new_state)
+      actor.continue(new_state)
+    }
+    ExternalTempChanged(temperature) -> {
+      let new_room = RoomState(..state.room, temperature: Some(temperature))
+      let new_state = ActorState(..state, room: new_room)
+      notify_state_changed(new_state)
+      actor.continue(new_state)
+    }
   }
 }
 
@@ -172,4 +190,14 @@ fn update_trv_target(
 
 fn notify_state_changed(state: ActorState) -> Nil {
   process.send(state.decision_actor, RoomStateChanged(state.room))
+}
+
+const min_adjustment: Float = -3.0
+
+const max_adjustment: Float = 3.0
+
+fn clamp_adjustment(value: Float) -> Float {
+  value
+  |> float.max(min_adjustment)
+  |> float.min(max_adjustment)
 }

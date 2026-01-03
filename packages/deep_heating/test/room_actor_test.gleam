@@ -291,3 +291,114 @@ pub fn room_actor_notifies_decision_actor_on_house_mode_change_test() {
     }
   }
 }
+
+// =============================================================================
+// Adjustment Tests
+// =============================================================================
+
+pub fn room_actor_handles_adjustment_change_test() {
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  // Send adjustment change
+  process.send(started.data, room_actor.AdjustmentChanged(2.0))
+
+  process.sleep(10)
+
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  state.adjustment |> should.equal(2.0)
+}
+
+pub fn room_actor_clamps_adjustment_to_max_test() {
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  // Try to set adjustment above max (3.0)
+  process.send(started.data, room_actor.AdjustmentChanged(5.0))
+
+  process.sleep(10)
+
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  // Should be clamped to 3.0
+  state.adjustment |> should.equal(3.0)
+}
+
+pub fn room_actor_clamps_adjustment_to_min_test() {
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  // Try to set adjustment below min (-3.0)
+  process.send(started.data, room_actor.AdjustmentChanged(-5.0))
+
+  process.sleep(10)
+
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  // Should be clamped to -3.0
+  state.adjustment |> should.equal(-3.0)
+}
+
+// =============================================================================
+// External Temperature Tests
+// =============================================================================
+
+pub fn room_actor_tracks_external_temperature_test() {
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  // Send external temperature update
+  let temp = temperature.temperature(19.5)
+  process.send(started.data, room_actor.ExternalTempChanged(temp))
+
+  process.sleep(10)
+
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  state.temperature |> should.equal(option.Some(temp))
+}
