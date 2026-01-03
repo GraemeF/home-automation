@@ -8,7 +8,7 @@
 //// - Notify RoomDecisionActor and StateAggregator on changes
 
 import deep_heating/entity_id.{type ClimateEntityId}
-import deep_heating/mode.{type HouseMode, HouseModeAuto}
+import deep_heating/mode.{type HouseMode, type HvacMode, HouseModeAuto, HvacOff}
 import deep_heating/schedule.{type WeekSchedule}
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
@@ -24,6 +24,10 @@ pub type TrvState {
     temperature: Option(Temperature),
     /// Current target temperature the TRV is set to
     target: Option(Temperature),
+    /// Current HVAC mode of the TRV
+    mode: HvacMode,
+    /// Whether the TRV is currently heating
+    is_heating: Bool,
   )
 }
 
@@ -63,6 +67,10 @@ pub type Message {
   TrvTemperatureChanged(entity_id: ClimateEntityId, temperature: Temperature)
   /// TRV target temperature changed (from TrvActor)
   TrvTargetChanged(entity_id: ClimateEntityId, target: Temperature)
+  /// TRV HVAC mode changed (from TrvActor)
+  TrvModeChanged(entity_id: ClimateEntityId, mode: HvacMode)
+  /// TRV is_heating status changed (from TrvActor)
+  TrvIsHeatingChanged(entity_id: ClimateEntityId, is_heating: Bool)
   /// House-wide mode changed (from HouseModeActor)
   HouseModeChanged(mode: HouseMode)
   /// User adjustment changed (from WebSocket client)
@@ -129,6 +137,16 @@ fn handle_message(
       notify_state_changed(new_state)
       actor.continue(new_state)
     }
+    TrvModeChanged(entity_id, trv_mode) -> {
+      let new_state = update_trv_mode(state, entity_id, trv_mode)
+      notify_state_changed(new_state)
+      actor.continue(new_state)
+    }
+    TrvIsHeatingChanged(entity_id, is_heating) -> {
+      let new_state = update_trv_is_heating(state, entity_id, is_heating)
+      notify_state_changed(new_state)
+      actor.continue(new_state)
+    }
     HouseModeChanged(new_mode) -> {
       let new_room = RoomState(..state.room, house_mode: new_mode)
       let new_state = ActorState(..state, room: new_room)
@@ -159,7 +177,12 @@ fn update_trv_temperature(
   let current_trv =
     dict.get(state.room.trv_states, entity_id)
     |> option.from_result
-    |> option.unwrap(TrvState(temperature: None, target: None))
+    |> option.unwrap(TrvState(
+      temperature: None,
+      target: None,
+      mode: HvacOff,
+      is_heating: False,
+    ))
 
   let updated_trv =
     TrvState(..current_trv, temperature: option.Some(temperature))
@@ -178,9 +201,60 @@ fn update_trv_target(
   let current_trv =
     dict.get(state.room.trv_states, entity_id)
     |> option.from_result
-    |> option.unwrap(TrvState(temperature: None, target: None))
+    |> option.unwrap(TrvState(
+      temperature: None,
+      target: None,
+      mode: HvacOff,
+      is_heating: False,
+    ))
 
   let updated_trv = TrvState(..current_trv, target: option.Some(target))
+
+  let new_trv_states =
+    dict.insert(state.room.trv_states, entity_id, updated_trv)
+  let new_room = RoomState(..state.room, trv_states: new_trv_states)
+  ActorState(..state, room: new_room)
+}
+
+fn update_trv_mode(
+  state: ActorState,
+  entity_id: ClimateEntityId,
+  trv_mode: HvacMode,
+) -> ActorState {
+  let current_trv =
+    dict.get(state.room.trv_states, entity_id)
+    |> option.from_result
+    |> option.unwrap(TrvState(
+      temperature: None,
+      target: None,
+      mode: HvacOff,
+      is_heating: False,
+    ))
+
+  let updated_trv = TrvState(..current_trv, mode: trv_mode)
+
+  let new_trv_states =
+    dict.insert(state.room.trv_states, entity_id, updated_trv)
+  let new_room = RoomState(..state.room, trv_states: new_trv_states)
+  ActorState(..state, room: new_room)
+}
+
+fn update_trv_is_heating(
+  state: ActorState,
+  entity_id: ClimateEntityId,
+  is_heating: Bool,
+) -> ActorState {
+  let current_trv =
+    dict.get(state.room.trv_states, entity_id)
+    |> option.from_result
+    |> option.unwrap(TrvState(
+      temperature: None,
+      target: None,
+      mode: HvacOff,
+      is_heating: False,
+    ))
+
+  let updated_trv = TrvState(..current_trv, is_heating: is_heating)
 
   let new_trv_states =
     dict.insert(state.room.trv_states, entity_id, updated_trv)

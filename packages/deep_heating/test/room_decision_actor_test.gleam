@@ -23,6 +23,8 @@ fn make_room_state_with_trv(
     room_actor.TrvState(
       temperature: option.Some(trv_temp),
       target: option.Some(temperature.temperature(20.0)),
+      mode: mode.HvacHeat,
+      is_heating: False,
     )
   room_actor.RoomState(
     name: "lounge",
@@ -165,6 +167,8 @@ pub fn uses_room_target_when_no_external_sensor_test() {
     room_actor.TrvState(
       temperature: option.Some(temperature.temperature(20.0)),
       target: option.Some(temperature.temperature(20.0)),
+      mode: mode.HvacHeat,
+      is_heating: False,
     )
   let room_state =
     room_actor.RoomState(
@@ -237,11 +241,15 @@ pub fn handles_multiple_trvs_in_room_test() {
     room_actor.TrvState(
       temperature: option.Some(temperature.temperature(20.0)),
       target: option.Some(temperature.temperature(20.0)),
+      mode: mode.HvacHeat,
+      is_heating: False,
     )
   let trv_state2 =
     room_actor.TrvState(
       temperature: option.Some(temperature.temperature(19.5)),
       target: option.Some(temperature.temperature(20.0)),
+      mode: mode.HvacHeat,
+      is_heating: False,
     )
   let room_state =
     room_actor.RoomState(
@@ -291,6 +299,8 @@ pub fn handles_trv_with_missing_temperature_test() {
       temperature: option.None,
       // No temp reading!
       target: option.Some(temperature.temperature(20.0)),
+      mode: mode.HvacHeat,
+      is_heating: False,
     )
   let room_state =
     room_actor.RoomState(
@@ -330,6 +340,8 @@ pub fn handles_trv_with_missing_target_test() {
     room_actor.TrvState(
       temperature: option.Some(temperature.temperature(20.0)),
       target: option.None,
+      mode: mode.HvacHeat,
+      is_heating: False,
     )
   let room_state =
     room_actor.RoomState(
@@ -366,7 +378,12 @@ pub fn handles_completely_unknown_trv_test() {
 
   // TRV state with no data at all
   let trv_state =
-    room_actor.TrvState(temperature: option.None, target: option.None)
+    room_actor.TrvState(
+      temperature: option.None,
+      target: option.None,
+      mode: mode.HvacHeat,
+      is_heating: False,
+    )
   let room_state =
     room_actor.RoomState(
       name: "lounge",

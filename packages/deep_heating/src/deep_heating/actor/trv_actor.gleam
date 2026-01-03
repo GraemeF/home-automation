@@ -52,6 +52,10 @@ pub type RoomMessage {
   TrvTemperatureChanged(entity_id: ClimateEntityId, temperature: Temperature)
   /// TRV target temperature changed
   TrvTargetChanged(entity_id: ClimateEntityId, target: Temperature)
+  /// TRV HVAC mode changed
+  TrvModeChanged(entity_id: ClimateEntityId, mode: HvacMode)
+  /// TRV is_heating status changed
+  TrvIsHeatingChanged(entity_id: ClimateEntityId, is_heating: Bool)
 }
 
 /// Commands to send to Home Assistant
@@ -133,6 +137,22 @@ fn handle_message(
         new_trv.target,
       )
 
+      // Notify room actor of mode changes
+      notify_mode_change(
+        state.room_actor,
+        old_trv.entity_id,
+        old_trv.mode,
+        new_trv.mode,
+      )
+
+      // Notify room actor of is_heating changes
+      notify_is_heating_change(
+        state.room_actor,
+        old_trv.entity_id,
+        old_trv.is_heating,
+        new_trv.is_heating,
+      )
+
       actor.continue(ActorState(..state, trv: new_trv))
     }
     SetTarget(target) -> {
@@ -176,5 +196,30 @@ fn notify_target_change(
       process.send(room_actor, TrvTargetChanged(entity_id, target))
     }
     _, _ -> Nil
+  }
+}
+
+fn notify_mode_change(
+  room_actor: Subject(RoomMessage),
+  entity_id: ClimateEntityId,
+  old_mode: HvacMode,
+  new_mode: HvacMode,
+) -> Nil {
+  case old_mode != new_mode {
+    True -> process.send(room_actor, TrvModeChanged(entity_id, new_mode))
+    False -> Nil
+  }
+}
+
+fn notify_is_heating_change(
+  room_actor: Subject(RoomMessage),
+  entity_id: ClimateEntityId,
+  old_is_heating: Bool,
+  new_is_heating: Bool,
+) -> Nil {
+  case old_is_heating != new_is_heating {
+    True ->
+      process.send(room_actor, TrvIsHeatingChanged(entity_id, new_is_heating))
+    False -> Nil
   }
 }

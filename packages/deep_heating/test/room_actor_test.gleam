@@ -402,3 +402,121 @@ pub fn room_actor_tracks_external_temperature_test() {
 
   state.temperature |> should.equal(option.Some(temp))
 }
+
+// =============================================================================
+// TRV Mode Change Tests
+// =============================================================================
+
+pub fn room_actor_tracks_trv_mode_test() {
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // Send TRV mode update
+  process.send(started.data, room_actor.TrvModeChanged(trv_id, mode.HvacHeat))
+
+  process.sleep(10)
+
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  let assert Ok(trv_state) = dict.get(state.trv_states, trv_id)
+  trv_state.mode |> should.equal(mode.HvacHeat)
+}
+
+pub fn room_actor_notifies_decision_actor_on_trv_mode_change_test() {
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // Send TRV mode update
+  process.send(started.data, room_actor.TrvModeChanged(trv_id, mode.HvacHeat))
+
+  // Decision actor should receive notification
+  let assert Ok(msg) = process.receive(decision_actor, 1000)
+  case msg {
+    room_actor.RoomStateChanged(state) -> {
+      state.name |> should.equal("lounge")
+    }
+  }
+}
+
+// =============================================================================
+// TRV Is Heating Change Tests
+// =============================================================================
+
+pub fn room_actor_tracks_trv_is_heating_test() {
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // Send TRV is_heating update
+  process.send(started.data, room_actor.TrvIsHeatingChanged(trv_id, True))
+
+  process.sleep(10)
+
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  let assert Ok(trv_state) = dict.get(state.trv_states, trv_id)
+  trv_state.is_heating |> should.be_true
+}
+
+pub fn room_actor_notifies_decision_actor_on_trv_is_heating_change_test() {
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // Send TRV is_heating update
+  process.send(started.data, room_actor.TrvIsHeatingChanged(trv_id, True))
+
+  // Decision actor should receive notification
+  let assert Ok(msg) = process.receive(decision_actor, 1000)
+  case msg {
+    room_actor.RoomStateChanged(state) -> {
+      state.name |> should.equal("lounge")
+    }
+  }
+}

@@ -248,3 +248,135 @@ pub fn trv_actor_forwards_set_mode_to_ha_commands_test() {
     _ -> should.fail()
   }
 }
+
+// =============================================================================
+// Mode Change Notification Tests
+// =============================================================================
+
+pub fn trv_actor_notifies_room_on_mode_change_test() {
+  let assert Ok(entity_id) = entity_id.climate_entity_id("climate.lounge_trv")
+  let room_actor: process.Subject(trv_actor.RoomMessage) = process.new_subject()
+  let ha_commands = process.new_subject()
+
+  let assert Ok(started) = trv_actor.start(entity_id, room_actor, ha_commands)
+
+  // Send an update with a new mode (initial mode is HvacOff)
+  let update =
+    trv_actor.TrvUpdate(
+      temperature: option.None,
+      target: option.None,
+      mode: mode.HvacHeat,
+      is_heating: False,
+    )
+
+  process.send(started.data, trv_actor.Update(update))
+
+  // Room actor should receive a mode changed notification
+  let assert Ok(msg) = process.receive(room_actor, 1000)
+  case msg {
+    trv_actor.TrvModeChanged(eid, received_mode) -> {
+      entity_id.climate_entity_id_to_string(eid)
+      |> should.equal("climate.lounge_trv")
+      received_mode |> should.equal(mode.HvacHeat)
+    }
+    _ -> should.fail()
+  }
+}
+
+pub fn trv_actor_does_not_notify_when_mode_unchanged_test() {
+  let assert Ok(entity_id) = entity_id.climate_entity_id("climate.lounge_trv")
+  let room_actor: process.Subject(trv_actor.RoomMessage) = process.new_subject()
+  let ha_commands = process.new_subject()
+
+  let assert Ok(started) = trv_actor.start(entity_id, room_actor, ha_commands)
+
+  // Set initial mode to HvacHeat
+  let update =
+    trv_actor.TrvUpdate(
+      temperature: option.None,
+      target: option.None,
+      mode: mode.HvacHeat,
+      is_heating: False,
+    )
+  process.send(started.data, trv_actor.Update(update))
+
+  // Drain the first notification
+  let _ = process.receive(room_actor, 100)
+
+  // Send the same mode again
+  process.send(started.data, trv_actor.Update(update))
+
+  // Should NOT receive another notification (timeout expected)
+  case process.receive(room_actor, 50) {
+    Error(_) -> Nil
+    // Expected - no message
+    Ok(_) -> should.fail()
+    // Unexpected message
+  }
+}
+
+// =============================================================================
+// Is Heating Change Notification Tests
+// =============================================================================
+
+pub fn trv_actor_notifies_room_on_is_heating_change_test() {
+  let assert Ok(entity_id) = entity_id.climate_entity_id("climate.lounge_trv")
+  let room_actor: process.Subject(trv_actor.RoomMessage) = process.new_subject()
+  let ha_commands = process.new_subject()
+
+  let assert Ok(started) = trv_actor.start(entity_id, room_actor, ha_commands)
+
+  // Send an update with is_heating = True (initial is False)
+  let update =
+    trv_actor.TrvUpdate(
+      temperature: option.None,
+      target: option.None,
+      mode: mode.HvacOff,
+      is_heating: True,
+    )
+
+  process.send(started.data, trv_actor.Update(update))
+
+  // Room actor should receive an is_heating changed notification
+  let assert Ok(msg) = process.receive(room_actor, 1000)
+  case msg {
+    trv_actor.TrvIsHeatingChanged(eid, is_heating) -> {
+      entity_id.climate_entity_id_to_string(eid)
+      |> should.equal("climate.lounge_trv")
+      is_heating |> should.be_true
+    }
+    _ -> should.fail()
+  }
+}
+
+pub fn trv_actor_does_not_notify_when_is_heating_unchanged_test() {
+  let assert Ok(entity_id) = entity_id.climate_entity_id("climate.lounge_trv")
+  let room_actor: process.Subject(trv_actor.RoomMessage) = process.new_subject()
+  let ha_commands = process.new_subject()
+
+  let assert Ok(started) = trv_actor.start(entity_id, room_actor, ha_commands)
+
+  // Set initial is_heating to True
+  let update =
+    trv_actor.TrvUpdate(
+      temperature: option.None,
+      target: option.None,
+      mode: mode.HvacOff,
+      is_heating: True,
+    )
+  process.send(started.data, trv_actor.Update(update))
+
+  // Drain the first notification
+  let _ = process.receive(room_actor, 100)
+
+  // Send the same is_heating again
+  process.send(started.data, trv_actor.Update(update))
+
+  // Should NOT receive another notification (timeout expected)
+  case process.receive(room_actor, 50) {
+    Error(_) -> Nil
+    // Expected - no message
+    Ok(_) -> should.fail()
+    // Unexpected message
+  }
+}
