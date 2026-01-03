@@ -8,14 +8,49 @@
 //// - Notify RoomDecisionActor and StateAggregator on changes
 
 import deep_heating/entity_id.{type ClimateEntityId}
-import deep_heating/mode.{type HouseMode, type HvacMode, HouseModeAuto, HvacOff}
-import deep_heating/schedule.{type WeekSchedule}
+import deep_heating/mode.{
+  type HouseMode, type HvacMode, HouseModeAuto, HouseModeSleeping, HvacOff,
+}
+import deep_heating/schedule.{type TimeOfDay, type WeekSchedule, type Weekday}
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Subject}
 import gleam/float
 import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
+
+// =============================================================================
+// Erlang FFI for getting current time and weekday
+// =============================================================================
+
+/// Get current local time from Erlang calendar
+@external(erlang, "calendar", "local_time")
+fn erlang_local_time() -> #(#(Int, Int, Int), #(Int, Int, Int))
+
+/// Get day of week (1=Monday, 7=Sunday) from Erlang calendar
+@external(erlang, "calendar", "day_of_the_week")
+fn erlang_day_of_the_week(year: Int, month: Int, day: Int) -> Int
+
+/// Convert Erlang day-of-week int (1=Monday, 7=Sunday) to Weekday
+fn int_to_weekday(day_int: Int) -> Weekday {
+  case day_int {
+    1 -> schedule.Monday
+    2 -> schedule.Tuesday
+    3 -> schedule.Wednesday
+    4 -> schedule.Thursday
+    5 -> schedule.Friday
+    6 -> schedule.Saturday
+    _ -> schedule.Sunday
+  }
+}
+
+/// Get current time and weekday from system
+fn get_current_datetime() -> #(Weekday, TimeOfDay) {
+  let #(#(year, month, day), #(hour, minute, _second)) = erlang_local_time()
+  let weekday = int_to_weekday(erlang_day_of_the_week(year, month, day))
+  let assert Ok(time) = schedule.time_of_day(hour, minute)
+  #(weekday, time)
+}
 
 /// State of a single TRV within the room
 pub type TrvState {
@@ -96,11 +131,22 @@ pub fn start(
   decision_actor decision_actor: Subject(DecisionMessage),
   state_aggregator state_aggregator: Subject(AggregatorMessage),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  // Compute initial target temperature based on schedule and current time
+  let #(weekday, time) = get_current_datetime()
+  let initial_target =
+    compute_target_temperature(
+      schedule: schedule,
+      house_mode: HouseModeAuto,
+      adjustment: 0.0,
+      day: weekday,
+      time: time,
+    )
+
   let initial_room =
     RoomState(
       name: name,
       temperature: None,
-      target_temperature: None,
+      target_temperature: initial_target,
       house_mode: HouseModeAuto,
       adjustment: 0.0,
       trv_states: dict.new(),
@@ -149,14 +195,18 @@ fn handle_message(
     }
     HouseModeChanged(new_mode) -> {
       let new_room = RoomState(..state.room, house_mode: new_mode)
-      let new_state = ActorState(..state, room: new_room)
+      let updated_state = ActorState(..state, room: new_room)
+      // Recompute target temperature with new house mode
+      let new_state = recompute_room_target(updated_state)
       notify_state_changed(new_state)
       actor.continue(new_state)
     }
     AdjustmentChanged(adjustment) -> {
       let clamped = clamp_adjustment(adjustment)
       let new_room = RoomState(..state.room, adjustment: clamped)
-      let new_state = ActorState(..state, room: new_room)
+      let updated_state = ActorState(..state, room: new_room)
+      // Recompute target temperature with new adjustment
+      let new_state = recompute_room_target(updated_state)
       notify_state_changed(new_state)
       actor.continue(new_state)
     }
@@ -264,6 +314,50 @@ fn update_trv_is_heating(
 
 fn notify_state_changed(state: ActorState) -> Nil {
   process.send(state.decision_actor, RoomStateChanged(state.room))
+}
+
+/// Recompute the target temperature for the room based on current state and time
+fn recompute_room_target(state: ActorState) -> ActorState {
+  let #(weekday, time) = get_current_datetime()
+  let new_target =
+    compute_target_temperature(
+      schedule: state.schedule,
+      house_mode: state.room.house_mode,
+      adjustment: state.room.adjustment,
+      day: weekday,
+      time: time,
+    )
+  let new_room = RoomState(..state.room, target_temperature: new_target)
+  ActorState(..state, room: new_room)
+}
+
+/// Compute the target temperature based on schedule, house mode, and adjustment.
+/// This is a pure function that can be tested independently of the actor.
+///
+/// - In Auto mode: scheduled temp + adjustment, clamped to [min_room_target, max_trv_command_target]
+/// - In Sleeping mode: returns min_room_target (16°C)
+pub fn compute_target_temperature(
+  schedule schedule: WeekSchedule,
+  house_mode house_mode: HouseMode,
+  adjustment adjustment: Float,
+  day day: Weekday,
+  time time: TimeOfDay,
+) -> Option(Temperature) {
+  case house_mode {
+    HouseModeSleeping -> Some(temperature.min_room_target)
+    HouseModeAuto -> {
+      let scheduled = schedule.get_scheduled_temperature(schedule, day, time)
+      let adjusted =
+        temperature.add(scheduled, temperature.temperature(adjustment))
+      let clamped =
+        temperature.clamp(
+          adjusted,
+          temperature.min_room_target,
+          temperature.max_trv_command_target,
+        )
+      Some(clamped)
+    }
+  }
 }
 
 const min_adjustment: Float = -3.0

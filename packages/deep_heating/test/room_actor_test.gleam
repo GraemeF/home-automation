@@ -520,3 +520,247 @@ pub fn room_actor_notifies_decision_actor_on_trv_is_heating_change_test() {
     }
   }
 }
+
+// =============================================================================
+// Target Temperature Calculation Tests
+// =============================================================================
+
+pub fn compute_target_temp_returns_scheduled_in_auto_mode_test() {
+  // Schedule: 20°C all day
+  let schedule = make_test_schedule()
+  let assert Ok(time) = schedule.time_of_day(10, 0)
+
+  // In Auto mode with no adjustment, should return scheduled temp (20°C)
+  let result =
+    room_actor.compute_target_temperature(
+      schedule: schedule,
+      house_mode: mode.HouseModeAuto,
+      adjustment: 0.0,
+      day: schedule.Monday,
+      time: time,
+    )
+
+  result |> should.equal(option.Some(temperature.temperature(20.0)))
+}
+
+pub fn compute_target_temp_applies_positive_adjustment_test() {
+  let schedule = make_test_schedule()
+  let assert Ok(time) = schedule.time_of_day(10, 0)
+
+  // With +2°C adjustment, should return 22°C
+  let result =
+    room_actor.compute_target_temperature(
+      schedule: schedule,
+      house_mode: mode.HouseModeAuto,
+      adjustment: 2.0,
+      day: schedule.Monday,
+      time: time,
+    )
+
+  result |> should.equal(option.Some(temperature.temperature(22.0)))
+}
+
+pub fn compute_target_temp_applies_negative_adjustment_test() {
+  let schedule = make_test_schedule()
+  let assert Ok(time) = schedule.time_of_day(10, 0)
+
+  // With -2°C adjustment, should return 18°C
+  let result =
+    room_actor.compute_target_temperature(
+      schedule: schedule,
+      house_mode: mode.HouseModeAuto,
+      adjustment: -2.0,
+      day: schedule.Monday,
+      time: time,
+    )
+
+  result |> should.equal(option.Some(temperature.temperature(18.0)))
+}
+
+pub fn compute_target_temp_clamps_to_min_room_target_test() {
+  // Schedule with low temp (10°C)
+  let assert Ok(time) = schedule.time_of_day(0, 0)
+  let entry =
+    schedule.ScheduleEntry(
+      start: time,
+      target_temperature: temperature.temperature(10.0),
+    )
+  let day = [entry]
+  let low_schedule =
+    schedule.WeekSchedule(
+      monday: day,
+      tuesday: day,
+      wednesday: day,
+      thursday: day,
+      friday: day,
+      saturday: day,
+      sunday: day,
+    )
+
+  // Even with 10°C scheduled, should clamp to min (16°C)
+  let result =
+    room_actor.compute_target_temperature(
+      schedule: low_schedule,
+      house_mode: mode.HouseModeAuto,
+      adjustment: 0.0,
+      day: schedule.Monday,
+      time: time,
+    )
+
+  result |> should.equal(option.Some(temperature.min_room_target))
+}
+
+pub fn compute_target_temp_clamps_to_max_trv_target_test() {
+  // Schedule with high temp (40°C)
+  let assert Ok(time) = schedule.time_of_day(0, 0)
+  let entry =
+    schedule.ScheduleEntry(
+      start: time,
+      target_temperature: temperature.temperature(40.0),
+    )
+  let day = [entry]
+  let high_schedule =
+    schedule.WeekSchedule(
+      monday: day,
+      tuesday: day,
+      wednesday: day,
+      thursday: day,
+      friday: day,
+      saturday: day,
+      sunday: day,
+    )
+
+  // Even with 40°C scheduled, should clamp to max (32°C)
+  let result =
+    room_actor.compute_target_temperature(
+      schedule: high_schedule,
+      house_mode: mode.HouseModeAuto,
+      adjustment: 0.0,
+      day: schedule.Monday,
+      time: time,
+    )
+
+  result |> should.equal(option.Some(temperature.max_trv_command_target))
+}
+
+pub fn compute_target_temp_returns_min_in_sleeping_mode_test() {
+  let schedule = make_test_schedule()
+  let assert Ok(time) = schedule.time_of_day(10, 0)
+
+  // In Sleeping mode, should always return min room target (16°C)
+  // regardless of schedule or adjustment
+  let result =
+    room_actor.compute_target_temperature(
+      schedule: schedule,
+      house_mode: mode.HouseModeSleeping,
+      adjustment: 3.0,
+      day: schedule.Monday,
+      time: time,
+    )
+
+  result |> should.equal(option.Some(temperature.min_room_target))
+}
+
+// =============================================================================
+// Actor Integration Tests - Target Temperature Computed
+// =============================================================================
+
+pub fn room_actor_computes_target_on_startup_test() {
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  // Query state
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  // Target temperature should be computed (not None)
+  state.target_temperature |> option.is_some |> should.be_true
+}
+
+pub fn room_actor_recomputes_target_on_house_mode_change_test() {
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  // Get initial state (should be Auto mode)
+  let reply1 = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply1))
+  let assert Ok(initial_state) = process.receive(reply1, 1000)
+  let assert option.Some(initial_target) = initial_state.target_temperature
+
+  // Change to Sleeping mode
+  process.send(
+    started.data,
+    room_actor.HouseModeChanged(mode.HouseModeSleeping),
+  )
+  process.sleep(10)
+
+  // Get new state
+  let reply2 = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply2))
+  let assert Ok(sleeping_state) = process.receive(reply2, 1000)
+
+  // Target should be min_room_target (16°C) in Sleeping mode
+  sleeping_state.target_temperature
+  |> should.equal(option.Some(temperature.min_room_target))
+
+  // And should be different from initial if schedule was > 16°C
+  // (our test schedule is 20°C)
+  case temperature.eq(initial_target, temperature.min_room_target) {
+    True -> Nil
+    False ->
+      sleeping_state.target_temperature
+      |> should.not_equal(option.Some(initial_target))
+  }
+}
+
+pub fn room_actor_recomputes_target_on_adjustment_change_test() {
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  // Get initial state
+  let reply1 = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply1))
+  let assert Ok(initial_state) = process.receive(reply1, 1000)
+  let assert option.Some(initial_target) = initial_state.target_temperature
+
+  // Apply +2°C adjustment
+  process.send(started.data, room_actor.AdjustmentChanged(2.0))
+  process.sleep(10)
+
+  // Get new state
+  let reply2 = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply2))
+  let assert Ok(adjusted_state) = process.receive(reply2, 1000)
+
+  // Target should be 2°C higher than initial (20°C + 2°C = 22°C)
+  let expected = temperature.add(initial_target, temperature.temperature(2.0))
+  adjusted_state.target_temperature |> should.equal(option.Some(expected))
+}
