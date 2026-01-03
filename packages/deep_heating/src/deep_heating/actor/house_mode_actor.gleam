@@ -83,6 +83,9 @@ pub type Message {
 pub type TimeProvider =
   fn() -> LocalDateTime
 
+/// Default timer interval in milliseconds (63 seconds)
+pub const default_timer_interval_ms: Int = 63_000
+
 /// Internal state of the HouseModeActor
 type State {
   State(
@@ -91,6 +94,7 @@ type State {
     get_now: TimeProvider,
     last_button_press: Result(LocalDateTime, Nil),
     self_subject: Result(Subject(Message), Nil),
+    timer_interval_ms: Int,
   )
 }
 
@@ -100,23 +104,47 @@ pub fn start_link() -> Result(Subject(Message), actor.StartError) {
 }
 
 /// Start the HouseModeActor with a custom time provider (for testing)
+/// Uses the default 63-second timer interval
 pub fn start_with_time_provider(
   get_now: TimeProvider,
+) -> Result(Subject(Message), actor.StartError) {
+  start_with_timer_interval(get_now, default_timer_interval_ms)
+}
+
+/// Start the HouseModeActor with custom time provider and timer interval
+/// Timer interval is in milliseconds (use 0 to disable timer)
+pub fn start_with_timer_interval(
+  get_now: TimeProvider,
+  timer_interval_ms: Int,
 ) -> Result(Subject(Message), actor.StartError) {
   // Evaluate initial mode based on current time
   let current_time = get_now()
   let initial_mode = evaluate_mode(current_time, Error(Nil))
 
-  let initial_state =
-    State(
-      mode: initial_mode,
-      room_actors: [],
-      get_now: get_now,
-      last_button_press: Error(Nil),
-      self_subject: Error(Nil),
-    )
+  actor.new_with_initialiser(1000, fn(self_subject) {
+    // Schedule initial timer if interval > 0
+    case timer_interval_ms > 0 {
+      True -> {
+        process.send_after(self_subject, timer_interval_ms, ReEvaluateMode)
+        Nil
+      }
+      False -> Nil
+    }
 
-  actor.new(initial_state)
+    let initial_state =
+      State(
+        mode: initial_mode,
+        room_actors: [],
+        get_now: get_now,
+        last_button_press: Error(Nil),
+        self_subject: Ok(self_subject),
+        timer_interval_ms: timer_interval_ms,
+      )
+
+    actor.initialised(initial_state)
+    |> actor.returning(self_subject)
+    |> Ok
+  })
   |> actor.on_message(handle_message)
   |> actor.start
   |> extract_subject
@@ -130,16 +158,24 @@ pub fn start(
   let current_time = now()
   let initial_mode = evaluate_mode(current_time, Error(Nil))
 
-  let initial_state =
-    State(
-      mode: initial_mode,
-      room_actors: [],
-      get_now: now,
-      last_button_press: Error(Nil),
-      self_subject: Error(Nil),
-    )
+  actor.new_with_initialiser(1000, fn(self_subject) {
+    // Schedule initial timer
+    process.send_after(self_subject, default_timer_interval_ms, ReEvaluateMode)
 
-  actor.new(initial_state)
+    let initial_state =
+      State(
+        mode: initial_mode,
+        room_actors: [],
+        get_now: now,
+        last_button_press: Error(Nil),
+        self_subject: Ok(self_subject),
+        timer_interval_ms: default_timer_interval_ms,
+      )
+
+    actor.initialised(initial_state)
+    |> actor.returning(self_subject)
+    |> Ok
+  })
   |> actor.on_message(handle_message)
   |> actor.start
   |> register_with_name(name)
@@ -246,14 +282,28 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
       // Re-evaluate mode based on current time
       let current_time = state.get_now()
       let new_mode = evaluate_mode(current_time, state.last_button_press)
-      case new_mode != state.mode {
+      let new_state = case new_mode != state.mode {
         True -> {
           broadcast_mode_change(state.room_actors, new_mode)
-          actor.continue(State(..state, mode: new_mode))
+          State(..state, mode: new_mode)
         }
-        False -> actor.continue(state)
+        False -> state
       }
+      // Reschedule the timer for the next evaluation
+      reschedule_timer(new_state)
+      actor.continue(new_state)
     }
+  }
+}
+
+/// Reschedule the timer for the next evaluation cycle
+fn reschedule_timer(state: State) -> Nil {
+  case state.self_subject, state.timer_interval_ms > 0 {
+    Ok(self), True -> {
+      process.send_after(self, state.timer_interval_ms, ReEvaluateMode)
+      Nil
+    }
+    _, _ -> Nil
   }
 }
 

@@ -326,3 +326,127 @@ pub fn mode_transitions_to_auto_after_3am_test() {
   let assert Ok(mode2) = process.receive(reply2, 1000)
   mode2 |> should.equal(mode.HouseModeAuto)
 }
+
+// =============================================================================
+// Auto-Timer Tests
+// =============================================================================
+
+pub fn timer_triggers_automatic_mode_reevaluation_test() {
+  // The actor should automatically re-evaluate mode every timer interval.
+  // We test this by:
+  // 1. Starting at 2:59am (Sleeping)
+  // 2. Time provider returns 3:01am after some time has passed
+  // 3. After timer fires, mode should automatically transition to Auto
+
+  // Use an ETS counter to track call count across process boundaries
+  let counter = create_counter()
+
+  let get_time = fn() {
+    let count = increment_counter(counter)
+    case count {
+      // First call (init) - return 2:59am
+      1 -> make_datetime(2026, 1, 3, 2, 59, 0)
+      // Subsequent calls - return 3:01am (after the 3am threshold)
+      _ -> make_datetime(2026, 1, 3, 3, 1, 0)
+    }
+  }
+
+  // Start actor with short timer interval (100ms for testing)
+  let assert Ok(actor) =
+    house_mode_actor.start_with_timer_interval(get_time, 100)
+
+  // Initially should be Sleeping (2:59am on first call)
+  let reply1 = process.new_subject()
+  process.send(actor, house_mode_actor.GetMode(reply1))
+  let assert Ok(mode1) = process.receive(reply1, 1000)
+  mode1 |> should.equal(mode.HouseModeSleeping)
+
+  // Wait for timer to fire (>100ms)
+  process.sleep(150)
+
+  // Now mode should be Auto (3:01am on timer re-evaluation)
+  let reply2 = process.new_subject()
+  process.send(actor, house_mode_actor.GetMode(reply2))
+  let assert Ok(mode2) = process.receive(reply2, 1000)
+  mode2 |> should.equal(mode.HouseModeAuto)
+
+  // Clean up
+  delete_counter(counter)
+}
+
+pub fn timer_reschedules_after_each_evaluation_test() {
+  // Timer should keep firing periodically, not just once
+  // Test by verifying multiple mode transitions
+
+  let counter = create_counter()
+
+  let get_time = fn() {
+    let count = increment_counter(counter)
+    case count {
+      // First two calls: 2:59am (Sleeping)
+      1 | 2 -> make_datetime(2026, 1, 3, 2, 59, 0)
+      // Third call: 3:01am (Auto)
+      3 -> make_datetime(2026, 1, 3, 3, 1, 0)
+      // Fourth+ calls: 2:30am (back to Sleeping to verify timer keeps firing)
+      _ -> make_datetime(2026, 1, 3, 2, 30, 0)
+    }
+  }
+
+  let assert Ok(actor) =
+    house_mode_actor.start_with_timer_interval(get_time, 50)
+
+  // Initially Sleeping
+  let reply1 = process.new_subject()
+  process.send(actor, house_mode_actor.GetMode(reply1))
+  let assert Ok(mode1) = process.receive(reply1, 1000)
+  mode1 |> should.equal(mode.HouseModeSleeping)
+
+  // Wait for first timer
+  process.sleep(75)
+
+  // Still Sleeping (second call returns 2:59am)
+  let reply2 = process.new_subject()
+  process.send(actor, house_mode_actor.GetMode(reply2))
+  let assert Ok(mode2) = process.receive(reply2, 1000)
+  mode2 |> should.equal(mode.HouseModeSleeping)
+
+  // Wait for second timer
+  process.sleep(75)
+
+  // Now Auto (third call returns 3:01am)
+  let reply3 = process.new_subject()
+  process.send(actor, house_mode_actor.GetMode(reply3))
+  let assert Ok(mode3) = process.receive(reply3, 1000)
+  mode3 |> should.equal(mode.HouseModeAuto)
+
+  // Wait for third timer
+  process.sleep(75)
+
+  // Back to Sleeping (fourth call returns 2:30am) - proves timer keeps firing
+  let reply4 = process.new_subject()
+  process.send(actor, house_mode_actor.GetMode(reply4))
+  let assert Ok(mode4) = process.receive(reply4, 1000)
+  mode4 |> should.equal(mode.HouseModeSleeping)
+
+  // Clean up
+  delete_counter(counter)
+}
+
+// =============================================================================
+// ETS Counter Helpers for Cross-Process State
+// =============================================================================
+
+/// Opaque type for ETS table reference
+type EtsTable
+
+/// Create an ETS counter table, returns table reference
+@external(erlang, "house_mode_actor_test_ffi", "create_counter")
+fn create_counter() -> EtsTable
+
+/// Increment counter and return new value
+@external(erlang, "house_mode_actor_test_ffi", "increment_counter")
+fn increment_counter(table: EtsTable) -> Int
+
+/// Delete counter table
+@external(erlang, "house_mode_actor_test_ffi", "delete_counter")
+fn delete_counter(table: EtsTable) -> Nil
