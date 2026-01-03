@@ -175,7 +175,8 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
         None -> home_assistant.get_states(state.ha_client)
       }
 
-      case json_result {
+      // Track new sleep button state for state update
+      let new_sleep_button_state = case json_result {
         Ok(json) -> {
           // Parse entities and dispatch updates
           case home_assistant.parse_climate_entities(json) {
@@ -198,16 +199,42 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
                   TrvUpdated(entity.entity_id, update),
                 )
               })
-              process.send(state.event_spy, PollCompleted)
+              Nil
             }
-            Error(err) -> {
-              process.send(state.event_spy, PollFailed(ha_error_to_string(err)))
+            Error(_) -> Nil
+          }
+
+          // Check for sleep button state change
+          case
+            home_assistant.find_input_button_state(
+              json,
+              state.config.sleep_button_entity_id,
+            )
+          {
+            Ok(new_state) -> {
+              // Only emit event if state changed and not first poll
+              case
+                state.last_sleep_button_state != ""
+                && new_state != state.last_sleep_button_state
+              {
+                True -> process.send(state.event_spy, SleepButtonPressed)
+                False -> Nil
+              }
+              new_state
             }
+            Error(_) -> state.last_sleep_button_state
           }
         }
         Error(err) -> {
           process.send(state.event_spy, PollFailed(ha_error_to_string(err)))
+          state.last_sleep_button_state
         }
+      }
+
+      // Emit PollCompleted if we got JSON successfully
+      case json_result {
+        Ok(_) -> process.send(state.event_spy, PollCompleted)
+        Error(_) -> Nil
       }
 
       // Schedule next poll if still polling
@@ -224,8 +251,14 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
         False -> Nil
       }
 
-      // Clear mock response after using it
-      actor.continue(State(..state, mock_response: None))
+      // Clear mock response and update sleep button state
+      actor.continue(
+        State(
+          ..state,
+          mock_response: None,
+          last_sleep_button_state: new_sleep_button_state,
+        ),
+      )
     }
     Configure(interval_ms) -> {
       let new_config =

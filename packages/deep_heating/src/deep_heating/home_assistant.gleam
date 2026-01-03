@@ -283,3 +283,33 @@ fn parse_hvac_mode(state: String) -> HvacMode {
     _ -> mode.HvacOff
   }
 }
+
+// -----------------------------------------------------------------------------
+// Input Button Parsing
+// -----------------------------------------------------------------------------
+
+/// Find the state (timestamp) of an input_button entity by entity_id.
+/// Returns the state string if found, or an error if not found.
+pub fn find_input_button_state(
+  json_string: String,
+  entity_id: String,
+) -> Result(String, HaError) {
+  // Decoder for entity_id and state only
+  let entity_decoder =
+    decode.field("entity_id", decode.string, fn(eid) {
+      decode.field("state", decode.string, fn(state) {
+        decode.success(#(eid, state))
+      })
+    })
+
+  json.parse(json_string, decode.list(entity_decoder))
+  |> result.map_error(fn(err) {
+    JsonParseError("Failed to parse entities: " <> string.inspect(err))
+  })
+  |> result.try(fn(entities) {
+    entities
+    |> list.find(fn(pair) { pair.0 == entity_id })
+    |> result.map(fn(pair) { pair.1 })
+    |> result.map_error(fn(_) { EntityNotFound(entity_id) })
+  })
+}

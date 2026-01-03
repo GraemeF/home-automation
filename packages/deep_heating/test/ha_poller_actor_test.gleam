@@ -306,3 +306,151 @@ fn collect_events_loop(
     }
   }
 }
+
+// =============================================================================
+// Sleep Button Detection Tests
+// =============================================================================
+
+pub fn emits_sleep_button_pressed_when_state_changes_test() {
+  // When the sleep button's state (timestamp) changes between polls,
+  // should emit SleepButtonPressed event
+  let event_spy: process.Subject(ha_poller_actor.PollerEvent) =
+    process.new_subject()
+
+  let assert Ok(heating_id) = entity_id.climate_entity_id("climate.main")
+  let config =
+    ha_poller_actor.PollerConfig(
+      poll_interval_ms: 5000,
+      heating_entity_id: heating_id,
+      sleep_button_entity_id: "input_button.goodnight",
+      managed_trv_ids: set.new(),
+    )
+
+  let assert Ok(started) =
+    ha_poller_actor.start(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      config: config,
+      event_spy: event_spy,
+    )
+
+  // First poll with initial timestamp
+  let mock_json_1 =
+    "[{\"entity_id\":\"input_button.goodnight\",\"state\":\"2026-01-03T10:00:00+00:00\",\"attributes\":{}}]"
+  process.send(started.data, ha_poller_actor.InjectMockResponse(mock_json_1))
+  process.send(started.data, ha_poller_actor.PollNow)
+
+  // Wait for poll to complete
+  let _ = collect_events(event_spy, 3, 500)
+
+  // Second poll with DIFFERENT timestamp (button was pressed)
+  let mock_json_2 =
+    "[{\"entity_id\":\"input_button.goodnight\",\"state\":\"2026-01-03T10:05:00+00:00\",\"attributes\":{}}]"
+  process.send(started.data, ha_poller_actor.InjectMockResponse(mock_json_2))
+  process.send(started.data, ha_poller_actor.PollNow)
+
+  // Collect events from second poll
+  let events = collect_events(event_spy, 5, 500)
+
+  // Should have received SleepButtonPressed event
+  let has_sleep_button_pressed =
+    list.any(events, fn(event) {
+      case event {
+        ha_poller_actor.SleepButtonPressed -> True
+        _ -> False
+      }
+    })
+
+  has_sleep_button_pressed |> should.be_true
+}
+
+pub fn does_not_emit_sleep_button_pressed_when_state_unchanged_test() {
+  // When the sleep button's state is the same between polls,
+  // should NOT emit SleepButtonPressed event
+  let event_spy: process.Subject(ha_poller_actor.PollerEvent) =
+    process.new_subject()
+
+  let assert Ok(heating_id) = entity_id.climate_entity_id("climate.main")
+  let config =
+    ha_poller_actor.PollerConfig(
+      poll_interval_ms: 5000,
+      heating_entity_id: heating_id,
+      sleep_button_entity_id: "input_button.goodnight",
+      managed_trv_ids: set.new(),
+    )
+
+  let assert Ok(started) =
+    ha_poller_actor.start(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      config: config,
+      event_spy: event_spy,
+    )
+
+  // First poll with initial timestamp
+  let mock_json =
+    "[{\"entity_id\":\"input_button.goodnight\",\"state\":\"2026-01-03T10:00:00+00:00\",\"attributes\":{}}]"
+  process.send(started.data, ha_poller_actor.InjectMockResponse(mock_json))
+  process.send(started.data, ha_poller_actor.PollNow)
+
+  // Wait for poll to complete
+  let _ = collect_events(event_spy, 3, 500)
+
+  // Second poll with SAME timestamp (button was NOT pressed)
+  process.send(started.data, ha_poller_actor.InjectMockResponse(mock_json))
+  process.send(started.data, ha_poller_actor.PollNow)
+
+  // Collect events from second poll
+  let events = collect_events(event_spy, 5, 500)
+
+  // Should NOT have received SleepButtonPressed event
+  let has_sleep_button_pressed =
+    list.any(events, fn(event) {
+      case event {
+        ha_poller_actor.SleepButtonPressed -> True
+        _ -> False
+      }
+    })
+
+  has_sleep_button_pressed |> should.be_false
+}
+
+pub fn does_not_emit_sleep_button_pressed_on_first_poll_test() {
+  // On first poll, should NOT emit SleepButtonPressed (just learn the state)
+  let event_spy: process.Subject(ha_poller_actor.PollerEvent) =
+    process.new_subject()
+
+  let assert Ok(heating_id) = entity_id.climate_entity_id("climate.main")
+  let config =
+    ha_poller_actor.PollerConfig(
+      poll_interval_ms: 5000,
+      heating_entity_id: heating_id,
+      sleep_button_entity_id: "input_button.goodnight",
+      managed_trv_ids: set.new(),
+    )
+
+  let assert Ok(started) =
+    ha_poller_actor.start(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      config: config,
+      event_spy: event_spy,
+    )
+
+  // First poll - should NOT emit SleepButtonPressed
+  let mock_json =
+    "[{\"entity_id\":\"input_button.goodnight\",\"state\":\"2026-01-03T10:00:00+00:00\",\"attributes\":{}}]"
+  process.send(started.data, ha_poller_actor.InjectMockResponse(mock_json))
+  process.send(started.data, ha_poller_actor.PollNow)
+
+  // Collect all events
+  let events = collect_events(event_spy, 5, 500)
+
+  // Should NOT have received SleepButtonPressed event
+  let has_sleep_button_pressed =
+    list.any(events, fn(event) {
+      case event {
+        ha_poller_actor.SleepButtonPressed -> True
+        _ -> False
+      }
+    })
+
+  has_sleep_button_pressed |> should.be_false
+}

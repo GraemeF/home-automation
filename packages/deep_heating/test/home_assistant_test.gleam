@@ -289,3 +289,42 @@ pub fn parse_climate_entities_handles_unavailable_state_test() {
   entity.hvac_mode |> should.equal(mode.HvacOff)
   entity.is_available |> should.be_false
 }
+
+// -----------------------------------------------------------------------------
+// find_input_button_state tests
+// -----------------------------------------------------------------------------
+
+pub fn find_input_button_state_extracts_state_for_matching_entity_test() {
+  // input_button entities have a state that's a timestamp of last press
+  let json =
+    "[{\"entity_id\":\"input_button.goodnight\",\"state\":\"2026-01-03T10:30:00+00:00\",\"attributes\":{\"friendly_name\":\"Goodnight Button\"}}]"
+
+  let result =
+    home_assistant.find_input_button_state(json, "input_button.goodnight")
+
+  result |> should.equal(Ok("2026-01-03T10:30:00+00:00"))
+}
+
+pub fn find_input_button_state_returns_error_when_entity_not_found_test() {
+  let json =
+    "[{\"entity_id\":\"input_button.other\",\"state\":\"2026-01-03T10:30:00+00:00\",\"attributes\":{}}]"
+
+  let result =
+    home_assistant.find_input_button_state(json, "input_button.goodnight")
+
+  result
+  |> should.equal(
+    Error(home_assistant.EntityNotFound("input_button.goodnight")),
+  )
+}
+
+pub fn find_input_button_state_finds_entity_among_mixed_entities_test() {
+  // Real HA response has many entity types
+  let json =
+    "[{\"entity_id\":\"sensor.temperature\",\"state\":\"22.5\",\"attributes\":{}},{\"entity_id\":\"input_button.goodnight\",\"state\":\"2026-01-03T15:45:00+00:00\",\"attributes\":{}},{\"entity_id\":\"climate.lounge\",\"state\":\"heat\",\"attributes\":{}}]"
+
+  let result =
+    home_assistant.find_input_button_state(json, "input_button.goodnight")
+
+  result |> should.equal(Ok("2026-01-03T15:45:00+00:00"))
+}
