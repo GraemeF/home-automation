@@ -3,14 +3,14 @@ repos:
     hooks:
       - id: gleam-format
         name: gleam format
-        entry: bash -c 'gleam format && git add -u "*.gleam"'
+        entry: bash -c '(cd packages/deep_heating && gleam format) && git add -u "packages/deep_heating/**/*.gleam"'
         language: system
         files: '\.gleam$'
         pass_filenames: false
 
       - id: gleam-build
         name: gleam build (warnings as errors)
-        entry: gleam build --warnings-as-errors
+        entry: bash -c 'cd packages/deep_heating && gleam build --warnings-as-errors'
         language: system
         files: '\.gleam$'
         pass_filenames: false
