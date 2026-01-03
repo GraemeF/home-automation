@@ -24,6 +24,12 @@ pub const min_room_target: Temperature = Temperature(16.0)
 /// Minimum target temperature for a TRV (5C - frost protection).
 pub const min_trv_target: Temperature = Temperature(5.0)
 
+/// Minimum TRV command target (7°C) - lowest setpoint we'll send to a TRV.
+pub const min_trv_command_target: Temperature = Temperature(7.0)
+
+/// Maximum TRV command target (32°C) - highest setpoint we'll send to a TRV.
+pub const max_trv_command_target: Temperature = Temperature(32.0)
+
 /// Add two temperatures together.
 pub fn add(a: Temperature, b: Temperature) -> Temperature {
   Temperature(unwrap(a) +. unwrap(b))
@@ -85,4 +91,20 @@ pub fn round_down_half(temp: Temperature) -> Temperature {
 /// Used for UI display, aggregating heating demand, and boiler control.
 pub fn is_calling_for_heat(target: Temperature, current: Temperature) -> Bool {
   gt(target, current)
+}
+
+/// Clamp a temperature to be within the given min and max bounds (inclusive).
+pub fn clamp(
+  temp: Temperature,
+  min: Temperature,
+  max: Temperature,
+) -> Temperature {
+  case lt(temp, min) {
+    True -> min
+    False ->
+      case gt(temp, max) {
+        True -> max
+        False -> temp
+      }
+  }
 }

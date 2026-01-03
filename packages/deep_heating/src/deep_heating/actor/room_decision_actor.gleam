@@ -107,17 +107,18 @@ fn evaluate_and_send_commands(
 }
 
 /// Compute the desired TRV target using offset-based compensation.
-/// Formula: trvTarget = roomTarget + trvTemp - roomTemp
+/// Formula: trvTarget = clamp(roomTarget + trvTemp - roomTemp, 7°C, 32°C)
 ///
 /// This compensates for TRVs that read differently from the external room sensor.
 /// If TRV reads higher than room, we set a lower target on the TRV.
 /// If TRV reads lower than room, we set a higher target on the TRV.
+/// The result is clamped to TRV-safe bounds (7-32°C).
 fn compute_desired_trv_target(
   room_target: Temperature,
   room_temp: option.Option(Temperature),
   trv_temp: option.Option(Temperature),
 ) -> Temperature {
-  case room_temp, trv_temp {
+  let unclamped = case room_temp, trv_temp {
     // Both temperatures available - use offset formula
     option.Some(room), option.Some(trv) -> {
       let target =
@@ -129,4 +130,9 @@ fn compute_desired_trv_target(
     // Missing room or TRV temp - fall back to room target
     _, _ -> room_target
   }
+  temperature.clamp(
+    unclamped,
+    temperature.min_trv_command_target,
+    temperature.max_trv_command_target,
+  )
 }

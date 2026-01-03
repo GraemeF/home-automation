@@ -430,3 +430,79 @@ pub fn offset_formula_accounts_for_trv_temperature_test() {
     }
   }
 }
+
+// =============================================================================
+// Temperature Clamping Tests
+// =============================================================================
+
+pub fn clamps_trv_target_to_minimum_7c_test() {
+  // When the offset formula would produce a value below 7°C,
+  // the TRV target should be clamped to 7°C (minimum TRV command temperature).
+  //
+  // Example: Room is already warm, target is low
+  // - Room target: 10°C, Room temp: 15°C, TRV temp: 10°C
+  // - Formula: 10 + 10 - 15 = 5°C → should be clamped to 7°C
+  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+    process.new_subject()
+
+  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  let room_state =
+    make_room_state_with_trv(
+      room_temp: temperature.temperature(15.0),
+      target_temp: temperature.temperature(10.0),
+      trv_id: trv_id,
+      trv_temp: temperature.temperature(10.0),
+    )
+
+  process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
+
+  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+
+  case cmd {
+    room_decision_actor.SetTrvTarget(entity_id, target) -> {
+      entity_id |> should.equal(trv_id)
+      // Offset formula: 10 + 10 - 15 = 5°C
+      // Should be clamped to minimum: 7°C
+      temperature.unwrap(target) |> should.equal(7.0)
+    }
+  }
+}
+
+pub fn clamps_trv_target_to_maximum_32c_test() {
+  // When the offset formula would produce a value above 32°C,
+  // the TRV target should be clamped to 32°C (maximum TRV command temperature).
+  //
+  // Example: Cold room with hot TRV reading
+  // - Room target: 25°C, Room temp: 15°C, TRV temp: 25°C
+  // - Formula: 25 + 25 - 15 = 35°C → should be clamped to 32°C
+  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+    process.new_subject()
+
+  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  let room_state =
+    make_room_state_with_trv(
+      room_temp: temperature.temperature(15.0),
+      target_temp: temperature.temperature(25.0),
+      trv_id: trv_id,
+      trv_temp: temperature.temperature(25.0),
+    )
+
+  process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
+
+  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+
+  case cmd {
+    room_decision_actor.SetTrvTarget(entity_id, target) -> {
+      entity_id |> should.equal(trv_id)
+      // Offset formula: 25 + 25 - 15 = 35°C
+      // Should be clamped to maximum: 32°C
+      temperature.unwrap(target) |> should.equal(32.0)
+    }
+  }
+}
