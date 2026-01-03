@@ -7,12 +7,24 @@
 //// - Compute room target temperature
 //// - Notify RoomDecisionActor and StateAggregator on changes
 
+import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/mode.{type HouseMode, HouseModeAuto}
 import deep_heating/schedule.{type WeekSchedule}
 import deep_heating/temperature.{type Temperature}
+import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Subject}
 import gleam/option.{type Option, None}
 import gleam/otp/actor
+
+/// State of a single TRV within the room
+pub type TrvState {
+  TrvState(
+    /// Current temperature reading from the TRV
+    temperature: Option(Temperature),
+    /// Current target temperature the TRV is set to
+    target: Option(Temperature),
+  )
+}
 
 /// State visible to external observers
 pub type RoomState {
@@ -27,6 +39,8 @@ pub type RoomState {
     house_mode: HouseMode,
     /// User adjustment to scheduled temperature (degrees)
     adjustment: Float,
+    /// State of each TRV in this room
+    trv_states: Dict(ClimateEntityId, TrvState),
   )
 }
 
@@ -44,6 +58,10 @@ pub type AggregatorMessage {
 pub type Message {
   /// Get the current room state
   GetState(reply_to: Subject(RoomState))
+  /// TRV temperature reading changed (from TrvActor)
+  TrvTemperatureChanged(entity_id: ClimateEntityId, temperature: Temperature)
+  /// TRV target temperature changed (from TrvActor)
+  TrvTargetChanged(entity_id: ClimateEntityId, target: Temperature)
 }
 
 /// Internal actor state including dependencies
@@ -70,6 +88,7 @@ pub fn start(
       target_temperature: None,
       house_mode: HouseModeAuto,
       adjustment: 0.0,
+      trv_states: dict.new(),
     )
   let initial_state =
     ActorState(
@@ -93,5 +112,56 @@ fn handle_message(
       process.send(reply_to, state.room)
       actor.continue(state)
     }
+    TrvTemperatureChanged(entity_id, temperature) -> {
+      let new_state = update_trv_temperature(state, entity_id, temperature)
+      notify_state_changed(new_state)
+      actor.continue(new_state)
+    }
+    TrvTargetChanged(entity_id, target) -> {
+      let new_state = update_trv_target(state, entity_id, target)
+      notify_state_changed(new_state)
+      actor.continue(new_state)
+    }
   }
+}
+
+fn update_trv_temperature(
+  state: ActorState,
+  entity_id: ClimateEntityId,
+  temperature: Temperature,
+) -> ActorState {
+  let current_trv =
+    dict.get(state.room.trv_states, entity_id)
+    |> option.from_result
+    |> option.unwrap(TrvState(temperature: None, target: None))
+
+  let updated_trv =
+    TrvState(..current_trv, temperature: option.Some(temperature))
+
+  let new_trv_states =
+    dict.insert(state.room.trv_states, entity_id, updated_trv)
+  let new_room = RoomState(..state.room, trv_states: new_trv_states)
+  ActorState(..state, room: new_room)
+}
+
+fn update_trv_target(
+  state: ActorState,
+  entity_id: ClimateEntityId,
+  target: Temperature,
+) -> ActorState {
+  let current_trv =
+    dict.get(state.room.trv_states, entity_id)
+    |> option.from_result
+    |> option.unwrap(TrvState(temperature: None, target: None))
+
+  let updated_trv = TrvState(..current_trv, target: option.Some(target))
+
+  let new_trv_states =
+    dict.insert(state.room.trv_states, entity_id, updated_trv)
+  let new_room = RoomState(..state.room, trv_states: new_trv_states)
+  ActorState(..state, room: new_room)
+}
+
+fn notify_state_changed(state: ActorState) -> Nil {
+  process.send(state.decision_actor, RoomStateChanged(state.room))
 }
