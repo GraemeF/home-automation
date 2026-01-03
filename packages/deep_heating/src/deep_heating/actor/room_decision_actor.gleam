@@ -8,6 +8,7 @@
 
 import deep_heating/actor/room_actor
 import deep_heating/entity_id.{type ClimateEntityId}
+import deep_heating/mode
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Subject}
@@ -67,37 +68,44 @@ fn evaluate_and_send_commands(
         room_state.trv_states,
         state,
         fn(current_state, entity_id, trv_state) {
-          let desired_target =
-            compute_desired_trv_target(
-              room_target,
-              room_state.temperature,
-              trv_state.temperature,
-            )
+          // Skip TRVs that are off - user has explicitly turned them off
+          case trv_state.mode {
+            mode.HvacOff -> current_state
+            _ -> {
+              let desired_target =
+                compute_desired_trv_target(
+                  room_target,
+                  room_state.temperature,
+                  trv_state.temperature,
+                )
 
-          // Only send if target has changed
-          let last_target = dict.get(current_state.last_sent_targets, entity_id)
-          let should_send = case last_target {
-            Ok(last) -> !temperature.eq(last, desired_target)
-            Error(_) -> True
-          }
+              // Only send if target has changed
+              let last_target =
+                dict.get(current_state.last_sent_targets, entity_id)
+              let should_send = case last_target {
+                Ok(last) -> !temperature.eq(last, desired_target)
+                Error(_) -> True
+              }
 
-          case should_send {
-            False -> current_state
-            True -> {
-              // Target changed or first time, send command
-              process.send(
-                current_state.trv_commands,
-                SetTrvTarget(entity_id, desired_target),
-              )
-              // Update last sent target
-              State(
-                ..current_state,
-                last_sent_targets: dict.insert(
-                  current_state.last_sent_targets,
-                  entity_id,
-                  desired_target,
-                ),
-              )
+              case should_send {
+                False -> current_state
+                True -> {
+                  // Target changed or first time, send command
+                  process.send(
+                    current_state.trv_commands,
+                    SetTrvTarget(entity_id, desired_target),
+                  )
+                  // Update last sent target
+                  State(
+                    ..current_state,
+                    last_sent_targets: dict.insert(
+                      current_state.last_sent_targets,
+                      entity_id,
+                      desired_target,
+                    ),
+                  )
+                }
+              }
             }
           }
         },

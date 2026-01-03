@@ -523,3 +523,45 @@ pub fn clamps_trv_target_to_maximum_32c_test() {
     }
   }
 }
+
+// =============================================================================
+// TRV Mode Handling Tests
+// =============================================================================
+
+pub fn skips_trv_when_mode_is_off_test() {
+  // When a TRV is in HvacOff mode, we should NOT send any commands to it.
+  // The user has explicitly turned it off; we must respect that.
+  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+    process.new_subject()
+
+  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // TRV is OFF - should not receive any commands
+  let trv_state =
+    room_actor.TrvState(
+      temperature: option.Some(temperature.temperature(20.0)),
+      target: option.Some(temperature.temperature(20.0)),
+      mode: mode.HvacOff,
+      is_heating: False,
+    )
+  let room_state =
+    room_actor.RoomState(
+      name: "lounge",
+      temperature: option.Some(temperature.temperature(20.0)),
+      target_temperature: option.Some(temperature.temperature(20.0)),
+      house_mode: mode.HouseModeAuto,
+      adjustment: 0.0,
+      trv_states: dict.from_list([#(trv_id, trv_state)]),
+    )
+
+  process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
+
+  // Give actor time to process
+  process.sleep(50)
+
+  // Should NOT receive any command (TRV is off)
+  let result = process.receive(trv_commands, 100)
+  result |> should.be_error
+}
