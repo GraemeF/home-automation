@@ -4,6 +4,8 @@ import deep_heating/mode
 import deep_heating/temperature
 import gleam/http
 import gleam/http/request
+import gleam/list
+import gleam/option.{None, Some}
 import gleeunit/should
 
 // -----------------------------------------------------------------------------
@@ -190,4 +192,100 @@ pub fn build_set_hvac_mode_request_body_for_auto_mode_test() {
 
   req.body
   |> should.equal("{\"entity_id\":\"climate.bathroom\",\"hvac_mode\":\"auto\"}")
+}
+
+// -----------------------------------------------------------------------------
+// parse_climate_entities tests
+// -----------------------------------------------------------------------------
+
+pub fn parse_climate_entities_parses_single_climate_entity_test() {
+  let json =
+    "[{\"entity_id\":\"climate.lounge_trv\",\"state\":\"heat\",\"attributes\":{\"current_temperature\":20.5,\"temperature\":21.0,\"hvac_action\":\"heating\",\"friendly_name\":\"Lounge TRV\"}}]"
+
+  let result = home_assistant.parse_climate_entities(json)
+
+  let assert Ok(entities) = result
+  let assert [entity] = entities
+
+  let assert Ok(expected_id) = entity_id.climate_entity_id("climate.lounge_trv")
+  entity.entity_id |> should.equal(expected_id)
+  entity.current_temperature
+  |> should.equal(Some(temperature.temperature(20.5)))
+  entity.target_temperature |> should.equal(Some(temperature.temperature(21.0)))
+  entity.hvac_mode |> should.equal(mode.HvacHeat)
+  entity.is_heating |> should.be_true
+}
+
+pub fn parse_climate_entities_handles_off_mode_test() {
+  let json =
+    "[{\"entity_id\":\"climate.bedroom_trv\",\"state\":\"off\",\"attributes\":{\"current_temperature\":18.0,\"temperature\":15.0,\"hvac_action\":\"idle\",\"friendly_name\":\"Bedroom TRV\"}}]"
+
+  let result = home_assistant.parse_climate_entities(json)
+
+  let assert Ok([entity]) = result
+  entity.hvac_mode |> should.equal(mode.HvacOff)
+  entity.is_heating |> should.be_false
+}
+
+pub fn parse_climate_entities_handles_auto_mode_test() {
+  let json =
+    "[{\"entity_id\":\"climate.kitchen_trv\",\"state\":\"auto\",\"attributes\":{\"current_temperature\":19.5,\"temperature\":20.0,\"hvac_action\":\"heating\",\"friendly_name\":\"Kitchen TRV\"}}]"
+
+  let result = home_assistant.parse_climate_entities(json)
+
+  let assert Ok([entity]) = result
+  entity.hvac_mode |> should.equal(mode.HvacAuto)
+}
+
+pub fn parse_climate_entities_handles_missing_temperatures_test() {
+  // Some entities might have null temperatures
+  let json =
+    "[{\"entity_id\":\"climate.hallway_trv\",\"state\":\"heat\",\"attributes\":{\"current_temperature\":null,\"temperature\":null,\"hvac_action\":\"idle\",\"friendly_name\":\"Hallway TRV\"}}]"
+
+  let result = home_assistant.parse_climate_entities(json)
+
+  let assert Ok([entity]) = result
+  entity.current_temperature |> should.equal(None)
+  entity.target_temperature |> should.equal(None)
+}
+
+pub fn parse_climate_entities_filters_non_climate_entities_test() {
+  // Should only return climate.* entities, not sensors, lights, etc.
+  let json =
+    "[{\"entity_id\":\"sensor.temperature\",\"state\":\"22.5\",\"attributes\":{}},{\"entity_id\":\"climate.lounge_trv\",\"state\":\"heat\",\"attributes\":{\"current_temperature\":20.0,\"temperature\":21.0,\"hvac_action\":\"idle\"}}]"
+
+  let result = home_assistant.parse_climate_entities(json)
+
+  let assert Ok(entities) = result
+  // Should only have the climate entity
+  list.length(entities) |> should.equal(1)
+}
+
+pub fn parse_climate_entities_handles_empty_array_test() {
+  let json = "[]"
+
+  let result = home_assistant.parse_climate_entities(json)
+
+  let assert Ok(entities) = result
+  entities |> should.equal([])
+}
+
+pub fn parse_climate_entities_returns_error_for_invalid_json_test() {
+  let json = "not valid json"
+
+  let result = home_assistant.parse_climate_entities(json)
+
+  result |> should.be_error
+}
+
+pub fn parse_climate_entities_handles_unavailable_state_test() {
+  // Unavailable entities should be parsed but marked appropriately
+  let json =
+    "[{\"entity_id\":\"climate.garage_trv\",\"state\":\"unavailable\",\"attributes\":{}}]"
+
+  let result = home_assistant.parse_climate_entities(json)
+
+  let assert Ok([entity]) = result
+  entity.hvac_mode |> should.equal(mode.HvacOff)
+  entity.is_available |> should.be_false
 }

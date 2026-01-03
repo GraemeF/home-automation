@@ -4,12 +4,16 @@
 import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/mode.{type HvacMode}
 import deep_heating/temperature.{type Temperature}
+import gleam/dynamic/decode.{type Decoder}
 import gleam/http
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
 import gleam/httpc
 import gleam/json
+import gleam/list
+import gleam/option.{type Option, None, Some}
 import gleam/result
+import gleam/string
 
 /// Configuration for connecting to Home Assistant
 pub type HaClient {
@@ -154,5 +158,128 @@ fn httpc_error_to_string(err: httpc.HttpError) -> String {
     httpc.InvalidUtf8Response -> "Invalid UTF-8 response"
     httpc.FailedToConnect(_, _) -> "Failed to connect"
     httpc.ResponseTimeout -> "Response timeout"
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Climate Entity Parsing
+// -----------------------------------------------------------------------------
+
+/// A parsed climate entity from Home Assistant
+pub type ClimateEntity {
+  ClimateEntity(
+    entity_id: ClimateEntityId,
+    current_temperature: Option(Temperature),
+    target_temperature: Option(Temperature),
+    hvac_mode: HvacMode,
+    is_heating: Bool,
+    is_available: Bool,
+  )
+}
+
+/// Raw entity for intermediate parsing (before filtering)
+type RawEntity {
+  RawEntity(
+    entity_id: String,
+    state: String,
+    current_temperature: Option(Float),
+    target_temperature: Option(Float),
+    hvac_action: Option(String),
+  )
+}
+
+/// Parse climate entities from HA API JSON response
+pub fn parse_climate_entities(
+  json_string: String,
+) -> Result(List(ClimateEntity), HaError) {
+  json.parse(json_string, decode.list(raw_entity_decoder()))
+  |> result.map_error(fn(err) {
+    JsonParseError("Failed to parse entities: " <> string.inspect(err))
+  })
+  |> result.map(fn(raw_entities) {
+    raw_entities
+    |> list.filter(fn(raw) { string.starts_with(raw.entity_id, "climate.") })
+    |> list.filter_map(convert_raw_to_climate_entity)
+  })
+}
+
+/// Decoder for a raw entity
+fn raw_entity_decoder() -> Decoder(RawEntity) {
+  // First, decode the required fields
+  decode.field("entity_id", decode.string, fn(entity_id) {
+    decode.field("state", decode.string, fn(state) {
+      // Decode optional attributes
+      // optionally_at returns default when path is missing
+      // decode.optional handles null values
+      let current_temp_decoder =
+        decode.optionally_at(
+          ["attributes", "current_temperature"],
+          None,
+          decode.optional(decode.float),
+        )
+      let target_temp_decoder =
+        decode.optionally_at(
+          ["attributes", "temperature"],
+          None,
+          decode.optional(decode.float),
+        )
+      let hvac_action_decoder =
+        decode.optionally_at(
+          ["attributes", "hvac_action"],
+          None,
+          decode.optional(decode.string),
+        )
+
+      // Combine the decoders
+      decode.then(current_temp_decoder, fn(current_temp) {
+        decode.then(target_temp_decoder, fn(target_temp) {
+          decode.then(hvac_action_decoder, fn(hvac_action) {
+            decode.success(RawEntity(
+              entity_id: entity_id,
+              state: state,
+              current_temperature: current_temp,
+              target_temperature: target_temp,
+              hvac_action: hvac_action,
+            ))
+          })
+        })
+      })
+    })
+  })
+}
+
+/// Convert a raw entity to a ClimateEntity
+fn convert_raw_to_climate_entity(raw: RawEntity) -> Result(ClimateEntity, Nil) {
+  case entity_id.climate_entity_id(raw.entity_id) {
+    Ok(eid) -> {
+      let is_available = raw.state != "unavailable"
+      let hvac_mode = parse_hvac_mode(raw.state)
+      let is_heating = raw.hvac_action == Some("heating")
+      let current_temp =
+        option.map(raw.current_temperature, temperature.temperature)
+      let target_temp =
+        option.map(raw.target_temperature, temperature.temperature)
+
+      Ok(ClimateEntity(
+        entity_id: eid,
+        current_temperature: current_temp,
+        target_temperature: target_temp,
+        hvac_mode: hvac_mode,
+        is_heating: is_heating,
+        is_available: is_available,
+      ))
+    }
+    Error(_) -> Error(Nil)
+  }
+}
+
+/// Parse HVAC mode from string
+fn parse_hvac_mode(state: String) -> HvacMode {
+  case state {
+    "heat" -> mode.HvacHeat
+    "auto" -> mode.HvacAuto
+    "off" -> mode.HvacOff
+    "unavailable" -> mode.HvacOff
+    _ -> mode.HvacOff
   }
 }
