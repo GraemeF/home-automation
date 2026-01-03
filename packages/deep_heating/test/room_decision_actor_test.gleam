@@ -267,3 +267,123 @@ pub fn handles_multiple_trvs_in_room_test() {
   list.contains(ids, trv1) |> should.be_true
   list.contains(ids, trv2) |> should.be_true
 }
+
+// =============================================================================
+// Fallback Handling Tests - graceful degradation when data is incomplete
+// =============================================================================
+
+pub fn handles_trv_with_missing_temperature_test() {
+  // When a TRV has no temperature reading, the system should still work.
+  // Uses room target directly (fallback: treat TRV temp as unknown)
+  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+    process.new_subject()
+
+  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // TRV state with no temperature reading
+  let trv_state =
+    room_actor.TrvState(
+      temperature: option.None,
+      // No temp reading!
+      target: option.Some(temperature.temperature(20.0)),
+    )
+  let room_state =
+    room_actor.RoomState(
+      name: "lounge",
+      temperature: option.Some(temperature.temperature(20.0)),
+      target_temperature: option.Some(temperature.temperature(20.0)),
+      house_mode: mode.HouseModeAuto,
+      adjustment: 0.0,
+      trv_states: dict.from_list([#(trv_id, trv_state)]),
+    )
+
+  process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
+
+  // Should still receive a command (system degrades gracefully)
+  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+
+  case cmd {
+    room_decision_actor.SetTrvTarget(entity_id, target) -> {
+      entity_id |> should.equal(trv_id)
+      // With no TRV temp data, should use room target directly
+      temperature.unwrap(target) |> should.equal(20.0)
+    }
+  }
+}
+
+pub fn handles_trv_with_missing_target_test() {
+  // When a TRV has no current target, the system should still compute and send one
+  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+    process.new_subject()
+
+  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // TRV state with no target
+  let trv_state =
+    room_actor.TrvState(
+      temperature: option.Some(temperature.temperature(20.0)),
+      target: option.None,
+    )
+  let room_state =
+    room_actor.RoomState(
+      name: "lounge",
+      temperature: option.Some(temperature.temperature(20.0)),
+      target_temperature: option.Some(temperature.temperature(20.0)),
+      house_mode: mode.HouseModeAuto,
+      adjustment: 0.0,
+      trv_states: dict.from_list([#(trv_id, trv_state)]),
+    )
+
+  process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
+
+  // Should still send a command to set the target
+  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+
+  case cmd {
+    room_decision_actor.SetTrvTarget(entity_id, _target) -> {
+      entity_id |> should.equal(trv_id)
+      // Command was sent, meaning system handled missing target gracefully
+    }
+  }
+}
+
+pub fn handles_completely_unknown_trv_test() {
+  // When a TRV has no data at all (both temp and target None),
+  // the system should still send a command
+  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+    process.new_subject()
+
+  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // TRV state with no data at all
+  let trv_state =
+    room_actor.TrvState(temperature: option.None, target: option.None)
+  let room_state =
+    room_actor.RoomState(
+      name: "lounge",
+      temperature: option.Some(temperature.temperature(20.0)),
+      target_temperature: option.Some(temperature.temperature(20.0)),
+      house_mode: mode.HouseModeAuto,
+      adjustment: 0.0,
+      trv_states: dict.from_list([#(trv_id, trv_state)]),
+    )
+
+  process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
+
+  // Should still receive a command
+  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+
+  case cmd {
+    room_decision_actor.SetTrvTarget(entity_id, target) -> {
+      entity_id |> should.equal(trv_id)
+      // Should fall back to room target
+      temperature.unwrap(target) |> should.equal(20.0)
+    }
+  }
+}

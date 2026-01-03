@@ -63,3 +63,26 @@ pub fn gte(a: Temperature, b: Temperature) -> Bool {
 pub fn lte(a: Temperature, b: Temperature) -> Bool {
   unwrap(a) <=. unwrap(b)
 }
+
+/// Round temperature UP to nearest 0.5°C increment.
+/// Used when heating is required - errs on side of more heating.
+/// Formula: ceil(temp * 2) / 2
+pub fn round_up_half(temp: Temperature) -> Temperature {
+  let value = unwrap(temp)
+  Temperature(float.ceiling(value *. 2.0) /. 2.0)
+}
+
+/// Round temperature DOWN to nearest 0.5°C increment.
+/// Used when heating is NOT required - errs on side of less heating.
+/// Formula: floor(temp * 2) / 2
+pub fn round_down_half(temp: Temperature) -> Temperature {
+  let value = unwrap(temp)
+  Temperature(float.floor(value *. 2.0) /. 2.0)
+}
+
+/// Determine if a TRV is "calling for heat" based on target and current temps.
+/// A TRV calls for heat when target > current.
+/// Used for UI display, aggregating heating demand, and boiler control.
+pub fn is_calling_for_heat(target: Temperature, current: Temperature) -> Bool {
+  gt(target, current)
+}
