@@ -229,3 +229,65 @@ pub fn room_actor_notifies_decision_actor_on_trv_change_test() {
     }
   }
 }
+
+// =============================================================================
+// House Mode Tests
+// =============================================================================
+
+pub fn room_actor_handles_house_mode_change_test() {
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  // Send house mode change to Sleeping
+  process.send(
+    started.data,
+    room_actor.HouseModeChanged(mode.HouseModeSleeping),
+  )
+
+  process.sleep(10)
+
+  // Query state
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  // Verify house mode was updated
+  state.house_mode |> should.equal(mode.HouseModeSleeping)
+}
+
+pub fn room_actor_notifies_decision_actor_on_house_mode_change_test() {
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  // Send house mode change
+  process.send(
+    started.data,
+    room_actor.HouseModeChanged(mode.HouseModeSleeping),
+  )
+
+  // Decision actor should receive notification
+  let assert Ok(msg) = process.receive(decision_actor, 1000)
+  case msg {
+    room_actor.RoomStateChanged(state) -> {
+      state.house_mode |> should.equal(mode.HouseModeSleeping)
+    }
+  }
+}

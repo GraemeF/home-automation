@@ -62,6 +62,8 @@ pub type Message {
   TrvTemperatureChanged(entity_id: ClimateEntityId, temperature: Temperature)
   /// TRV target temperature changed (from TrvActor)
   TrvTargetChanged(entity_id: ClimateEntityId, target: Temperature)
+  /// House-wide mode changed (from HouseModeActor)
+  HouseModeChanged(mode: HouseMode)
 }
 
 /// Internal actor state including dependencies
@@ -119,6 +121,12 @@ fn handle_message(
     }
     TrvTargetChanged(entity_id, target) -> {
       let new_state = update_trv_target(state, entity_id, target)
+      notify_state_changed(new_state)
+      actor.continue(new_state)
+    }
+    HouseModeChanged(new_mode) -> {
+      let new_room = RoomState(..state.room, house_mode: new_mode)
+      let new_state = ActorState(..state, room: new_room)
       notify_state_changed(new_state)
       actor.continue(new_state)
     }
