@@ -17,10 +17,11 @@ pub fn ha_command_actor_starts_successfully_test() {
 
   // HaCommandActor should start successfully
   let result =
-    ha_command_actor.start(
+    ha_command_actor.start_with_options(
       ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
       api_spy: api_spy,
       debounce_ms: 50,
+      skip_http: True,
     )
   should.be_ok(result)
 }
@@ -35,10 +36,11 @@ pub fn sends_api_call_after_debounce_test() {
   let api_spy: process.Subject(ApiCall) = process.new_subject()
 
   let assert Ok(started) =
-    ha_command_actor.start(
+    ha_command_actor.start_with_options(
       ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
       api_spy: api_spy,
       debounce_ms: 50,
+      skip_http: True,
     )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
@@ -79,10 +81,11 @@ pub fn debounces_rapid_commands_to_same_trv_test() {
   let api_spy: process.Subject(ha_command_actor.ApiCall) = process.new_subject()
 
   let assert Ok(started) =
-    ha_command_actor.start(
+    ha_command_actor.start_with_options(
       ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
       api_spy: api_spy,
       debounce_ms: 50,
+      skip_http: True,
     )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
@@ -143,10 +146,11 @@ pub fn debounces_trvs_independently_test() {
   let api_spy: process.Subject(ha_command_actor.ApiCall) = process.new_subject()
 
   let assert Ok(started) =
-    ha_command_actor.start(
+    ha_command_actor.start_with_options(
       ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
       api_spy: api_spy,
       debounce_ms: 50,
+      skip_http: True,
     )
 
   let assert Ok(trv1) = entity_id.climate_entity_id("climate.lounge_trv")
@@ -210,10 +214,11 @@ pub fn sends_heating_api_call_after_debounce_test() {
   let api_spy: process.Subject(ha_command_actor.ApiCall) = process.new_subject()
 
   let assert Ok(started) =
-    ha_command_actor.start(
+    ha_command_actor.start_with_options(
       ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
       api_spy: api_spy,
       debounce_ms: 50,
+      skip_http: True,
     )
 
   let assert Ok(heating_id) =
@@ -250,10 +255,11 @@ pub fn debounces_rapid_heating_commands_test() {
   let api_spy: process.Subject(ha_command_actor.ApiCall) = process.new_subject()
 
   let assert Ok(started) =
-    ha_command_actor.start(
+    ha_command_actor.start_with_options(
       ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
       api_spy: api_spy,
       debounce_ms: 50,
+      skip_http: True,
     )
 
   let assert Ok(heating_id) =

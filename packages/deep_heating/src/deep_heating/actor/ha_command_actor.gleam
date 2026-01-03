@@ -71,6 +71,8 @@ type State {
     active_trv_timers: Dict(ClimateEntityId, Bool),
     /// Track if heating timer is active
     heating_timer_active: Bool,
+    /// Skip real HTTP calls (for testing)
+    skip_http: Bool,
   )
 }
 
@@ -79,6 +81,21 @@ pub fn start(
   ha_client ha_client: HaClient,
   api_spy api_spy: Subject(ApiCall),
   debounce_ms debounce_ms: Int,
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  start_with_options(
+    ha_client: ha_client,
+    api_spy: api_spy,
+    debounce_ms: debounce_ms,
+    skip_http: False,
+  )
+}
+
+/// Start the HaCommandActor with options (for testing)
+pub fn start_with_options(
+  ha_client ha_client: HaClient,
+  api_spy api_spy: Subject(ApiCall),
+  debounce_ms debounce_ms: Int,
+  skip_http skip_http: Bool,
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   actor.new_with_initialiser(1000, fn(self_subject) {
     let initial_state =
@@ -91,6 +108,7 @@ pub fn start(
         pending_heating_action: Error(Nil),
         active_trv_timers: dict.new(),
         heating_timer_active: False,
+        skip_http: skip_http,
       )
     actor.initialised(initial_state)
     |> actor.returning(self_subject)
@@ -148,36 +166,45 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
             TrvApiCall(entity_id: entity_id, mode: hvac_mode, target: target),
           )
 
-          // Call HA API - spawn processes for parallel execution
-          // Note: We ignore the result as we're fire-and-forget
-          let ha_client = state.ha_client
-          let eid = entity_id
+          // Call HA API unless skip_http is enabled (for testing)
+          case state.skip_http {
+            True -> Nil
+            False -> {
+              // Call HA API - spawn processes for parallel execution
+              // Note: We ignore the result as we're fire-and-forget
+              let ha_client = state.ha_client
+              let eid = entity_id
 
-          // Spawn unlinked processes for parallel execution
-          // Using spawn_unlinked so failures don't crash the actor
-          let _temp_pid =
-            process.spawn_unlinked(fn() {
-              case home_assistant.set_temperature(ha_client, eid, target) {
-                Ok(_) -> Nil
-                Error(err) -> {
-                  io.println(
-                    "TRV set_temperature failed: " <> ha_error_to_string(err),
-                  )
-                }
-              }
-            })
+              // Spawn unlinked processes for parallel execution
+              // Using spawn_unlinked so failures don't crash the actor
+              let _temp_pid =
+                process.spawn_unlinked(fn() {
+                  case home_assistant.set_temperature(ha_client, eid, target) {
+                    Ok(_) -> Nil
+                    Error(err) -> {
+                      io.println(
+                        "TRV set_temperature failed: "
+                        <> ha_error_to_string(err),
+                      )
+                    }
+                  }
+                })
 
-          let _mode_pid =
-            process.spawn_unlinked(fn() {
-              case home_assistant.set_hvac_mode(ha_client, eid, hvac_mode) {
-                Ok(_) -> Nil
-                Error(err) -> {
-                  io.println(
-                    "TRV set_hvac_mode failed: " <> ha_error_to_string(err),
-                  )
-                }
-              }
-            })
+              let _mode_pid =
+                process.spawn_unlinked(fn() {
+                  case home_assistant.set_hvac_mode(ha_client, eid, hvac_mode) {
+                    Ok(_) -> Nil
+                    Error(err) -> {
+                      io.println(
+                        "TRV set_hvac_mode failed: " <> ha_error_to_string(err),
+                      )
+                    }
+                  }
+                })
+
+              Nil
+            }
+          }
 
           // Clear pending action and timer flag
           let new_pending = dict.delete(state.pending_trv_actions, entity_id)
@@ -245,34 +272,43 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
             ),
           )
 
-          // Call HA API - spawn unlinked processes for parallel execution
-          let ha_client = state.ha_client
-          let eid = entity_id
+          // Call HA API unless skip_http is enabled (for testing)
+          case state.skip_http {
+            True -> Nil
+            False -> {
+              // Call HA API - spawn unlinked processes for parallel execution
+              let ha_client = state.ha_client
+              let eid = entity_id
 
-          let _temp_pid =
-            process.spawn_unlinked(fn() {
-              case home_assistant.set_temperature(ha_client, eid, target) {
-                Ok(_) -> Nil
-                Error(err) -> {
-                  io.println(
-                    "Heating set_temperature failed: "
-                    <> ha_error_to_string(err),
-                  )
-                }
-              }
-            })
+              let _temp_pid =
+                process.spawn_unlinked(fn() {
+                  case home_assistant.set_temperature(ha_client, eid, target) {
+                    Ok(_) -> Nil
+                    Error(err) -> {
+                      io.println(
+                        "Heating set_temperature failed: "
+                        <> ha_error_to_string(err),
+                      )
+                    }
+                  }
+                })
 
-          let _mode_pid =
-            process.spawn_unlinked(fn() {
-              case home_assistant.set_hvac_mode(ha_client, eid, hvac_mode) {
-                Ok(_) -> Nil
-                Error(err) -> {
-                  io.println(
-                    "Heating set_hvac_mode failed: " <> ha_error_to_string(err),
-                  )
-                }
-              }
-            })
+              let _mode_pid =
+                process.spawn_unlinked(fn() {
+                  case home_assistant.set_hvac_mode(ha_client, eid, hvac_mode) {
+                    Ok(_) -> Nil
+                    Error(err) -> {
+                      io.println(
+                        "Heating set_hvac_mode failed: "
+                        <> ha_error_to_string(err),
+                      )
+                    }
+                  }
+                })
+
+              Nil
+            }
+          }
 
           // Clear pending action and timer flag
           actor.continue(
