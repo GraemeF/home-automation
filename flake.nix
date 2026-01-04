@@ -83,8 +83,8 @@
           };
 
           # Main Gleam build - produces Erlang shipment
-          deep-heating-gleam = pkgs.stdenv.mkDerivation {
-            pname = "deep-heating-gleam";
+          deep-heating = pkgs.stdenv.mkDerivation {
+            pname = "deep-heating";
             version = "0.1.0";
 
             src = gleamSrc;
@@ -103,16 +103,16 @@
             '';
 
             installPhase = ''
-              mkdir -p $out/lib/deep-heating-gleam
-              cp -r build/erlang-shipment/* $out/lib/deep-heating-gleam/
+              mkdir -p $out/lib/deep-heating
+              cp -r build/erlang-shipment/* $out/lib/deep-heating/
 
               # Create wrapper script
               mkdir -p $out/bin
-              cat > $out/bin/deep-heating-gleam <<EOF
+              cat > $out/bin/deep-heating <<EOF
 #!/bin/sh
-exec $out/lib/deep-heating-gleam/entrypoint.sh run "\$@"
+exec $out/lib/deep-heating/entrypoint.sh run "\$@"
 EOF
-              chmod +x $out/bin/deep-heating-gleam
+              chmod +x $out/bin/deep-heating
 
               echo "Installation complete!"
               echo "  Size: $(du -sh $out | cut -f1)"
@@ -140,14 +140,14 @@ EOF
 
             # Minimal image contents - just the OTP release and shell
             contents = [
-              deep-heating-gleam          # Gleam OTP release with entrypoint
+              deep-heating                # OTP release with entrypoint
               pkgs.dockerTools.binSh      # /bin/sh for entrypoint script
               pkgs.coreutils              # Basic utilities (needed for entrypoint.sh)
             ];
 
             # OCI/Docker configuration
             config = {
-              Entrypoint = [ "${deep-heating-gleam}/bin/deep-heating-gleam" ];
+              Entrypoint = [ "${deep-heating}/bin/deep-heating" ];
 
               WorkingDir = "/app";
 
@@ -166,7 +166,7 @@ EOF
         in
         {
           # Gleam packages
-          inherit gleamDeps deep-heating-gleam;
+          inherit gleamDeps deep-heating;
         } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
           # Linux-only packages
           inherit dockerImage;
