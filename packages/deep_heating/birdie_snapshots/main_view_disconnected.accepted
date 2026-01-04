@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: main_view_disconnected
+file: ./test/ui/view_test.gleam
+test_name: view_disconnected_test
+---
+<div data-testid="app-root"><div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" data-testid="connection-overlay"><div class="flex flex-col items-center gap-4"><span class="loading loading-spinner loading-lg text-primary" data-testid="spinner"></span><div class="text-white text-lg">Connecting...</div></div></div><div data-testid="main-content"><ul class="breadcrumbs text-sm mx-3.5 mt-2"><li><a href="/">Deep Heating</a></li></ul><div class="flex items-center justify-center h-64" data-testid="loading-placeholder"><span class="loading loading-spinner loading-lg"></span></div></div></div>

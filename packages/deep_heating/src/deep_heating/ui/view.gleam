@@ -1,37 +1,76 @@
+//// Main view composition for the Deep Heating dashboard.
+////
+//// Composes all UI components into the complete application view,
+//// handling connection state, loading state, and room display.
+
+import deep_heating/state.{type DeepHeatingState, type RoomState}
+import deep_heating/ui/components/connection_overlay
+import deep_heating/ui/components/heating_badge
+import deep_heating/ui/components/room_card
 import deep_heating/ui/model.{type Model}
 import deep_heating/ui/msg.{type Msg}
+import deep_heating/ui/room_sort
+import gleam/list
 import gleam/option.{None, Some}
-import lustre/attribute.{class}
+import lustre/attribute.{attribute, class, href}
 import lustre/element.{type Element, text}
-import lustre/element/html.{div, h1, p}
+import lustre/element/html.{a, div, li, span, ul}
 
-/// Render the main view from the model.
+/// Render the main application view from the model.
 pub fn view(model: Model) -> Element(Msg) {
-  div([class("container mx-auto p-4")], [
-    h1([class("text-2xl font-bold mb-4")], [text("Deep Heating")]),
-    case model.connected {
-      True -> connected_view(model)
-      False -> disconnected_view()
+  div([attribute("data-testid", "app-root")], [
+    connection_overlay.view(model.connected),
+    main_content(model),
+  ])
+}
+
+fn main_content(model: Model) -> Element(Msg) {
+  div([attribute("data-testid", "main-content")], [
+    breadcrumbs(),
+    case model.state {
+      None -> loading_placeholder()
+      Some(state) -> home_view(state)
     },
   ])
 }
 
-fn connected_view(model: Model) -> Element(Msg) {
-  case model.state {
-    None -> loading_view()
-    Some(_state) -> {
-      // TODO: Render room cards
-      div([], [p([], [text("Connected - Rooms will be displayed here")])])
-    }
-  }
-}
-
-fn disconnected_view() -> Element(Msg) {
-  div([class("alert alert-warning")], [
-    text("Connecting to server..."),
+fn breadcrumbs() -> Element(Msg) {
+  ul([class("breadcrumbs text-sm mx-3.5 mt-2")], [
+    li([], [a([href("/")], [text("Deep Heating")])]),
   ])
 }
 
-fn loading_view() -> Element(Msg) {
-  div([class("loading loading-spinner loading-lg")], [])
+fn loading_placeholder() -> Element(Msg) {
+  div(
+    [
+      class("flex items-center justify-center h-64"),
+      attribute("data-testid", "loading-placeholder"),
+    ],
+    [span([class("loading loading-spinner loading-lg")], [])],
+  )
+}
+
+fn home_view(state: DeepHeatingState) -> Element(Msg) {
+  div([class("mx-3.5"), attribute("data-testid", "home-view")], [
+    header_section(state),
+    rooms_grid(state.rooms),
+  ])
+}
+
+fn header_section(state: DeepHeatingState) -> Element(Msg) {
+  div([class("flex flex-row justify-between items-center mb-2")], [
+    heating_badge.view(state.is_heating),
+  ])
+}
+
+fn rooms_grid(rooms: List(RoomState)) -> Element(Msg) {
+  let sorted_rooms = room_sort.sort_by_temperature(rooms)
+
+  div(
+    [
+      class("flex flex-row flex-wrap gap-2"),
+      attribute("data-testid", "rooms-grid"),
+    ],
+    list.map(sorted_rooms, room_card.view),
+  )
 }

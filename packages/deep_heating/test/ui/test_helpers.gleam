@@ -1,9 +1,13 @@
 //// Test helper utilities for UI component testing.
 ////
-//// Provides reusable test fixtures for RoomState and other UI-related types.
+//// Provides reusable test fixtures for RoomState, DeepHeatingState,
+//// and other UI-related types.
 
 import deep_heating/mode.{RoomModeAuto, RoomModeOff, RoomModeSleeping}
-import deep_heating/state.{type RoomState, RoomState, TemperatureReading}
+import deep_heating/state.{
+  type DeepHeatingState, type RoomState, DeepHeatingState, RoomState,
+  TemperatureReading,
+}
 import deep_heating/temperature
 import gleam/option.{None, Some}
 
@@ -78,4 +82,40 @@ pub fn room_without_temp(name: String) -> RoomState {
 /// Create a room without a target temperature (e.g., turned off room).
 pub fn room_without_target() -> RoomState {
   RoomState(..heating_room(), target_temperature: None, is_heating: Some(False))
+}
+
+// ============================================================================
+// DeepHeatingState Test Helpers
+// ============================================================================
+
+/// Create a sample state with one heating room.
+pub fn sample_state() -> DeepHeatingState {
+  DeepHeatingState(rooms: [heating_room()], is_heating: Some(False))
+}
+
+/// Create a state where heating is active.
+pub fn state_heating_active() -> DeepHeatingState {
+  DeepHeatingState(rooms: [heating_room()], is_heating: Some(True))
+}
+
+/// Create a state with multiple rooms at different temperatures.
+pub fn state_with_multiple_rooms() -> DeepHeatingState {
+  DeepHeatingState(
+    rooms: [
+      room_with_temp("Cold Room", 15.0),
+      room_with_temp("Hot Room", 25.0),
+      room_with_temp("Medium Room", 20.0),
+    ],
+    is_heating: Some(False),
+  )
+}
+
+/// Create a state with a single room in auto mode.
+pub fn state_with_auto_room() -> DeepHeatingState {
+  DeepHeatingState(rooms: [heating_room()], is_heating: Some(True))
+}
+
+/// Create a state from a list of rooms.
+pub fn state_with_rooms(rooms: List(RoomState)) -> DeepHeatingState {
+  DeepHeatingState(rooms: rooms, is_heating: Some(False))
 }
