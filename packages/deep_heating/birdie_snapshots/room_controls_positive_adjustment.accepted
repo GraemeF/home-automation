@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: room_controls_positive_adjustment
+file: ./test/ui/components/room_controls_test.gleam
+test_name: room_controls_positive_adjustment_test
+---
+<div class="card-actions text-xs flex items-center gap-0" data-testid="room-controls"><button class="btn btn-circle btn-ghost btn-sm" data-testid="colder-button"><svg xmlns="http://www.w3.org/2000/svg" data-testid="minus-circle-outline" fill="none" height="24" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path xmlns="http://www.w3.org/2000/svg" d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke-linecap="round" stroke-linejoin="round"></path></svg></button><span class="flex-1 text-center" data-testid="target-display">22.0<span class="text-xs opacity-75 ml-1" data-testid="adjustment-badge">(+1.0°C)</span></span><button class="btn btn-circle btn-ghost btn-sm" data-testid="warmer-button"><svg xmlns="http://www.w3.org/2000/svg" data-testid="plus-circle-solid" fill="currentColor" height="24" viewBox="0 0 24 24" width="24"><path xmlns="http://www.w3.org/2000/svg" clip-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 9a.75.75 0 0 0-1.5 0v2.25H9a.75.75 0 0 0 0 1.5h2.25V15a.75.75 0 0 0 1.5 0v-2.25H15a.75.75 0 0 0 0-1.5h-2.25V9Z" fill-rule="evenodd"></path></svg></button></div>

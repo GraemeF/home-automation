@@ -2,7 +2,7 @@
 ////
 //// Provides reusable test fixtures for RoomState and other UI-related types.
 
-import deep_heating/mode.{RoomModeAuto, RoomModeOff}
+import deep_heating/mode.{RoomModeAuto, RoomModeOff, RoomModeSleeping}
 import deep_heating/state.{type RoomState, RoomState, TemperatureReading}
 import deep_heating/temperature
 import gleam/option.{None, Some}
@@ -39,6 +39,16 @@ pub fn off_room() -> RoomState {
     ..heating_room(),
     mode: Some(RoomModeOff),
     target_temperature: None,
+    is_heating: Some(False),
+  )
+}
+
+/// Create a room in sleeping mode.
+pub fn sleeping_room() -> RoomState {
+  RoomState(
+    ..heating_room(),
+    mode: Some(RoomModeSleeping),
+    target_temperature: Some(temperature.temperature(18.0)),
     is_heating: Some(False),
   )
 }

@@ -4,4 +4,4 @@ title: room_controls_off_mode
 file: ./test/ui/components/room_controls_test.gleam
 test_name: room_controls_off_mode_test
 ---
-<div class="flex items-center gap-2">Controls placeholder</div>
+<div class="card-actions text-xs flex items-center gap-0" data-testid="room-controls"><span class="flex-1 text-center" data-testid="target-display">–</span></div>

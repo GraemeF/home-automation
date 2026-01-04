@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: room_controls_sleeping_mode
+file: ./test/ui/components/room_controls_test.gleam
+test_name: room_controls_sleeping_mode_test
+---
+<div class="card-actions text-xs flex items-center gap-0" data-testid="room-controls"><span class="flex-1 text-center" data-testid="target-display">18.0</span></div>
