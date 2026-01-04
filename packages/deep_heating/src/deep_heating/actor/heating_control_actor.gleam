@@ -5,12 +5,11 @@
 //// - Track which rooms need heating (room temp < target)
 //// - Turn boiler ON when any room needs heating
 //// - Turn boiler OFF when no rooms need heating
-//// - Debounce via HaCommandActor
+//// - Emit domain BoilerCommand messages (decoupled from HA infrastructure)
 
-import deep_heating/actor/ha_command_actor
 import deep_heating/actor/room_actor
 import deep_heating/entity_id.{type ClimateEntityId}
-import deep_heating/mode
+import deep_heating/mode.{type HvacMode}
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Name, type Subject}
@@ -27,11 +26,16 @@ pub type Message {
   BoilerStatusChanged(is_heating: Bool)
 }
 
+/// Domain command for boiler actions - decoupled from HA infrastructure
+pub type BoilerCommand {
+  BoilerCommand(entity_id: ClimateEntityId, mode: HvacMode, target: Temperature)
+}
+
 /// Internal actor state
 type State {
   State(
     boiler_entity_id: ClimateEntityId,
-    ha_commands: Subject(ha_command_actor.Message),
+    boiler_commands: Subject(BoilerCommand),
     /// Current boiler status
     boiler_is_heating: Bool,
     /// Track room states to determine heating demand
@@ -39,15 +43,16 @@ type State {
   )
 }
 
-/// Start the HeatingControlActor
+/// Start the HeatingControlActor with a domain BoilerCommand output subject.
+/// This is the preferred way to start the actor - it stays decoupled from HA.
 pub fn start(
   boiler_entity_id boiler_entity_id: ClimateEntityId,
-  ha_commands ha_commands: Subject(ha_command_actor.Message),
+  boiler_commands boiler_commands: Subject(BoilerCommand),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   let initial_state =
     State(
       boiler_entity_id: boiler_entity_id,
-      ha_commands: ha_commands,
+      boiler_commands: boiler_commands,
       boiler_is_heating: False,
       room_states: dict.new(),
     )
@@ -61,12 +66,12 @@ pub fn start(
 pub fn start_named(
   name: Name(Message),
   boiler_entity_id: ClimateEntityId,
-  ha_commands: Subject(ha_command_actor.Message),
+  boiler_commands: Subject(BoilerCommand),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   let initial_state =
     State(
       boiler_entity_id: boiler_entity_id,
-      ha_commands: ha_commands,
+      boiler_commands: boiler_commands,
       boiler_is_heating: False,
       room_states: dict.new(),
     )
@@ -81,9 +86,11 @@ pub fn start_named(
 pub fn child_spec(
   name: Name(Message),
   boiler_entity_id: ClimateEntityId,
-  ha_commands: Subject(ha_command_actor.Message),
+  boiler_commands: Subject(BoilerCommand),
 ) -> supervision.ChildSpecification(Subject(Message)) {
-  supervision.worker(fn() { start_named(name, boiler_entity_id, ha_commands) })
+  supervision.worker(fn() {
+    start_named(name, boiler_entity_id, boiler_commands)
+  })
 }
 
 fn handle_message(state: State, message: Message) -> actor.Next(State, Message) {
@@ -147,17 +154,17 @@ fn room_needs_heating(room: room_actor.RoomState) -> Bool {
   }
 }
 
-/// Send a command to the boiler via HaCommandActor
-fn send_boiler_command(state: State, hvac_mode: mode.HvacMode) -> Nil {
+/// Send a domain BoilerCommand
+fn send_boiler_command(state: State, hvac_mode: HvacMode) -> Nil {
   let target = boiler_target_for_mode(hvac_mode)
   process.send(
-    state.ha_commands,
-    ha_command_actor.SetHeatingAction(state.boiler_entity_id, hvac_mode, target),
+    state.boiler_commands,
+    BoilerCommand(state.boiler_entity_id, hvac_mode, target),
   )
 }
 
 /// Get the target temperature to send with the boiler command
-fn boiler_target_for_mode(hvac_mode: mode.HvacMode) -> Temperature {
+fn boiler_target_for_mode(hvac_mode: HvacMode) -> Temperature {
   case hvac_mode {
     // When heating, set a high target
     mode.HvacHeat -> temperature.max_trv_command_target

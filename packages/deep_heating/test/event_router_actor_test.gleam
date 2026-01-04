@@ -1,5 +1,4 @@
 import deep_heating/actor/event_router_actor
-import deep_heating/actor/ha_command_actor
 import deep_heating/actor/ha_poller_actor
 import deep_heating/actor/heating_control_actor
 import deep_heating/actor/house_mode_actor
@@ -377,8 +376,8 @@ pub fn routes_heating_status_changed_to_heating_control_actor_test() {
   // When a HeatingStatusChanged event is received, it should be routed to
   // the HeatingControlActor
 
-  // Create a spy for HA commands (required by HeatingControlActor)
-  let ha_commands_spy: process.Subject(ha_command_actor.Message) =
+  // Create a spy for boiler commands (domain interface for HeatingControlActor)
+  let boiler_commands_spy: process.Subject(heating_control_actor.BoilerCommand) =
     process.new_subject()
 
   // Start HeatingControlActor
@@ -387,7 +386,7 @@ pub fn routes_heating_status_changed_to_heating_control_actor_test() {
   let assert Ok(heating_control_started) =
     heating_control_actor.start(
       boiler_entity_id: boiler_entity_id,
-      ha_commands: ha_commands_spy,
+      boiler_commands: boiler_commands_spy,
     )
 
   // Start HouseModeActor (required for config)

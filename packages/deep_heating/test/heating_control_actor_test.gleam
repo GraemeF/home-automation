@@ -1,4 +1,3 @@
-import deep_heating/actor/ha_command_actor
 import deep_heating/actor/heating_control_actor
 import deep_heating/actor/room_actor
 import deep_heating/entity_id
@@ -49,26 +48,26 @@ fn make_warm_room(name: String) -> room_actor.RoomState {
 // =============================================================================
 
 pub fn heating_control_actor_starts_successfully_test() {
-  let ha_commands: process.Subject(ha_command_actor.Message) =
+  let boiler_commands: process.Subject(heating_control_actor.BoilerCommand) =
     process.new_subject()
 
   let result =
     heating_control_actor.start(
       boiler_entity_id: make_boiler_entity_id(),
-      ha_commands: ha_commands,
+      boiler_commands: boiler_commands,
     )
 
   should.be_ok(result)
 }
 
 pub fn heating_control_actor_turns_boiler_on_when_room_needs_heating_test() {
-  let ha_commands: process.Subject(ha_command_actor.Message) =
+  let boiler_commands: process.Subject(heating_control_actor.BoilerCommand) =
     process.new_subject()
 
   let assert Ok(started) =
     heating_control_actor.start(
       boiler_entity_id: make_boiler_entity_id(),
-      ha_commands: ha_commands,
+      boiler_commands: boiler_commands,
     )
 
   // Tell it the boiler is currently off
@@ -83,24 +82,23 @@ pub fn heating_control_actor_turns_boiler_on_when_room_needs_heating_test() {
   )
 
   // Should receive a command to turn boiler on
-  let assert Ok(msg) = process.receive(ha_commands, 1000)
+  let assert Ok(msg) = process.receive(boiler_commands, 1000)
   case msg {
-    ha_command_actor.SetHeatingAction(entity_id, hvac_mode, _target) -> {
+    heating_control_actor.BoilerCommand(entity_id, hvac_mode, _target) -> {
       entity_id |> should.equal(make_boiler_entity_id())
       hvac_mode |> should.equal(mode.HvacHeat)
     }
-    _ -> should.fail()
   }
 }
 
 pub fn heating_control_actor_does_not_turn_boiler_on_when_already_on_test() {
-  let ha_commands: process.Subject(ha_command_actor.Message) =
+  let boiler_commands: process.Subject(heating_control_actor.BoilerCommand) =
     process.new_subject()
 
   let assert Ok(started) =
     heating_control_actor.start(
       boiler_entity_id: make_boiler_entity_id(),
-      ha_commands: ha_commands,
+      boiler_commands: boiler_commands,
     )
 
   // Tell it the boiler is currently ON
@@ -116,7 +114,7 @@ pub fn heating_control_actor_does_not_turn_boiler_on_when_already_on_test() {
   process.sleep(50)
 
   // Should NOT receive any command (boiler already on)
-  let result = process.receive(ha_commands, 100)
+  let result = process.receive(boiler_commands, 100)
   result |> should.be_error
 }
 
@@ -125,13 +123,13 @@ pub fn heating_control_actor_does_not_turn_boiler_on_when_already_on_test() {
 // =============================================================================
 
 pub fn heating_control_actor_turns_boiler_off_when_no_rooms_need_heating_test() {
-  let ha_commands: process.Subject(ha_command_actor.Message) =
+  let boiler_commands: process.Subject(heating_control_actor.BoilerCommand) =
     process.new_subject()
 
   let assert Ok(started) =
     heating_control_actor.start(
       boiler_entity_id: make_boiler_entity_id(),
-      ha_commands: ha_commands,
+      boiler_commands: boiler_commands,
     )
 
   // Tell it the boiler is currently ON
@@ -146,24 +144,23 @@ pub fn heating_control_actor_turns_boiler_off_when_no_rooms_need_heating_test() 
   )
 
   // Should receive a command to turn boiler off
-  let assert Ok(msg) = process.receive(ha_commands, 1000)
+  let assert Ok(msg) = process.receive(boiler_commands, 1000)
   case msg {
-    ha_command_actor.SetHeatingAction(entity_id, hvac_mode, _target) -> {
+    heating_control_actor.BoilerCommand(entity_id, hvac_mode, _target) -> {
       entity_id |> should.equal(make_boiler_entity_id())
       hvac_mode |> should.equal(mode.HvacOff)
     }
-    _ -> should.fail()
   }
 }
 
 pub fn heating_control_actor_does_not_turn_boiler_off_when_already_off_test() {
-  let ha_commands: process.Subject(ha_command_actor.Message) =
+  let boiler_commands: process.Subject(heating_control_actor.BoilerCommand) =
     process.new_subject()
 
   let assert Ok(started) =
     heating_control_actor.start(
       boiler_entity_id: make_boiler_entity_id(),
-      ha_commands: ha_commands,
+      boiler_commands: boiler_commands,
     )
 
   // Tell it the boiler is currently OFF
@@ -180,7 +177,7 @@ pub fn heating_control_actor_does_not_turn_boiler_off_when_already_off_test() {
   process.sleep(50)
 
   // Should NOT receive any command (boiler already off)
-  let result = process.receive(ha_commands, 100)
+  let result = process.receive(boiler_commands, 100)
   result |> should.be_error
 }
 
@@ -189,13 +186,13 @@ pub fn heating_control_actor_does_not_turn_boiler_off_when_already_off_test() {
 // =============================================================================
 
 pub fn heating_control_actor_keeps_boiler_on_if_any_room_needs_heating_test() {
-  let ha_commands: process.Subject(ha_command_actor.Message) =
+  let boiler_commands: process.Subject(heating_control_actor.BoilerCommand) =
     process.new_subject()
 
   let assert Ok(started) =
     heating_control_actor.start(
       boiler_entity_id: make_boiler_entity_id(),
-      ha_commands: ha_commands,
+      boiler_commands: boiler_commands,
     )
 
   // Tell it the boiler is currently ON
@@ -219,6 +216,6 @@ pub fn heating_control_actor_keeps_boiler_on_if_any_room_needs_heating_test() {
   process.sleep(50)
 
   // Should NOT receive any off command (bedroom still needs heating)
-  let result = process.receive(ha_commands, 100)
+  let result = process.receive(boiler_commands, 100)
   result |> should.be_error
 }

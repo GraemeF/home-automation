@@ -265,9 +265,9 @@ pub fn start_with_home_config(
   let ha_command_name = process.new_name("deep_heating_ha_command")
   let heating_control_name = process.new_name("deep_heating_heating_control")
 
-  // Build and start the main supervision tree (without HaPollerActor - started later)
-  // Note: HeatingControlActor uses named_subject(ha_command_name) which works
-  // because HaCommandActor is added before it and will be started first
+  // Build and start the main supervision tree
+  // Note: HeatingControlActor is started manually after supervision
+  // to allow proper adapter wiring for domain/infrastructure decoupling
   let supervisor_result =
     supervisor.new(supervisor.OneForOne)
     |> supervisor.add(house_mode_actor.child_spec(house_mode_name))
@@ -279,11 +279,6 @@ pub fn start_with_home_config(
       ha_command_name,
       config.ha_client,
       default_ha_command_debounce_ms,
-    ))
-    |> supervisor.add(heating_control_actor.child_spec(
-      heating_control_name,
-      config.home_config.heating_id,
-      process.named_subject(ha_command_name),
     ))
     |> supervisor.start
 
@@ -322,47 +317,58 @@ pub fn start_with_home_config(
           let sensor_registry =
             build_sensor_registry(rooms_sup, config.home_config)
 
-          // Get HeatingControlActor subject for routing heating status events
-          let heating_control_subject =
-            process.named_subject(heating_control_name)
+          // Create adapter that converts domain BoilerCommand → ha_command_actor.Message
+          let boiler_commands = create_boiler_command_adapter(ha_commands)
 
-          // Start EventRouterActor (reuses house_mode_subject from above)
-          let router_config =
-            event_router_actor.Config(
-              house_mode_actor: house_mode_subject,
-              trv_registry: trv_registry,
-              sensor_registry: sensor_registry,
-              heating_control_actor: option.Some(heating_control_subject),
+          // Start HeatingControlActor with domain-only interface
+          case
+            heating_control_actor.start_named(
+              heating_control_name,
+              config.home_config.heating_id,
+              boiler_commands,
             )
-
-          case event_router_actor.start(router_config) {
-            Error(_) -> {
-              // For now, treat router start failure as a supervisor error
-              Error(SupervisorStartError(actor.InitTimeout))
-            }
-            Ok(event_router_subject) -> {
-              // Start HaPollerActor with the EventRouter's subject as event_spy
-              case
-                ha_poller_actor.start_named(
-                  ha_poller_name,
-                  config.ha_client,
-                  config.poller_config,
-                  event_router_subject,
+          {
+            Error(e) -> Error(SupervisorStartError(e))
+            Ok(heating_started) -> {
+              // Start EventRouterActor (reuses house_mode_subject from above)
+              let router_config =
+                event_router_actor.Config(
+                  house_mode_actor: house_mode_subject,
+                  trv_registry: trv_registry,
+                  sensor_registry: sensor_registry,
+                  heating_control_actor: option.Some(heating_started.data),
                 )
-              {
-                Error(e) -> Error(SupervisorStartError(e))
-                Ok(_poller_started) -> {
-                  let sup =
-                    SupervisorWithRooms(
-                      pid: started.pid,
-                      house_mode_name: house_mode_name,
-                      state_aggregator_name: state_aggregator_name,
-                      ha_poller_name: ha_poller_name,
-                      ha_command_name: ha_command_name,
-                      heating_control_name: heating_control_name,
-                      rooms_supervisor: rooms_sup,
+
+              case event_router_actor.start(router_config) {
+                Error(_) -> {
+                  // For now, treat router start failure as a supervisor error
+                  Error(SupervisorStartError(actor.InitTimeout))
+                }
+                Ok(event_router_subject) -> {
+                  // Start HaPollerActor with the EventRouter's subject as event_spy
+                  case
+                    ha_poller_actor.start_named(
+                      ha_poller_name,
+                      config.ha_client,
+                      config.poller_config,
+                      event_router_subject,
                     )
-                  Ok(actor.Started(pid: started.pid, data: sup))
+                  {
+                    Error(e) -> Error(SupervisorStartError(e))
+                    Ok(_poller_started) -> {
+                      let sup =
+                        SupervisorWithRooms(
+                          pid: started.pid,
+                          house_mode_name: house_mode_name,
+                          state_aggregator_name: state_aggregator_name,
+                          ha_poller_name: ha_poller_name,
+                          ha_command_name: ha_command_name,
+                          heating_control_name: heating_control_name,
+                          rooms_supervisor: rooms_sup,
+                        )
+                      Ok(actor.Started(pid: started.pid, data: sup))
+                    }
+                  }
                 }
               }
             }
@@ -452,5 +458,42 @@ pub fn get_heating_control_actor(
       Ok(ActorRef(pid: pid, subject: subject))
     }
     Error(_) -> Error(Nil)
+  }
+}
+
+// =============================================================================
+// Domain Command Adapters
+// =============================================================================
+
+/// Create an adapter that forwards domain BoilerCommand to infrastructure ha_command_actor.
+/// Returns a Subject(BoilerCommand) that can be passed to HeatingControlActor.
+fn create_boiler_command_adapter(
+  ha_commands: Subject(ha_command_actor.Message),
+) -> Subject(heating_control_actor.BoilerCommand) {
+  let boiler_commands: Subject(heating_control_actor.BoilerCommand) =
+    process.new_subject()
+
+  // Spawn an unlinked process that forwards BoilerCommand → ha_command_actor.Message
+  let _ =
+    process.spawn_unlinked(fn() {
+      forward_boiler_commands(boiler_commands, ha_commands)
+    })
+
+  boiler_commands
+}
+
+/// Receive BoilerCommands and forward to ha_command_actor
+fn forward_boiler_commands(
+  boiler_commands: Subject(heating_control_actor.BoilerCommand),
+  ha_commands: Subject(ha_command_actor.Message),
+) -> Nil {
+  case process.receive_forever(boiler_commands) {
+    heating_control_actor.BoilerCommand(entity_id, mode, target) -> {
+      process.send(
+        ha_commands,
+        ha_command_actor.SetHeatingAction(entity_id, mode, target),
+      )
+      forward_boiler_commands(boiler_commands, ha_commands)
+    }
   }
 }
