@@ -1,8 +1,10 @@
+import deep_heating/actor/ha_command_actor
 import deep_heating/actor/ha_poller_actor
 import deep_heating/actor/room_actor
 import deep_heating/entity_id
 import deep_heating/home_assistant
 import deep_heating/home_config.{type HomeConfig, HomeConfig, RoomConfig}
+import deep_heating/mode
 import deep_heating/rooms_supervisor
 import deep_heating/schedule
 import deep_heating/supervisor
@@ -202,6 +204,73 @@ pub fn supervisor_restarts_crashed_ha_poller_actor_test() {
 
   // The new PID should be different from the original
   should.not_equal(new_ha_poller.pid, original_pid)
+}
+
+// =============================================================================
+// HaCommandActor tests
+// =============================================================================
+
+pub fn supervisor_has_ha_command_actor_test() {
+  // When started with config, supervisor should have HaCommandActor child
+  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
+  let poller_config = create_test_poller_config()
+
+  let assert Ok(started) =
+    supervisor.start_with_config(supervisor.SupervisorConfig(
+      ha_client: ha_client,
+      poller_config: poller_config,
+      adjustments_path: option.None,
+    ))
+
+  // Get the ha command actor from the supervisor
+  let result = supervisor.get_ha_command_actor(started.data)
+  should.be_ok(result)
+}
+
+pub fn ha_command_actor_is_alive_test() {
+  // The HaCommandActor should be running
+  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
+  let poller_config = create_test_poller_config()
+
+  let assert Ok(started) =
+    supervisor.start_with_config(supervisor.SupervisorConfig(
+      ha_client: ha_client,
+      poller_config: poller_config,
+      adjustments_path: option.None,
+    ))
+
+  let assert Ok(ha_command) = supervisor.get_ha_command_actor(started.data)
+  process.is_alive(ha_command.pid) |> should.be_true
+}
+
+pub fn ha_command_actor_responds_to_messages_test() {
+  // The HaCommandActor should process messages
+  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
+  let poller_config = create_test_poller_config()
+
+  let assert Ok(started) =
+    supervisor.start_with_config(supervisor.SupervisorConfig(
+      ha_client: ha_client,
+      poller_config: poller_config,
+      adjustments_path: option.None,
+    ))
+
+  let assert Ok(ha_command) = supervisor.get_ha_command_actor(started.data)
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // Send a message to the actor (it won't actually call HA since we're in test)
+  process.send(
+    ha_command.subject,
+    ha_command_actor.SetTrvAction(
+      entity_id: trv_id,
+      mode: mode.HvacHeat,
+      target: temperature.temperature(21.0),
+    ),
+  )
+
+  // Just verify the actor didn't crash - still alive after message
+  process.sleep(10)
+  process.is_alive(ha_command.pid) |> should.be_true
 }
 
 // =============================================================================

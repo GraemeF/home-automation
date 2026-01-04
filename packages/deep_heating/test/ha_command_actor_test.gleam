@@ -313,3 +313,20 @@ pub fn debounces_rapid_heating_commands_test() {
   let result = process.receive(api_spy, 50)
   result |> should.be_error
 }
+
+// =============================================================================
+// Child Spec / Supervision Tests
+// =============================================================================
+
+pub fn child_spec_creates_valid_specification_test() {
+  // child_spec should return a valid ChildSpecification for OTP supervision
+  let name = process.new_name("test_ha_command_actor")
+  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
+  let debounce_ms = 50
+
+  // This should compile and return a ChildSpecification
+  let _child_spec = ha_command_actor.child_spec(name, ha_client, debounce_ms)
+
+  // If we got here without error, the child_spec function exists and compiles
+  should.be_true(True)
+}

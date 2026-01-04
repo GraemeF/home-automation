@@ -9,6 +9,7 @@
 //// └── RoomsSupervisor (when started with home_config)
 //// ```
 
+import deep_heating/actor/ha_command_actor
 import deep_heating/actor/ha_poller_actor
 import deep_heating/actor/house_mode_actor
 import deep_heating/actor/state_aggregator_actor
@@ -17,11 +18,11 @@ import deep_heating/home_assistant.{type HaClient}
 import deep_heating/home_config.{type HomeConfig}
 import deep_heating/room_adjustments
 import deep_heating/rooms_supervisor.{type RoomsSupervisor}
-import gleam/result
 import gleam/erlang/process.{type Name, type Pid, type Subject}
 import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
 import gleam/otp/static_supervisor as supervisor
+import gleam/result
 
 /// Handle to the running supervisor and its children
 pub opaque type Supervisor {
@@ -30,6 +31,7 @@ pub opaque type Supervisor {
     house_mode_name: Name(house_mode_actor.Message),
     state_aggregator_name: Name(state_aggregator_actor.Message),
     ha_poller_name: Option(Name(ha_poller_actor.Message)),
+    ha_command_name: Option(Name(ha_command_actor.Message)),
   )
 }
 
@@ -88,8 +90,11 @@ pub fn start() -> Result(actor.Started(Supervisor), actor.StartError) {
     None,
   ))
   |> supervisor.start
-  |> wrap_result(house_mode_name, state_aggregator_name, None)
+  |> wrap_result(house_mode_name, state_aggregator_name, None, None)
 }
+
+/// Default debounce interval for HA commands in milliseconds
+const default_ha_command_debounce_ms = 5000
 
 /// Start the Deep Heating supervision tree with HaPollerActor.
 ///
@@ -101,6 +106,7 @@ pub fn start_with_config(
   let house_mode_name = process.new_name("deep_heating_house_mode")
   let state_aggregator_name = process.new_name("deep_heating_state_aggregator")
   let ha_poller_name = process.new_name("deep_heating_ha_poller")
+  let ha_command_name = process.new_name("deep_heating_ha_command")
 
   // Build and start the supervision tree
   supervisor.new(supervisor.OneForOne)
@@ -114,8 +120,18 @@ pub fn start_with_config(
     config.ha_client,
     config.poller_config,
   ))
+  |> supervisor.add(ha_command_actor.child_spec(
+    ha_command_name,
+    config.ha_client,
+    default_ha_command_debounce_ms,
+  ))
   |> supervisor.start
-  |> wrap_result(house_mode_name, state_aggregator_name, Some(ha_poller_name))
+  |> wrap_result(
+    house_mode_name,
+    state_aggregator_name,
+    Some(ha_poller_name),
+    Some(ha_command_name),
+  )
 }
 
 /// Get a reference to the HouseModeActor
@@ -162,6 +178,24 @@ pub fn get_ha_poller(
   }
 }
 
+/// Get a reference to the HaCommandActor (only available if started with config)
+pub fn get_ha_command_actor(
+  sup: Supervisor,
+) -> Result(ActorRef(ha_command_actor.Message), Nil) {
+  case sup.ha_command_name {
+    Some(name) -> {
+      case process.named(name) {
+        Ok(pid) -> {
+          let subject = process.named_subject(name)
+          Ok(ActorRef(pid: pid, subject: subject))
+        }
+        Error(_) -> Error(Nil)
+      }
+    }
+    None -> Error(Nil)
+  }
+}
+
 /// Get the supervisor's PID
 pub fn pid(sup: Supervisor) -> Pid {
   sup.pid
@@ -172,6 +206,7 @@ fn wrap_result(
   house_mode_name: Name(house_mode_actor.Message),
   state_aggregator_name: Name(state_aggregator_actor.Message),
   ha_poller_name: Option(Name(ha_poller_actor.Message)),
+  ha_command_name: Option(Name(ha_command_actor.Message)),
 ) -> Result(actor.Started(Supervisor), actor.StartError) {
   case result {
     Ok(started) -> {
@@ -181,6 +216,7 @@ fn wrap_result(
           house_mode_name: house_mode_name,
           state_aggregator_name: state_aggregator_name,
           ha_poller_name: ha_poller_name,
+          ha_command_name: ha_command_name,
         )
       Ok(actor.Started(pid: started.pid, data: sup))
     }

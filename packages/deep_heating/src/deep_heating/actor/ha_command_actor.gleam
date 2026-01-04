@@ -11,9 +11,10 @@ import deep_heating/home_assistant.{type HaClient}
 import deep_heating/mode.{type HvacMode}
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
-import gleam/erlang/process.{type Subject}
+import gleam/erlang/process.{type Name, type Subject}
 import gleam/io
 import gleam/otp/actor
+import gleam/otp/supervision
 
 /// API calls that were made (for testing/observability)
 pub type ApiCall {
@@ -115,6 +116,46 @@ pub fn start_with_options(
   })
   |> actor.on_message(handle_message)
   |> actor.start
+}
+
+/// Start the HaCommandActor and register it with the given name
+pub fn start_named(
+  name: Name(Message),
+  ha_client: HaClient,
+  debounce_ms: Int,
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  // Create an internal spy - events are not observed in production
+  let api_spy: Subject(ApiCall) = process.new_subject()
+
+  start_with_options(
+    ha_client: ha_client,
+    api_spy: api_spy,
+    debounce_ms: debounce_ms,
+    skip_http: False,
+  )
+  |> register_with_name(name)
+}
+
+/// Create a child specification for supervision
+pub fn child_spec(
+  name: Name(Message),
+  ha_client: HaClient,
+  debounce_ms: Int,
+) -> supervision.ChildSpecification(Subject(Message)) {
+  supervision.worker(fn() { start_named(name, ha_client, debounce_ms) })
+}
+
+fn register_with_name(
+  result: Result(actor.Started(Subject(Message)), actor.StartError),
+  name: Name(Message),
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  case result {
+    Ok(started) -> {
+      let _ = process.register(started.pid, name)
+      Ok(started)
+    }
+    Error(e) -> Error(e)
+  }
 }
 
 fn handle_message(state: State, message: Message) -> actor.Next(State, Message) {
