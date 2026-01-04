@@ -64,3 +64,8 @@ pub fn room_with_temp(name: String, temp: Float) -> RoomState {
 pub fn room_without_temp(name: String) -> RoomState {
   RoomState(..heating_room(), name: name, temperature: None)
 }
+
+/// Create a room without a target temperature (e.g., turned off room).
+pub fn room_without_target() -> RoomState {
+  RoomState(..heating_room(), target_temperature: None, is_heating: Some(False))
+}
