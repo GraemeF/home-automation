@@ -312,6 +312,38 @@ pub fn rooms_supervisor_starts_all_rooms_test() {
   list.length(room_supervisors) |> should.equal(2)
 }
 
+pub fn room_supervisor_registers_room_actor_with_state_aggregator_test() {
+  // This test verifies that when a room is started, its RoomActor is
+  // automatically registered with the StateAggregatorActor so that
+  // AdjustRoom messages can be forwarded correctly.
+  let assert Ok(state_agg) = state_aggregator_actor.start_link()
+  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let room_config = make_single_room_config()
+
+  let assert Ok(room_sup) =
+    rooms_supervisor.start_room(
+      room_config: room_config,
+      state_aggregator: state_agg,
+      ha_commands: ha_commands,
+    )
+
+  // Give time for any async registration
+  process.sleep(50)
+
+  // Send an adjustment via the state aggregator
+  process.send(state_agg, state_aggregator_actor.AdjustRoom("lounge", 2.0))
+  process.sleep(50)
+
+  // Query the room actor to check if adjustment was applied
+  let assert Ok(room_actor_ref) = rooms_supervisor.get_room_actor(room_sup)
+  let reply = process.new_subject()
+  process.send(room_actor_ref.subject, room_actor.GetState(reply))
+  let assert Ok(state) = process.receive(reply, 1000)
+
+  // The adjustment should have been forwarded to the room actor
+  state.adjustment |> should.equal(2.0)
+}
+
 pub fn rooms_supervisor_can_get_room_by_name_test() {
   let assert Ok(sleep_switch) =
     entity_id.goodnight_entity_id("input_button.goodnight")

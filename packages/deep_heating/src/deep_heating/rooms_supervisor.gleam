@@ -119,6 +119,12 @@ pub fn start_room(
   let room_subject = room_started.data
   let room_ref = ActorRef(pid: room_started.pid, subject: room_subject)
 
+  // Register the room actor with the state aggregator for adjustment forwarding
+  process.send(
+    state_aggregator,
+    state_aggregator_actor.RegisterRoomActor(room_config.name, room_subject),
+  )
+
   // Coerce room subject to type TrvActor expects
   let room_for_trv: Subject(trv_actor.RoomMessage) =
     coerce_subject(room_subject)
