@@ -1,7 +1,9 @@
 import deep_heating/temperature.{
-  add, compare, eq, gt, gte, is_calling_for_heat, lt, lte, min_room_target,
-  min_trv_target, round_down_half, round_up_half, subtract, temperature, unwrap,
+  add, compare, eq, format, format_bare, format_option, gt, gte,
+  is_calling_for_heat, lt, lte, min_room_target, min_trv_target, round_down_half,
+  round_up_half, subtract, temperature, unwrap,
 }
+import gleam/option.{None, Some}
 import gleam/order
 import gleeunit/should
 
@@ -212,4 +214,52 @@ pub fn is_calling_for_heat_true_for_small_difference_test() {
   let target = temperature(20.1)
   let current = temperature(20.0)
   is_calling_for_heat(target, current) |> should.be_true
+}
+
+// =============================================================================
+// Formatting Tests (UI display)
+// =============================================================================
+
+pub fn format_positive_temperature_test() {
+  let temp = temperature(20.5)
+  format(temp) |> should.equal("20.5°C")
+}
+
+pub fn format_rounds_to_one_decimal_test() {
+  let temp = temperature(20.55)
+  format(temp) |> should.equal("20.6°C")
+}
+
+pub fn format_negative_temperature_test() {
+  let temp = temperature(-5.0)
+  format(temp) |> should.equal("-5.0°C")
+}
+
+pub fn format_zero_test() {
+  let temp = temperature(0.0)
+  format(temp) |> should.equal("0.0°C")
+}
+
+pub fn format_whole_number_shows_decimal_test() {
+  let temp = temperature(20.0)
+  format(temp) |> should.equal("20.0°C")
+}
+
+pub fn format_option_some_test() {
+  let temp = Some(temperature(21.0))
+  format_option(temp) |> should.equal("21.0°C")
+}
+
+pub fn format_option_none_test() {
+  format_option(None) |> should.equal("–")
+}
+
+pub fn format_bare_no_units_test() {
+  let temp = temperature(19.5)
+  format_bare(temp) |> should.equal("19.5")
+}
+
+pub fn format_bare_whole_number_test() {
+  let temp = temperature(20.0)
+  format_bare(temp) |> should.equal("20.0")
 }

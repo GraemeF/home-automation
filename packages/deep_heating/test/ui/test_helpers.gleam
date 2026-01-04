@@ -47,3 +47,20 @@ pub fn off_room() -> RoomState {
 pub fn adjusted_room(adjustment: Float) -> RoomState {
   RoomState(..heating_room(), adjustment: adjustment)
 }
+
+/// Create a room with a specific name and temperature.
+pub fn room_with_temp(name: String, temp: Float) -> RoomState {
+  RoomState(
+    ..heating_room(),
+    name: name,
+    temperature: Some(TemperatureReading(
+      temperature: temperature.temperature(temp),
+      time: 0,
+    )),
+  )
+}
+
+/// Create a room without a temperature reading.
+pub fn room_without_temp(name: String) -> RoomState {
+  RoomState(..heating_room(), name: name, temperature: None)
+}

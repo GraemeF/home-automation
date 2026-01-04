@@ -1,4 +1,6 @@
 import gleam/float
+import gleam/int
+import gleam/option.{type Option, None, Some}
 import gleam/order.{type Order}
 
 /// Opaque temperature type - cannot be constructed directly.
@@ -107,4 +109,39 @@ pub fn clamp(
         False -> temp
       }
   }
+}
+
+// =============================================================================
+// Formatting Functions (UI display)
+// =============================================================================
+
+/// Format a temperature for display.
+/// Returns the temperature to 1 decimal place with "°C" suffix.
+/// Example: 20.5 -> "20.5°C"
+pub fn format(temp: Temperature) -> String {
+  float_to_string_1dp(unwrap(temp)) <> "°C"
+}
+
+/// Format an optional temperature for display.
+/// Returns "–" (en-dash) for None.
+pub fn format_option(temp: Option(Temperature)) -> String {
+  case temp {
+    Some(t) -> format(t)
+    None -> "–"
+  }
+}
+
+/// Format a temperature without units (for use in controls).
+pub fn format_bare(temp: Temperature) -> String {
+  float_to_string_1dp(unwrap(temp))
+}
+
+/// Helper: format float to 1 decimal place.
+fn float_to_string_1dp(value: Float) -> String {
+  let rounded = int.to_float(float.round(value *. 10.0)) /. 10.0
+  let int_part = float.truncate(rounded)
+  let frac =
+    float.absolute_value(rounded -. int.to_float(int_part)) *. 10.0
+    |> float.round
+  int.to_string(int_part) <> "." <> int.to_string(frac)
 }
