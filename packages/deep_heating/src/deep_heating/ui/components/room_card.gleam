@@ -14,8 +14,10 @@ pub fn view(room: RoomState) -> Element(Msg) {
 
   div(
     [
-      class("card card-sm w-44 shadow-md " <> background_class(is_heating)),
-      attribute("style", "color: white"),
+      class(
+        "card card-sm w-44 shadow-md text-white "
+        <> background_class(is_heating),
+      ),
       attribute("data-testid", "room-card"),
       attribute("data-room-name", room.name),
     ],
