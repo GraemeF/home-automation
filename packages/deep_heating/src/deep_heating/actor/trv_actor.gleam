@@ -40,10 +40,6 @@ pub type Message {
   GetState(reply_to: Subject(TrvState))
   /// Update from Home Assistant poller
   Update(TrvUpdate)
-  /// Command to set target temperature (from RoomDecisionActor)
-  SetTarget(target: Temperature)
-  /// Command to set HVAC mode (from RoomDecisionActor)
-  SetMode(hvac_mode: HvacMode)
 }
 
 /// Messages that can be sent to a RoomActor
@@ -58,21 +54,9 @@ pub type RoomMessage {
   TrvIsHeatingChanged(entity_id: ClimateEntityId, is_heating: Bool)
 }
 
-/// Commands to send to Home Assistant
-pub type HaCommand {
-  /// Set the TRV's target temperature
-  SetTrvTarget(entity_id: ClimateEntityId, target: Temperature)
-  /// Set the TRV's HVAC mode
-  SetTrvMode(entity_id: ClimateEntityId, hvac_mode: HvacMode)
-}
-
 /// Internal actor state including dependencies
 type ActorState {
-  ActorState(
-    trv: TrvState,
-    room_actor: Subject(RoomMessage),
-    ha_commands: Subject(HaCommand),
-  )
+  ActorState(trv: TrvState, room_actor: Subject(RoomMessage))
 }
 
 /// Start the TrvActor with the given entity ID, name, and dependencies.
@@ -82,7 +66,6 @@ pub fn start(
   entity_id: ClimateEntityId,
   name: Name(Message),
   room_actor: Subject(RoomMessage),
-  ha_commands: Subject(HaCommand),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   let initial_trv =
     TrvState(
@@ -92,12 +75,7 @@ pub fn start(
       mode: HvacOff,
       is_heating: False,
     )
-  let initial_state =
-    ActorState(
-      trv: initial_trv,
-      room_actor: room_actor,
-      ha_commands: ha_commands,
-    )
+  let initial_state = ActorState(trv: initial_trv, room_actor: room_actor)
 
   actor.new(initial_state)
   |> actor.named(name)
@@ -158,17 +136,6 @@ fn handle_message(
       )
 
       actor.continue(ActorState(..state, trv: new_trv))
-    }
-    SetTarget(target) -> {
-      process.send(state.ha_commands, SetTrvTarget(state.trv.entity_id, target))
-      actor.continue(state)
-    }
-    SetMode(hvac_mode) -> {
-      process.send(
-        state.ha_commands,
-        SetTrvMode(state.trv.entity_id, hvac_mode),
-      )
-      actor.continue(state)
     }
   }
 }

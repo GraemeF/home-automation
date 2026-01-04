@@ -15,6 +15,7 @@
 //// └── ...
 //// ```
 
+import deep_heating/actor/ha_command_actor
 import deep_heating/actor/room_actor
 import deep_heating/actor/room_decision_actor
 import deep_heating/actor/state_aggregator_actor
@@ -22,7 +23,6 @@ import deep_heating/actor/trv_actor
 import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/home_config.{type HomeConfig, type RoomConfig}
 import deep_heating/room_adjustments.{type RoomAdjustment}
-import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Pid, type Subject}
 import gleam/list
@@ -76,7 +76,6 @@ type TrvActorConfig {
     entity_id: ClimateEntityId,
     name: process.Name(trv_actor.Message),
     room_actor: Subject(trv_actor.RoomMessage),
-    ha_commands: Subject(trv_actor.HaCommand),
   )
 }
 
@@ -93,7 +92,7 @@ type TrvActorConfig {
 pub fn start_room(
   room_config room_config: RoomConfig,
   state_aggregator state_aggregator: Subject(state_aggregator_actor.Message),
-  ha_commands ha_commands: Subject(trv_actor.HaCommand),
+  ha_commands ha_commands: Subject(ha_command_actor.Message),
   initial_adjustments initial_adjustments: List(RoomAdjustment),
 ) -> Result(RoomSupervisor, StartError) {
   // Get schedule - rooms must have a schedule configured
@@ -160,19 +159,15 @@ pub fn start_room(
     room_config.name,
     room_config.climate_entity_ids,
     room_for_trv,
-    ha_commands,
   ))
-
-  // Start the command forwarder actor - it creates its own Subject
-  use trv_command_subject <- result.try(start_trv_command_forwarder(trv_refs))
 
   // Create a name for the decision actor
   let decision_actor_name =
     process.new_name("decision_actor_" <> room_config.name)
 
-  // Start the RoomDecisionActor with the forwarder's Subject
+  // Start the RoomDecisionActor - sends commands directly to HaCommandActor
   use decision_started <- result.try(
-    room_decision_actor.start(trv_commands: trv_command_subject)
+    room_decision_actor.start(ha_commands: ha_commands)
     |> result.map_error(ActorStartError),
   )
 
@@ -195,12 +190,7 @@ pub fn start_room(
 fn start_trv_from_config(
   config: TrvActorConfig,
 ) -> Result(actor.Started(Subject(trv_actor.Message)), actor.StartError) {
-  trv_actor.start(
-    config.entity_id,
-    config.name,
-    config.room_actor,
-    config.ha_commands,
-  )
+  trv_actor.start(config.entity_id, config.name, config.room_actor)
 }
 
 /// Start TRV actors under a factory supervisor for fault tolerance.
@@ -209,7 +199,6 @@ fn start_supervised_trv_actors(
   room_name: String,
   entity_ids: List(ClimateEntityId),
   room_actor: Subject(trv_actor.RoomMessage),
-  ha_commands: Subject(trv_actor.HaCommand),
 ) -> Result(List(ActorRef(trv_actor.Message)), StartError) {
   // Create names for all TRV actors upfront (names are stable across restarts)
   let configs =
@@ -217,12 +206,7 @@ fn start_supervised_trv_actors(
       let entity_id_str = entity_id.climate_entity_id_to_string(entity_id)
       let name =
         process.new_name("trv_actor_" <> room_name <> "_" <> entity_id_str)
-      TrvActorConfig(
-        entity_id: entity_id,
-        name: name,
-        room_actor: room_actor,
-        ha_commands: ha_commands,
-      )
+      TrvActorConfig(entity_id: entity_id, name: name, room_actor: room_actor)
     })
 
   // Start factory supervisor for TRV actors
@@ -239,57 +223,6 @@ fn start_supervised_trv_actors(
       ActorRef(pid: started.pid, subject: started.data, name: config.name)
     })
     |> result.map_error(ActorStartError)
-  })
-}
-
-/// Internal state for the TrvCommand forwarder actor
-type ForwarderState {
-  ForwarderState(trv_subjects: List(Subject(trv_actor.Message)))
-}
-
-/// Start an actor that forwards TrvCommands to the appropriate TrvActor.
-/// Returns the Subject that RoomDecisionActor should send commands to.
-fn start_trv_command_forwarder(
-  trv_refs: List(ActorRef(trv_actor.Message)),
-) -> Result(Subject(room_decision_actor.TrvCommand), StartError) {
-  let trv_subjects = list.map(trv_refs, fn(ref) { ref.subject })
-  let initial_state = ForwarderState(trv_subjects: trv_subjects)
-
-  actor.new(initial_state)
-  |> actor.on_message(handle_forwarder_message)
-  |> actor.start
-  |> result.map(fn(started) { started.data })
-  |> result.map_error(ActorStartError)
-}
-
-fn handle_forwarder_message(
-  state: ForwarderState,
-  message: room_decision_actor.TrvCommand,
-) -> actor.Next(ForwarderState, room_decision_actor.TrvCommand) {
-  case message {
-    room_decision_actor.SetTrvTarget(entity_id, _mode, target) -> {
-      // Forward to the matching TRV actor
-      forward_set_target(state.trv_subjects, entity_id, target)
-      actor.continue(state)
-    }
-  }
-}
-
-fn forward_set_target(
-  trv_subjects: List(Subject(trv_actor.Message)),
-  target_entity_id: ClimateEntityId,
-  target: Temperature,
-) -> Nil {
-  list.each(trv_subjects, fn(trv_subject) {
-    // Query TRV state to check entity ID
-    let reply = process.new_subject()
-    process.send(trv_subject, trv_actor.GetState(reply))
-    case process.receive(reply, 100) {
-      Ok(state) if state.entity_id == target_entity_id -> {
-        process.send(trv_subject, trv_actor.SetTarget(target))
-      }
-      _ -> Nil
-    }
   })
 }
 
@@ -324,7 +257,7 @@ pub fn get_decision_actor(
 pub fn start(
   config config: HomeConfig,
   state_aggregator state_aggregator: Subject(state_aggregator_actor.Message),
-  ha_commands ha_commands: Subject(trv_actor.HaCommand),
+  ha_commands ha_commands: Subject(ha_command_actor.Message),
   initial_adjustments initial_adjustments: List(RoomAdjustment),
 ) -> Result(RoomsSupervisor, StartError) {
   config.rooms

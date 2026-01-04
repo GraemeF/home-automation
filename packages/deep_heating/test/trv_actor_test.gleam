@@ -14,11 +14,10 @@ import gleeunit/should
 fn start_test_trv_actor(
   eid: ClimateEntityId,
   room_actor: process.Subject(trv_actor.RoomMessage),
-  ha_commands: process.Subject(trv_actor.HaCommand),
 ) {
   let name =
     process.new_name("test_trv_" <> entity_id.climate_entity_id_to_string(eid))
-  trv_actor.start(eid, name, room_actor, ha_commands)
+  trv_actor.start(eid, name, room_actor)
 }
 
 // =============================================================================
@@ -31,19 +30,17 @@ pub fn trv_actor_starts_successfully_test() {
 
   // Create stub subjects for dependencies (we'll receive messages but ignore them)
   let room_actor = process.new_subject()
-  let ha_commands = process.new_subject()
 
   // The TRV actor should start successfully
-  let result = start_test_trv_actor(eid, room_actor, ha_commands)
+  let result = start_test_trv_actor(eid, room_actor)
   should.be_ok(result)
 }
 
 pub fn trv_actor_is_alive_after_start_test() {
   let assert Ok(eid) = entity_id.climate_entity_id("climate.bedroom_trv")
   let room_actor = process.new_subject()
-  let ha_commands = process.new_subject()
 
-  let assert Ok(started) = start_test_trv_actor(eid, room_actor, ha_commands)
+  let assert Ok(started) = start_test_trv_actor(eid, room_actor)
 
   // The actor should be running
   process.is_alive(started.pid) |> should.be_true
@@ -56,10 +53,8 @@ pub fn trv_actor_is_alive_after_start_test() {
 pub fn trv_actor_returns_initial_state_test() {
   let assert Ok(entity_id) = entity_id.climate_entity_id("climate.lounge_trv")
   let room_actor = process.new_subject()
-  let ha_commands = process.new_subject()
 
-  let assert Ok(started) =
-    start_test_trv_actor(entity_id, room_actor, ha_commands)
+  let assert Ok(started) = start_test_trv_actor(entity_id, room_actor)
 
   // Send GetState message and wait for response
   let reply_subject = process.new_subject()
@@ -84,10 +79,8 @@ pub fn trv_actor_returns_initial_state_test() {
 pub fn trv_actor_updates_state_on_trv_update_test() {
   let assert Ok(entity_id) = entity_id.climate_entity_id("climate.lounge_trv")
   let room_actor = process.new_subject()
-  let ha_commands = process.new_subject()
 
-  let assert Ok(started) =
-    start_test_trv_actor(entity_id, room_actor, ha_commands)
+  let assert Ok(started) = start_test_trv_actor(entity_id, room_actor)
 
   // Create an update with new values
   let temp = temperature.temperature(21.5)
@@ -125,10 +118,8 @@ pub fn trv_actor_updates_state_on_trv_update_test() {
 pub fn trv_actor_notifies_room_on_temperature_change_test() {
   let assert Ok(entity_id) = entity_id.climate_entity_id("climate.lounge_trv")
   let room_actor: process.Subject(trv_actor.RoomMessage) = process.new_subject()
-  let ha_commands = process.new_subject()
 
-  let assert Ok(started) =
-    start_test_trv_actor(entity_id, room_actor, ha_commands)
+  let assert Ok(started) = start_test_trv_actor(entity_id, room_actor)
 
   // Send an update with a new temperature
   let temp = temperature.temperature(21.5)
@@ -157,10 +148,8 @@ pub fn trv_actor_notifies_room_on_temperature_change_test() {
 pub fn trv_actor_notifies_room_on_target_change_test() {
   let assert Ok(entity_id) = entity_id.climate_entity_id("climate.lounge_trv")
   let room_actor: process.Subject(trv_actor.RoomMessage) = process.new_subject()
-  let ha_commands = process.new_subject()
 
-  let assert Ok(started) =
-    start_test_trv_actor(entity_id, room_actor, ha_commands)
+  let assert Ok(started) = start_test_trv_actor(entity_id, room_actor)
 
   // Send an update with a new target
   let target = temperature.temperature(22.0)
@@ -189,10 +178,8 @@ pub fn trv_actor_notifies_room_on_target_change_test() {
 pub fn trv_actor_does_not_notify_when_temperature_unchanged_test() {
   let assert Ok(entity_id) = entity_id.climate_entity_id("climate.lounge_trv")
   let room_actor: process.Subject(trv_actor.RoomMessage) = process.new_subject()
-  let ha_commands = process.new_subject()
 
-  let assert Ok(started) =
-    start_test_trv_actor(entity_id, room_actor, ha_commands)
+  let assert Ok(started) = start_test_trv_actor(entity_id, room_actor)
 
   // Set initial temperature
   let temp = temperature.temperature(21.5)
@@ -221,67 +208,14 @@ pub fn trv_actor_does_not_notify_when_temperature_unchanged_test() {
 }
 
 // =============================================================================
-// Command Tests (SetTarget, SetMode)
-// =============================================================================
-
-pub fn trv_actor_forwards_set_target_to_ha_commands_test() {
-  let assert Ok(entity_id) = entity_id.climate_entity_id("climate.lounge_trv")
-  let room_actor = process.new_subject()
-  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
-
-  let assert Ok(started) =
-    start_test_trv_actor(entity_id, room_actor, ha_commands)
-
-  // Send SetTarget command
-  let target = temperature.temperature(22.0)
-  process.send(started.data, trv_actor.SetTarget(target))
-
-  // Should receive the command on ha_commands subject
-  let assert Ok(cmd) = process.receive(ha_commands, 1000)
-  case cmd {
-    trv_actor.SetTrvTarget(eid, received_target) -> {
-      entity_id.climate_entity_id_to_string(eid)
-      |> should.equal("climate.lounge_trv")
-      received_target |> should.equal(target)
-    }
-    _ -> should.fail()
-  }
-}
-
-pub fn trv_actor_forwards_set_mode_to_ha_commands_test() {
-  let assert Ok(entity_id) = entity_id.climate_entity_id("climate.lounge_trv")
-  let room_actor = process.new_subject()
-  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
-
-  let assert Ok(started) =
-    start_test_trv_actor(entity_id, room_actor, ha_commands)
-
-  // Send SetMode command
-  process.send(started.data, trv_actor.SetMode(mode.HvacHeat))
-
-  // Should receive the command on ha_commands subject
-  let assert Ok(cmd) = process.receive(ha_commands, 1000)
-  case cmd {
-    trv_actor.SetTrvMode(eid, received_mode) -> {
-      entity_id.climate_entity_id_to_string(eid)
-      |> should.equal("climate.lounge_trv")
-      received_mode |> should.equal(mode.HvacHeat)
-    }
-    _ -> should.fail()
-  }
-}
-
-// =============================================================================
 // Mode Change Notification Tests
 // =============================================================================
 
 pub fn trv_actor_notifies_room_on_mode_change_test() {
   let assert Ok(entity_id) = entity_id.climate_entity_id("climate.lounge_trv")
   let room_actor: process.Subject(trv_actor.RoomMessage) = process.new_subject()
-  let ha_commands = process.new_subject()
 
-  let assert Ok(started) =
-    start_test_trv_actor(entity_id, room_actor, ha_commands)
+  let assert Ok(started) = start_test_trv_actor(entity_id, room_actor)
 
   // Send an update with a new mode (initial mode is HvacOff)
   let update =
@@ -309,10 +243,8 @@ pub fn trv_actor_notifies_room_on_mode_change_test() {
 pub fn trv_actor_does_not_notify_when_mode_unchanged_test() {
   let assert Ok(entity_id) = entity_id.climate_entity_id("climate.lounge_trv")
   let room_actor: process.Subject(trv_actor.RoomMessage) = process.new_subject()
-  let ha_commands = process.new_subject()
 
-  let assert Ok(started) =
-    start_test_trv_actor(entity_id, room_actor, ha_commands)
+  let assert Ok(started) = start_test_trv_actor(entity_id, room_actor)
 
   // Set initial mode to HvacHeat
   let update =
@@ -346,10 +278,8 @@ pub fn trv_actor_does_not_notify_when_mode_unchanged_test() {
 pub fn trv_actor_notifies_room_on_is_heating_change_test() {
   let assert Ok(entity_id) = entity_id.climate_entity_id("climate.lounge_trv")
   let room_actor: process.Subject(trv_actor.RoomMessage) = process.new_subject()
-  let ha_commands = process.new_subject()
 
-  let assert Ok(started) =
-    start_test_trv_actor(entity_id, room_actor, ha_commands)
+  let assert Ok(started) = start_test_trv_actor(entity_id, room_actor)
 
   // Send an update with is_heating = True (initial is False)
   let update =
@@ -377,10 +307,8 @@ pub fn trv_actor_notifies_room_on_is_heating_change_test() {
 pub fn trv_actor_does_not_notify_when_is_heating_unchanged_test() {
   let assert Ok(entity_id) = entity_id.climate_entity_id("climate.lounge_trv")
   let room_actor: process.Subject(trv_actor.RoomMessage) = process.new_subject()
-  let ha_commands = process.new_subject()
 
-  let assert Ok(started) =
-    start_test_trv_actor(entity_id, room_actor, ha_commands)
+  let assert Ok(started) = start_test_trv_actor(entity_id, room_actor)
 
   // Set initial is_heating to True
   let update =

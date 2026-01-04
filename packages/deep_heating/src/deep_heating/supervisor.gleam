@@ -14,7 +14,6 @@ import deep_heating/actor/ha_poller_actor
 import deep_heating/actor/heating_control_actor
 import deep_heating/actor/house_mode_actor
 import deep_heating/actor/state_aggregator_actor
-import deep_heating/actor/trv_actor
 import deep_heating/home_assistant.{type HaClient}
 import deep_heating/home_config.{type HomeConfig}
 import deep_heating/room_adjustments
@@ -290,9 +289,8 @@ pub fn start_with_home_config(
       let state_aggregator_subject =
         process.named_subject(state_aggregator_name)
 
-      // Create a dummy ha_commands subject for now
-      // TODO: Wire up TRV commands to HaCommandActor (dh-33jq.55)
-      let ha_commands: Subject(trv_actor.HaCommand) = process.new_subject()
+      // Get HaCommandActor subject for TRV commands
+      let ha_commands = process.named_subject(ha_command_name)
 
       // Load initial adjustments from environment
       let initial_adjustments =

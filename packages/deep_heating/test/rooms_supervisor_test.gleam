@@ -1,5 +1,6 @@
 //// Tests for RoomsSupervisor - starts per-room actor trees from configuration.
 
+import deep_heating/actor/ha_command_actor
 import deep_heating/actor/room_actor
 import deep_heating/actor/state_aggregator_actor
 import deep_heating/actor/trv_actor
@@ -73,7 +74,8 @@ pub fn room_supervisor_starts_successfully_test() {
   // Create dependencies that would normally come from parent supervisor
   let state_aggregator: process.Subject(state_aggregator_actor.Message) =
     process.new_subject()
-  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let ha_commands: process.Subject(ha_command_actor.Message) =
+    process.new_subject()
 
   let room_config = make_single_room_config()
 
@@ -92,7 +94,8 @@ pub fn room_supervisor_starts_successfully_test() {
 pub fn room_supervisor_starts_room_actor_test() {
   let state_aggregator: process.Subject(state_aggregator_actor.Message) =
     process.new_subject()
-  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let ha_commands: process.Subject(ha_command_actor.Message) =
+    process.new_subject()
   let room_config = make_single_room_config()
 
   let assert Ok(room_sup) =
@@ -117,7 +120,8 @@ pub fn room_supervisor_starts_room_actor_test() {
 pub fn room_supervisor_starts_room_with_initial_adjustment_test() {
   let state_aggregator: process.Subject(state_aggregator_actor.Message) =
     process.new_subject()
-  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let ha_commands: process.Subject(ha_command_actor.Message) =
+    process.new_subject()
   let room_config = make_single_room_config()
 
   // Create initial adjustments list with lounge at +1.5
@@ -145,7 +149,8 @@ pub fn room_supervisor_starts_room_with_initial_adjustment_test() {
 pub fn room_supervisor_uses_zero_adjustment_for_unknown_room_test() {
   let state_aggregator: process.Subject(state_aggregator_actor.Message) =
     process.new_subject()
-  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let ha_commands: process.Subject(ha_command_actor.Message) =
+    process.new_subject()
   let room_config = make_single_room_config()
 
   // Adjustments list doesn't include lounge
@@ -173,7 +178,8 @@ pub fn room_supervisor_uses_zero_adjustment_for_unknown_room_test() {
 pub fn room_supervisor_starts_trv_actors_test() {
   let state_aggregator: process.Subject(state_aggregator_actor.Message) =
     process.new_subject()
-  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let ha_commands: process.Subject(ha_command_actor.Message) =
+    process.new_subject()
   let room_config = make_single_room_config()
 
   let assert Ok(room_sup) =
@@ -203,7 +209,8 @@ pub fn room_supervisor_starts_trv_actors_test() {
 pub fn room_supervisor_starts_decision_actor_test() {
   let state_aggregator: process.Subject(state_aggregator_actor.Message) =
     process.new_subject()
-  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let ha_commands: process.Subject(ha_command_actor.Message) =
+    process.new_subject()
   let room_config = make_single_room_config()
 
   let assert Ok(room_sup) =
@@ -222,7 +229,8 @@ pub fn room_supervisor_starts_decision_actor_test() {
 pub fn room_supervisor_with_multiple_trvs_test() {
   let state_aggregator: process.Subject(state_aggregator_actor.Message) =
     process.new_subject()
-  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let ha_commands: process.Subject(ha_command_actor.Message) =
+    process.new_subject()
   let room_config = make_multi_trv_room_config()
 
   let assert Ok(room_sup) =
@@ -247,7 +255,8 @@ pub fn trv_update_reaches_room_actor_test() {
   // it notifies the room actor, which then notifies the state aggregator.
   let state_aggregator: process.Subject(state_aggregator_actor.Message) =
     process.new_subject()
-  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let ha_commands: process.Subject(ha_command_actor.Message) =
+    process.new_subject()
   let room_config = make_single_room_config()
 
   let assert Ok(room_sup) =
@@ -292,7 +301,8 @@ pub fn room_decision_sends_command_to_trv_test() {
   // which forwards it to ha_commands.
   let state_aggregator: process.Subject(state_aggregator_actor.Message) =
     process.new_subject()
-  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let ha_commands: process.Subject(ha_command_actor.Message) =
+    process.new_subject()
   let room_config = make_single_room_config()
 
   let assert Ok(room_sup) =
@@ -329,9 +339,9 @@ pub fn room_decision_sends_command_to_trv_test() {
   process.sleep(100)
 
   // The decision actor should have computed a target and sent it
-  // Check that ha_commands received a SetTrvTarget command
+  // Check that ha_commands received a SetTrvAction command
   case process.receive(ha_commands, 500) {
-    Ok(trv_actor.SetTrvTarget(eid, _target)) -> {
+    Ok(ha_command_actor.SetTrvAction(eid, _mode, _target)) -> {
       entity_id.climate_entity_id_to_string(eid)
       |> should.equal("climate.lounge_trv")
     }
@@ -362,7 +372,8 @@ pub fn rooms_supervisor_starts_all_rooms_test() {
 
   let state_aggregator: process.Subject(state_aggregator_actor.Message) =
     process.new_subject()
-  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let ha_commands: process.Subject(ha_command_actor.Message) =
+    process.new_subject()
 
   let assert Ok(rooms_sup) =
     rooms_supervisor.start(
@@ -382,7 +393,8 @@ pub fn room_supervisor_registers_room_actor_with_state_aggregator_test() {
   // automatically registered with the StateAggregatorActor so that
   // AdjustRoom messages can be forwarded correctly.
   let assert Ok(state_agg) = state_aggregator_actor.start_link()
-  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let ha_commands: process.Subject(ha_command_actor.Message) =
+    process.new_subject()
   let room_config = make_single_room_config()
 
   let assert Ok(room_sup) =
@@ -422,7 +434,8 @@ pub fn trv_actor_is_restarted_when_it_crashes_test() {
   // because the restarted actor re-registers with the same name.
   let state_aggregator: process.Subject(state_aggregator_actor.Message) =
     process.new_subject()
-  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let ha_commands: process.Subject(ha_command_actor.Message) =
+    process.new_subject()
   let room_config = make_single_room_config()
 
   let assert Ok(room_sup) =
@@ -473,7 +486,8 @@ pub fn rooms_supervisor_can_get_room_by_name_test() {
 
   let state_aggregator: process.Subject(state_aggregator_actor.Message) =
     process.new_subject()
-  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let ha_commands: process.Subject(ha_command_actor.Message) =
+    process.new_subject()
 
   let assert Ok(rooms_sup) =
     rooms_supervisor.start(

@@ -1,3 +1,4 @@
+import deep_heating/actor/ha_command_actor
 import deep_heating/actor/room_actor
 import deep_heating/actor/room_decision_actor
 import deep_heating/entity_id
@@ -42,11 +43,11 @@ fn make_room_state_with_trv(
 // =============================================================================
 
 pub fn room_decision_actor_starts_successfully_test() {
-  // Create a subject to receive TRV commands
-  let trv_commands = process.new_subject()
+  // Create a subject to receive HA commands
+  let ha_commands = process.new_subject()
 
   // Decision actor should start successfully
-  let result = room_decision_actor.start(trv_commands: trv_commands)
+  let result = room_decision_actor.start(ha_commands: ha_commands)
   should.be_ok(result)
 }
 
@@ -57,10 +58,10 @@ pub fn room_decision_actor_starts_successfully_test() {
 pub fn sends_room_target_when_room_at_temperature_test() {
   // When room is at target temperature (within 0.5°C tolerance),
   // TRV should be set to the room target directly (no compensation)
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+  let ha_commands: process.Subject(ha_command_actor.Message) =
     process.new_subject()
 
-  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+  let assert Ok(started) = room_decision_actor.start(ha_commands: ha_commands)
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -77,24 +78,21 @@ pub fn sends_room_target_when_room_at_temperature_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should receive command to set TRV target
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(ha_commands, 1000)
 
-  case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
-      entity_id |> should.equal(trv_id)
-      cmd_mode |> should.equal(mode.HvacHeat)
-      temperature.unwrap(target) |> should.equal(20.0)
-    }
-  }
+  let assert ha_command_actor.SetTrvAction(entity_id, cmd_mode, target) = cmd
+  entity_id |> should.equal(trv_id)
+  cmd_mode |> should.equal(mode.HvacHeat)
+  temperature.unwrap(target) |> should.equal(20.0)
 }
 
 pub fn pushes_trv_target_higher_when_room_is_cold_test() {
   // When room is cold, offset formula pushes TRV higher to compensate
   // Formula: trvTarget = roomTarget + trvTemp - roomTemp
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+  let ha_commands: process.Subject(ha_command_actor.Message) =
     process.new_subject()
 
-  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+  let assert Ok(started) = room_decision_actor.start(ha_commands: ha_commands)
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -110,25 +108,22 @@ pub fn pushes_trv_target_higher_when_room_is_cold_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(ha_commands, 1000)
 
-  case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
-      entity_id |> should.equal(trv_id)
-      cmd_mode |> should.equal(mode.HvacHeat)
-      // Offset formula: 20 + 20 - 19 = 21
-      temperature.unwrap(target) |> should.equal(21.0)
-    }
-  }
+  let assert ha_command_actor.SetTrvAction(entity_id, cmd_mode, target) = cmd
+  entity_id |> should.equal(trv_id)
+  cmd_mode |> should.equal(mode.HvacHeat)
+  // Offset formula: 20 + 20 - 19 = 21
+  temperature.unwrap(target) |> should.equal(21.0)
 }
 
 pub fn backs_off_trv_when_room_is_hot_test() {
   // When room is hot, offset formula backs off TRV
   // Formula: trvTarget = roomTarget + trvTemp - roomTemp
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+  let ha_commands: process.Subject(ha_command_actor.Message) =
     process.new_subject()
 
-  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+  let assert Ok(started) = room_decision_actor.start(ha_commands: ha_commands)
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -144,25 +139,22 @@ pub fn backs_off_trv_when_room_is_hot_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(ha_commands, 1000)
 
-  case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
-      entity_id |> should.equal(trv_id)
-      cmd_mode |> should.equal(mode.HvacHeat)
-      // Offset formula: 20 + 20 - 21 = 19
-      temperature.unwrap(target) |> should.equal(19.0)
-    }
-  }
+  let assert ha_command_actor.SetTrvAction(entity_id, cmd_mode, target) = cmd
+  entity_id |> should.equal(trv_id)
+  cmd_mode |> should.equal(mode.HvacHeat)
+  // Offset formula: 20 + 20 - 21 = 19
+  temperature.unwrap(target) |> should.equal(19.0)
 }
 
 pub fn uses_room_target_when_no_external_sensor_test() {
   // When there's no external temperature sensor, use the room target directly
   // (no compensation possible without knowing actual room temp)
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+  let ha_commands: process.Subject(ha_command_actor.Message) =
     process.new_subject()
 
-  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+  let assert Ok(started) = room_decision_actor.start(ha_commands: ha_commands)
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -188,24 +180,21 @@ pub fn uses_room_target_when_no_external_sensor_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(ha_commands, 1000)
 
-  case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
-      entity_id |> should.equal(trv_id)
-      cmd_mode |> should.equal(mode.HvacHeat)
-      // Should just use the room target directly
-      temperature.unwrap(target) |> should.equal(20.0)
-    }
-  }
+  let assert ha_command_actor.SetTrvAction(entity_id, cmd_mode, target) = cmd
+  entity_id |> should.equal(trv_id)
+  cmd_mode |> should.equal(mode.HvacHeat)
+  // Should just use the room target directly
+  temperature.unwrap(target) |> should.equal(20.0)
 }
 
 pub fn only_sends_command_when_target_differs_test() {
   // Should not send duplicate commands when computed target hasn't changed
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+  let ha_commands: process.Subject(ha_command_actor.Message) =
     process.new_subject()
 
-  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+  let assert Ok(started) = room_decision_actor.start(ha_commands: ha_commands)
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -219,7 +208,7 @@ pub fn only_sends_command_when_target_differs_test() {
 
   // First update - should send command
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
-  let assert Ok(_cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(_cmd) = process.receive(ha_commands, 1000)
 
   // Second update with same state - should NOT send command
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
@@ -228,16 +217,16 @@ pub fn only_sends_command_when_target_differs_test() {
   process.sleep(50)
 
   // Should NOT receive a second command (timeout expected)
-  let result = process.receive(trv_commands, 100)
+  let result = process.receive(ha_commands, 100)
   result |> should.be_error
 }
 
 pub fn handles_multiple_trvs_in_room_test() {
   // When a room has multiple TRVs, all should receive SetTarget commands
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+  let ha_commands: process.Subject(ha_command_actor.Message) =
     process.new_subject()
 
-  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+  let assert Ok(started) = room_decision_actor.start(ha_commands: ha_commands)
 
   let assert Ok(trv1) = entity_id.climate_entity_id("climate.bedroom_trv_1")
   let assert Ok(trv2) = entity_id.climate_entity_id("climate.bedroom_trv_2")
@@ -271,15 +260,13 @@ pub fn handles_multiple_trvs_in_room_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should receive two commands - one for each TRV
-  let assert Ok(cmd1) = process.receive(trv_commands, 1000)
-  let assert Ok(cmd2) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd1) = process.receive(ha_commands, 1000)
+  let assert Ok(cmd2) = process.receive(ha_commands, 1000)
 
   // Collect the entity IDs that received commands
-  let ids = case cmd1, cmd2 {
-    room_decision_actor.SetTrvTarget(id1, _, _),
-      room_decision_actor.SetTrvTarget(id2, _, _)
-    -> [id1, id2]
-  }
+  let assert ha_command_actor.SetTrvAction(id1, _, _) = cmd1
+  let assert ha_command_actor.SetTrvAction(id2, _, _) = cmd2
+  let ids = [id1, id2]
 
   // Both TRVs should have received commands (order may vary)
   list.contains(ids, trv1) |> should.be_true
@@ -293,10 +280,10 @@ pub fn handles_multiple_trvs_in_room_test() {
 pub fn handles_trv_with_missing_temperature_test() {
   // When a TRV has no temperature reading, the system should still work.
   // Uses room target directly (fallback: treat TRV temp as unknown)
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+  let ha_commands: process.Subject(ha_command_actor.Message) =
     process.new_subject()
 
-  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+  let assert Ok(started) = room_decision_actor.start(ha_commands: ha_commands)
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -323,24 +310,21 @@ pub fn handles_trv_with_missing_temperature_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should still receive a command (system degrades gracefully)
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(ha_commands, 1000)
 
-  case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
-      entity_id |> should.equal(trv_id)
-      cmd_mode |> should.equal(mode.HvacHeat)
-      // With no TRV temp data, should use room target directly
-      temperature.unwrap(target) |> should.equal(20.0)
-    }
-  }
+  let assert ha_command_actor.SetTrvAction(entity_id, cmd_mode, target) = cmd
+  entity_id |> should.equal(trv_id)
+  cmd_mode |> should.equal(mode.HvacHeat)
+  // With no TRV temp data, should use room target directly
+  temperature.unwrap(target) |> should.equal(20.0)
 }
 
 pub fn handles_trv_with_missing_target_test() {
   // When a TRV has no current target, the system should still compute and send one
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+  let ha_commands: process.Subject(ha_command_actor.Message) =
     process.new_subject()
 
-  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+  let assert Ok(started) = room_decision_actor.start(ha_commands: ha_commands)
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -366,24 +350,21 @@ pub fn handles_trv_with_missing_target_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should still send a command to set the target
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(ha_commands, 1000)
 
-  case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, _target) -> {
-      entity_id |> should.equal(trv_id)
-      cmd_mode |> should.equal(mode.HvacHeat)
-      // Command was sent, meaning system handled missing target gracefully
-    }
-  }
+  let assert ha_command_actor.SetTrvAction(entity_id, cmd_mode, _target) = cmd
+  entity_id |> should.equal(trv_id)
+  cmd_mode |> should.equal(mode.HvacHeat)
+  // Command was sent, meaning system handled missing target gracefully
 }
 
 pub fn handles_completely_unknown_trv_test() {
   // When a TRV has no data at all (both temp and target None),
   // the system should still send a command
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+  let ha_commands: process.Subject(ha_command_actor.Message) =
     process.new_subject()
 
-  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+  let assert Ok(started) = room_decision_actor.start(ha_commands: ha_commands)
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -409,16 +390,13 @@ pub fn handles_completely_unknown_trv_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should still receive a command
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(ha_commands, 1000)
 
-  case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
-      entity_id |> should.equal(trv_id)
-      cmd_mode |> should.equal(mode.HvacHeat)
-      // Should fall back to room target
-      temperature.unwrap(target) |> should.equal(20.0)
-    }
-  }
+  let assert ha_command_actor.SetTrvAction(entity_id, cmd_mode, target) = cmd
+  entity_id |> should.equal(trv_id)
+  cmd_mode |> should.equal(mode.HvacHeat)
+  // Should fall back to room target
+  temperature.unwrap(target) |> should.equal(20.0)
 }
 
 // =============================================================================
@@ -432,10 +410,10 @@ pub fn offset_formula_accounts_for_trv_temperature_test() {
   // Example: TRV reads 4°C higher than external sensor
   // - Room target: 20°C, Room temp: 18°C, TRV temp: 22°C
   // - Formula: 20 + 22 - 18 = 24°C
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+  let ha_commands: process.Subject(ha_command_actor.Message) =
     process.new_subject()
 
-  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+  let assert Ok(started) = room_decision_actor.start(ha_commands: ha_commands)
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -449,17 +427,14 @@ pub fn offset_formula_accounts_for_trv_temperature_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(ha_commands, 1000)
 
-  case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
-      entity_id |> should.equal(trv_id)
-      cmd_mode |> should.equal(mode.HvacHeat)
-      // Offset formula: 20 + 22 - 18 = 24°C
-      // Round up (heating required): 24.0
-      temperature.unwrap(target) |> should.equal(24.0)
-    }
-  }
+  let assert ha_command_actor.SetTrvAction(entity_id, cmd_mode, target) = cmd
+  entity_id |> should.equal(trv_id)
+  cmd_mode |> should.equal(mode.HvacHeat)
+  // Offset formula: 20 + 22 - 18 = 24°C
+  // Round up (heating required): 24.0
+  temperature.unwrap(target) |> should.equal(24.0)
 }
 
 // =============================================================================
@@ -473,10 +448,10 @@ pub fn clamps_trv_target_to_minimum_7c_test() {
   // Example: Room is already warm, target is low
   // - Room target: 10°C, Room temp: 15°C, TRV temp: 10°C
   // - Formula: 10 + 10 - 15 = 5°C → should be clamped to 7°C
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+  let ha_commands: process.Subject(ha_command_actor.Message) =
     process.new_subject()
 
-  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+  let assert Ok(started) = room_decision_actor.start(ha_commands: ha_commands)
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -490,17 +465,14 @@ pub fn clamps_trv_target_to_minimum_7c_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(ha_commands, 1000)
 
-  case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
-      entity_id |> should.equal(trv_id)
-      cmd_mode |> should.equal(mode.HvacHeat)
-      // Offset formula: 10 + 10 - 15 = 5°C
-      // Should be clamped to minimum: 7°C
-      temperature.unwrap(target) |> should.equal(7.0)
-    }
-  }
+  let assert ha_command_actor.SetTrvAction(entity_id, cmd_mode, target) = cmd
+  entity_id |> should.equal(trv_id)
+  cmd_mode |> should.equal(mode.HvacHeat)
+  // Offset formula: 10 + 10 - 15 = 5°C
+  // Should be clamped to minimum: 7°C
+  temperature.unwrap(target) |> should.equal(7.0)
 }
 
 pub fn clamps_trv_target_to_maximum_32c_test() {
@@ -510,10 +482,10 @@ pub fn clamps_trv_target_to_maximum_32c_test() {
   // Example: Cold room with hot TRV reading
   // - Room target: 25°C, Room temp: 15°C, TRV temp: 25°C
   // - Formula: 25 + 25 - 15 = 35°C → should be clamped to 32°C
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+  let ha_commands: process.Subject(ha_command_actor.Message) =
     process.new_subject()
 
-  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+  let assert Ok(started) = room_decision_actor.start(ha_commands: ha_commands)
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -527,17 +499,14 @@ pub fn clamps_trv_target_to_maximum_32c_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(ha_commands, 1000)
 
-  case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
-      entity_id |> should.equal(trv_id)
-      cmd_mode |> should.equal(mode.HvacHeat)
-      // Offset formula: 25 + 25 - 15 = 35°C
-      // Should be clamped to maximum: 32°C
-      temperature.unwrap(target) |> should.equal(32.0)
-    }
-  }
+  let assert ha_command_actor.SetTrvAction(entity_id, cmd_mode, target) = cmd
+  entity_id |> should.equal(trv_id)
+  cmd_mode |> should.equal(mode.HvacHeat)
+  // Offset formula: 25 + 25 - 15 = 35°C
+  // Should be clamped to maximum: 32°C
+  temperature.unwrap(target) |> should.equal(32.0)
 }
 
 // =============================================================================
@@ -547,10 +516,10 @@ pub fn clamps_trv_target_to_maximum_32c_test() {
 pub fn skips_trv_when_mode_is_off_test() {
   // When a TRV is in HvacOff mode, we should NOT send any commands to it.
   // The user has explicitly turned it off; we must respect that.
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+  let ha_commands: process.Subject(ha_command_actor.Message) =
     process.new_subject()
 
-  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+  let assert Ok(started) = room_decision_actor.start(ha_commands: ha_commands)
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -580,7 +549,7 @@ pub fn skips_trv_when_mode_is_off_test() {
   process.sleep(50)
 
   // Should NOT receive any command (TRV is off)
-  let result = process.receive(trv_commands, 100)
+  let result = process.receive(ha_commands, 100)
   result |> should.be_error
 }
 
@@ -592,10 +561,10 @@ pub fn sends_mode_change_when_trv_in_auto_mode_test() {
   // When TRV is in HvacAuto mode, we must change it to HvacHeat mode.
   // This matches TypeScript behavior: determineAction returns mode: 'heat'
   // when current mode is 'auto'.
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+  let ha_commands: process.Subject(ha_command_actor.Message) =
     process.new_subject()
 
-  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+  let assert Ok(started) = room_decision_actor.start(ha_commands: ha_commands)
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -621,13 +590,10 @@ pub fn sends_mode_change_when_trv_in_auto_mode_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should receive command with mode set to Heat
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(ha_commands, 1000)
 
-  case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
-      entity_id |> should.equal(trv_id)
-      cmd_mode |> should.equal(mode.HvacHeat)
-      temperature.unwrap(target) |> should.equal(20.0)
-    }
-  }
+  let assert ha_command_actor.SetTrvAction(entity_id, cmd_mode, target) = cmd
+  entity_id |> should.equal(trv_id)
+  cmd_mode |> should.equal(mode.HvacHeat)
+  temperature.unwrap(target) |> should.equal(20.0)
 }

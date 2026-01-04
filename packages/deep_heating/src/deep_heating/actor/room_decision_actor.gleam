@@ -3,9 +3,10 @@
 //// Responsibilities:
 //// - Receive room state from RoomActors
 //// - Decide what each TRV's target should be
-//// - Send SetTarget commands to TrvActors
+//// - Send SetTrvAction commands to HaCommandActor
 //// - Implement the "smart" heating logic (compensation)
 
+import deep_heating/actor/ha_command_actor
 import deep_heating/actor/room_actor
 import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/mode
@@ -14,15 +15,6 @@ import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Subject}
 import gleam/option
 import gleam/otp/actor
-
-/// Commands sent to TRV actors
-pub type TrvCommand {
-  SetTrvTarget(
-    entity_id: ClimateEntityId,
-    mode: mode.HvacMode,
-    target: Temperature,
-  )
-}
 
 /// Messages handled by the RoomDecisionActor
 pub type Message {
@@ -33,7 +25,7 @@ pub type Message {
 /// Internal actor state
 type State {
   State(
-    trv_commands: Subject(TrvCommand),
+    ha_commands: Subject(ha_command_actor.Message),
     /// Track last sent target per TRV to avoid duplicate commands
     last_sent_targets: Dict(ClimateEntityId, Temperature),
   )
@@ -41,10 +33,10 @@ type State {
 
 /// Start the RoomDecisionActor
 pub fn start(
-  trv_commands trv_commands: Subject(TrvCommand),
+  ha_commands ha_commands: Subject(ha_command_actor.Message),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   let initial_state =
-    State(trv_commands: trv_commands, last_sent_targets: dict.new())
+    State(ha_commands: ha_commands, last_sent_targets: dict.new())
 
   actor.new(initial_state)
   |> actor.on_message(handle_message)
@@ -97,8 +89,12 @@ fn evaluate_and_send_commands(
                   // Target changed or first time, send command
                   // Always set mode to HvacHeat (converts auto→heat)
                   process.send(
-                    current_state.trv_commands,
-                    SetTrvTarget(entity_id, mode.HvacHeat, desired_target),
+                    current_state.ha_commands,
+                    ha_command_actor.SetTrvAction(
+                      entity_id,
+                      mode.HvacHeat,
+                      desired_target,
+                    ),
                   )
                   // Update last sent target
                   State(
