@@ -431,3 +431,91 @@ pub fn error_to_string_formats_env_var_not_set_test() {
   home_assistant.error_to_string(err)
   |> should.equal("EnvVarNotSet: SUPERVISOR_URL")
 }
+
+// -----------------------------------------------------------------------------
+// parse_sensor_entities tests
+// -----------------------------------------------------------------------------
+
+pub fn parse_sensor_entities_parses_single_temperature_sensor_test() {
+  let json =
+    "[{\"entity_id\":\"sensor.lounge_temperature\",\"state\":\"20.5\",\"attributes\":{\"unit_of_measurement\":\"°C\",\"friendly_name\":\"Lounge Temperature\"}}]"
+
+  let result = home_assistant.parse_sensor_entities(json)
+
+  let assert Ok(entities) = result
+  let assert [entity] = entities
+
+  let assert Ok(expected_id) =
+    entity_id.sensor_entity_id("sensor.lounge_temperature")
+  entity.entity_id |> should.equal(expected_id)
+  entity.temperature |> should.equal(Some(temperature.temperature(20.5)))
+}
+
+pub fn parse_sensor_entities_handles_integer_temperature_test() {
+  let json =
+    "[{\"entity_id\":\"sensor.bedroom_temp\",\"state\":\"19\",\"attributes\":{}}]"
+
+  let result = home_assistant.parse_sensor_entities(json)
+
+  let assert Ok([entity]) = result
+  entity.temperature |> should.equal(Some(temperature.temperature(19.0)))
+}
+
+pub fn parse_sensor_entities_filters_non_sensor_entities_test() {
+  let json =
+    "[{\"entity_id\":\"climate.lounge_trv\",\"state\":\"heat\",\"attributes\":{}},{\"entity_id\":\"sensor.lounge_temperature\",\"state\":\"21.0\",\"attributes\":{}},{\"entity_id\":\"light.lounge\",\"state\":\"on\",\"attributes\":{}}]"
+
+  let result = home_assistant.parse_sensor_entities(json)
+
+  let assert Ok(entities) = result
+  list.length(entities) |> should.equal(1)
+}
+
+pub fn parse_sensor_entities_handles_unavailable_sensor_test() {
+  let json =
+    "[{\"entity_id\":\"sensor.garage_temp\",\"state\":\"unavailable\",\"attributes\":{}}]"
+
+  let result = home_assistant.parse_sensor_entities(json)
+
+  let assert Ok([entity]) = result
+  entity.temperature |> should.equal(None)
+  entity.is_available |> should.be_false
+}
+
+pub fn parse_sensor_entities_handles_unknown_state_test() {
+  let json =
+    "[{\"entity_id\":\"sensor.hallway_temp\",\"state\":\"unknown\",\"attributes\":{}}]"
+
+  let result = home_assistant.parse_sensor_entities(json)
+
+  let assert Ok([entity]) = result
+  entity.temperature |> should.equal(None)
+  entity.is_available |> should.be_false
+}
+
+pub fn parse_sensor_entities_handles_empty_array_test() {
+  let json = "[]"
+
+  let result = home_assistant.parse_sensor_entities(json)
+
+  let assert Ok(entities) = result
+  entities |> should.equal([])
+}
+
+pub fn parse_sensor_entities_returns_error_for_invalid_json_test() {
+  let json = "not valid json"
+
+  let result = home_assistant.parse_sensor_entities(json)
+
+  result |> should.be_error
+}
+
+pub fn parse_sensor_entities_handles_multiple_sensors_test() {
+  let json =
+    "[{\"entity_id\":\"sensor.lounge_temperature\",\"state\":\"20.5\",\"attributes\":{}},{\"entity_id\":\"sensor.bedroom_temperature\",\"state\":\"18.0\",\"attributes\":{}}]"
+
+  let result = home_assistant.parse_sensor_entities(json)
+
+  let assert Ok(entities) = result
+  list.length(entities) |> should.equal(2)
+}

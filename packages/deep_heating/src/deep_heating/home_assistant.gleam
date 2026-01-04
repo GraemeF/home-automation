@@ -1,11 +1,12 @@
 // Home Assistant REST API client
 // This module provides functions to interact with the Home Assistant API
 
-import deep_heating/entity_id.{type ClimateEntityId}
+import deep_heating/entity_id.{type ClimateEntityId, type SensorEntityId}
 import deep_heating/mode.{type HvacMode}
 import deep_heating/temperature.{type Temperature}
 import envoy
 import gleam/dynamic/decode.{type Decoder}
+import gleam/float
 import gleam/http
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
@@ -312,6 +313,85 @@ fn parse_hvac_mode(state: String) -> HvacMode {
     "off" -> mode.HvacOff
     "unavailable" -> mode.HvacOff
     _ -> mode.HvacOff
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Sensor Entity Parsing
+// -----------------------------------------------------------------------------
+
+/// A parsed sensor entity from Home Assistant
+pub type SensorEntity {
+  SensorEntity(
+    entity_id: SensorEntityId,
+    temperature: Option(Temperature),
+    is_available: Bool,
+  )
+}
+
+/// Raw sensor entity for intermediate parsing
+type RawSensorEntity {
+  RawSensorEntity(entity_id: String, state: String)
+}
+
+/// Parse sensor entities from HA API JSON response.
+/// Returns only sensor.* entities with their temperature values.
+pub fn parse_sensor_entities(
+  json_string: String,
+) -> Result(List(SensorEntity), HaError) {
+  json.parse(json_string, decode.list(raw_sensor_entity_decoder()))
+  |> result.map_error(fn(err) {
+    JsonParseError("Failed to parse entities: " <> string.inspect(err))
+  })
+  |> result.map(fn(raw_entities) {
+    raw_entities
+    |> list.filter(fn(raw) { string.starts_with(raw.entity_id, "sensor.") })
+    |> list.filter_map(convert_raw_to_sensor_entity)
+  })
+}
+
+/// Decoder for a raw sensor entity
+fn raw_sensor_entity_decoder() -> Decoder(RawSensorEntity) {
+  decode.field("entity_id", decode.string, fn(entity_id) {
+    decode.field("state", decode.string, fn(state) {
+      decode.success(RawSensorEntity(entity_id: entity_id, state: state))
+    })
+  })
+}
+
+/// Convert a raw sensor entity to a SensorEntity
+fn convert_raw_to_sensor_entity(
+  raw: RawSensorEntity,
+) -> Result(SensorEntity, Nil) {
+  case entity_id.sensor_entity_id(raw.entity_id) {
+    Ok(eid) -> {
+      let is_available = raw.state != "unavailable" && raw.state != "unknown"
+      let temp = case is_available {
+        True -> parse_temperature_state(raw.state)
+        False -> None
+      }
+
+      Ok(SensorEntity(
+        entity_id: eid,
+        temperature: temp,
+        is_available: is_available,
+      ))
+    }
+    Error(_) -> Error(Nil)
+  }
+}
+
+/// Parse a temperature value from a state string.
+/// Handles both integer and floating point values.
+fn parse_temperature_state(state: String) -> Option(Temperature) {
+  // Try parsing as float first, then int
+  case float.parse(state) {
+    Ok(f) -> Some(temperature.temperature(f))
+    Error(_) ->
+      case int.parse(state) {
+        Ok(i) -> Some(temperature.temperature(int.to_float(i)))
+        Error(_) -> None
+      }
   }
 }
 

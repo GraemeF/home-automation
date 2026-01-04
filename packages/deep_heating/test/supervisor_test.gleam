@@ -132,6 +132,7 @@ fn create_test_poller_config() -> ha_poller_actor.PollerConfig {
     heating_entity_id: heating_id,
     sleep_button_entity_id: "input_button.goodnight",
     managed_trv_ids: set.new(),
+    managed_sensor_ids: set.new(),
   )
 }
 

@@ -1,8 +1,10 @@
 import deep_heating/actor/ha_poller_actor
 import deep_heating/entity_id
 import deep_heating/home_assistant
+import deep_heating/temperature
 import gleam/erlang/process
 import gleam/list
+import gleam/option.{Some}
 import gleam/set
 import gleeunit/should
 
@@ -20,6 +22,7 @@ fn create_test_config() -> ha_poller_actor.PollerConfig {
     heating_entity_id: heating_id,
     sleep_button_entity_id: "input_button.goodnight",
     managed_trv_ids: set.from_list([trv1, trv2]),
+    managed_sensor_ids: set.new(),
   )
 }
 
@@ -84,6 +87,7 @@ pub fn emits_polling_stopped_when_stop_polling_received_test() {
       heating_entity_id: heating_id,
       sleep_button_entity_id: "input_button.goodnight",
       managed_trv_ids: set.new(),
+      managed_sensor_ids: set.new(),
     )
 
   let assert Ok(started) =
@@ -140,6 +144,7 @@ pub fn schedules_first_poll_immediately_when_start_polling_received_test() {
       heating_entity_id: heating_id,
       sleep_button_entity_id: "input_button.goodnight",
       managed_trv_ids: set.new(),
+      managed_sensor_ids: set.new(),
     )
 
   let assert Ok(started) =
@@ -204,6 +209,7 @@ pub fn dispatches_trv_update_for_managed_trvs_test() {
       heating_entity_id: trv1,
       sleep_button_entity_id: "input_button.goodnight",
       managed_trv_ids: set.from_list([trv1]),
+      managed_sensor_ids: set.new(),
     )
 
   let assert Ok(started) =
@@ -253,6 +259,7 @@ pub fn filters_unmanaged_trvs_test() {
       sleep_button_entity_id: "input_button.goodnight",
       // Only the managed TRV is in the set
       managed_trv_ids: set.from_list([managed_trv]),
+      managed_sensor_ids: set.new(),
     )
 
   let assert Ok(started) =
@@ -339,6 +346,7 @@ pub fn emits_sleep_button_pressed_when_state_changes_test() {
       heating_entity_id: heating_id,
       sleep_button_entity_id: "input_button.goodnight",
       managed_trv_ids: set.new(),
+      managed_sensor_ids: set.new(),
     )
 
   let assert Ok(started) =
@@ -391,6 +399,7 @@ pub fn does_not_emit_sleep_button_pressed_when_state_unchanged_test() {
       heating_entity_id: heating_id,
       sleep_button_entity_id: "input_button.goodnight",
       managed_trv_ids: set.new(),
+      managed_sensor_ids: set.new(),
     )
 
   let assert Ok(started) =
@@ -440,6 +449,7 @@ pub fn does_not_emit_sleep_button_pressed_on_first_poll_test() {
       heating_entity_id: heating_id,
       sleep_button_entity_id: "input_button.goodnight",
       managed_trv_ids: set.new(),
+      managed_sensor_ids: set.new(),
     )
 
   let assert Ok(started) =
@@ -487,6 +497,7 @@ pub fn schedules_next_poll_with_backoff_after_failure_test() {
       heating_entity_id: heating_id,
       sleep_button_entity_id: "input_button.goodnight",
       managed_trv_ids: set.new(),
+      managed_sensor_ids: set.new(),
     )
 
   let assert Ok(started) =
@@ -532,6 +543,7 @@ pub fn resets_backoff_after_successful_poll_test() {
       heating_entity_id: heating_id,
       sleep_button_entity_id: "input_button.goodnight",
       managed_trv_ids: set.new(),
+      managed_sensor_ids: set.new(),
     )
 
   let assert Ok(started) =
@@ -585,6 +597,7 @@ pub fn caps_backoff_at_max_value_test() {
       heating_entity_id: heating_id,
       sleep_button_entity_id: "input_button.goodnight",
       managed_trv_ids: set.new(),
+      managed_sensor_ids: set.new(),
     )
 
   let assert Ok(started) =
@@ -630,4 +643,166 @@ pub fn caps_backoff_at_max_value_test() {
   let all_capped = list.all(backoff_delays, fn(delay) { delay <= 60_000 })
 
   all_capped |> should.be_true
+}
+
+// =============================================================================
+// Temperature Sensor Polling Tests
+// =============================================================================
+
+pub fn dispatches_sensor_update_for_managed_sensors_test() {
+  // When polling succeeds and returns sensor entities,
+  // should dispatch SensorUpdated events for managed sensors
+  let event_spy: process.Subject(ha_poller_actor.PollerEvent) =
+    process.new_subject()
+
+  let assert Ok(heating_id) = entity_id.climate_entity_id("climate.main")
+  let assert Ok(sensor1) =
+    entity_id.sensor_entity_id("sensor.lounge_temperature")
+
+  let config =
+    ha_poller_actor.PollerConfig(
+      poll_interval_ms: 5000,
+      heating_entity_id: heating_id,
+      sleep_button_entity_id: "input_button.goodnight",
+      managed_trv_ids: set.new(),
+      managed_sensor_ids: set.from_list([sensor1]),
+    )
+
+  let assert Ok(started) =
+    ha_poller_actor.start(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      config: config,
+      event_spy: event_spy,
+    )
+
+  // Inject mock JSON response with a temperature sensor
+  let mock_json =
+    "[{\"entity_id\":\"sensor.lounge_temperature\",\"state\":\"21.5\",\"attributes\":{\"unit_of_measurement\":\"°C\"}}]"
+  process.send(started.data, ha_poller_actor.InjectMockResponse(mock_json))
+
+  // Trigger a poll
+  process.send(started.data, ha_poller_actor.PollNow)
+
+  // Should receive a SensorUpdated event
+  let events = collect_events(event_spy, 5, 500)
+
+  // Check we got a SensorUpdated event for the managed sensor
+  let has_sensor_update =
+    list.any(events, fn(event) {
+      case event {
+        ha_poller_actor.SensorUpdated(eid, temp) ->
+          eid == sensor1 && temp == Some(temperature.temperature(21.5))
+        _ -> False
+      }
+    })
+
+  has_sensor_update |> should.be_true
+}
+
+pub fn filters_unmanaged_sensors_test() {
+  // Sensors not in the managed_sensor_ids set should NOT be dispatched
+  let event_spy: process.Subject(ha_poller_actor.PollerEvent) =
+    process.new_subject()
+
+  let assert Ok(heating_id) = entity_id.climate_entity_id("climate.main")
+  let assert Ok(managed_sensor) =
+    entity_id.sensor_entity_id("sensor.managed_temp")
+  let assert Ok(unmanaged_sensor) =
+    entity_id.sensor_entity_id("sensor.unmanaged_temp")
+
+  let config =
+    ha_poller_actor.PollerConfig(
+      poll_interval_ms: 5000,
+      heating_entity_id: heating_id,
+      sleep_button_entity_id: "input_button.goodnight",
+      managed_trv_ids: set.new(),
+      // Only the managed sensor is in the set
+      managed_sensor_ids: set.from_list([managed_sensor]),
+    )
+
+  let assert Ok(started) =
+    ha_poller_actor.start(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      config: config,
+      event_spy: event_spy,
+    )
+
+  // Inject mock JSON with both sensors
+  let mock_json =
+    "[{\"entity_id\":\"sensor.managed_temp\",\"state\":\"20.0\",\"attributes\":{}},{\"entity_id\":\"sensor.unmanaged_temp\",\"state\":\"18.0\",\"attributes\":{}}]"
+  process.send(started.data, ha_poller_actor.InjectMockResponse(mock_json))
+
+  // Trigger a poll
+  process.send(started.data, ha_poller_actor.PollNow)
+
+  // Collect events
+  let events = collect_events(event_spy, 5, 500)
+
+  // Should have SensorUpdated for managed sensor
+  let has_managed =
+    list.any(events, fn(event) {
+      case event {
+        ha_poller_actor.SensorUpdated(eid, _) -> eid == managed_sensor
+        _ -> False
+      }
+    })
+
+  // Should NOT have SensorUpdated for unmanaged sensor
+  let has_unmanaged =
+    list.any(events, fn(event) {
+      case event {
+        ha_poller_actor.SensorUpdated(eid, _) -> eid == unmanaged_sensor
+        _ -> False
+      }
+    })
+
+  has_managed |> should.be_true
+  has_unmanaged |> should.be_false
+}
+
+pub fn sensor_update_handles_unavailable_sensor_test() {
+  // When a sensor is unavailable, should emit SensorUpdated with None temperature
+  let event_spy: process.Subject(ha_poller_actor.PollerEvent) =
+    process.new_subject()
+
+  let assert Ok(heating_id) = entity_id.climate_entity_id("climate.main")
+  let assert Ok(sensor1) = entity_id.sensor_entity_id("sensor.garage_temp")
+
+  let config =
+    ha_poller_actor.PollerConfig(
+      poll_interval_ms: 5000,
+      heating_entity_id: heating_id,
+      sleep_button_entity_id: "input_button.goodnight",
+      managed_trv_ids: set.new(),
+      managed_sensor_ids: set.from_list([sensor1]),
+    )
+
+  let assert Ok(started) =
+    ha_poller_actor.start(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      config: config,
+      event_spy: event_spy,
+    )
+
+  // Inject mock JSON with unavailable sensor
+  let mock_json =
+    "[{\"entity_id\":\"sensor.garage_temp\",\"state\":\"unavailable\",\"attributes\":{}}]"
+  process.send(started.data, ha_poller_actor.InjectMockResponse(mock_json))
+
+  // Trigger a poll
+  process.send(started.data, ha_poller_actor.PollNow)
+
+  // Should receive a SensorUpdated event with None temperature
+  let events = collect_events(event_spy, 5, 500)
+
+  let has_unavailable_sensor =
+    list.any(events, fn(event) {
+      case event {
+        ha_poller_actor.SensorUpdated(eid, temp) ->
+          eid == sensor1 && temp == option.None
+        _ -> False
+      }
+    })
+
+  has_unavailable_sensor |> should.be_true
 }

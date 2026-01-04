@@ -9,8 +9,9 @@
 //// - Filter to only managed TRVs (those with schedules)
 
 import deep_heating/actor/trv_actor.{type TrvUpdate, TrvUpdate}
-import deep_heating/entity_id.{type ClimateEntityId}
+import deep_heating/entity_id.{type ClimateEntityId, type SensorEntityId}
 import deep_heating/home_assistant.{type HaClient}
+import deep_heating/temperature.{type Temperature}
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/int
 import gleam/list
@@ -46,6 +47,8 @@ pub type PollerConfig {
     sleep_button_entity_id: String,
     /// Set of TRV entity IDs that have schedules (managed TRVs)
     managed_trv_ids: Set(ClimateEntityId),
+    /// Set of sensor entity IDs for external temperature sensors
+    managed_sensor_ids: Set(SensorEntityId),
   )
 }
 
@@ -53,6 +56,11 @@ pub type PollerConfig {
 pub type PollerEvent {
   /// TRV state update
   TrvUpdated(entity_id: ClimateEntityId, update: TrvUpdate)
+  /// Temperature sensor update
+  SensorUpdated(
+    entity_id: SensorEntityId,
+    temperature: option.Option(Temperature),
+  )
   /// Sleep button was pressed
   SleepButtonPressed
   /// Polling started
@@ -210,7 +218,7 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
       // Track new sleep button state for state update
       let new_sleep_button_state = case json_result {
         Ok(json) -> {
-          // Parse entities and dispatch updates
+          // Parse climate entities and dispatch TRV updates
           case home_assistant.parse_climate_entities(json) {
             Ok(entities) -> {
               // Filter to managed TRVs and dispatch updates
@@ -229,6 +237,25 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
                 process.send(
                   state.event_spy,
                   TrvUpdated(entity.entity_id, update),
+                )
+              })
+              Nil
+            }
+            Error(_) -> Nil
+          }
+
+          // Parse sensor entities and dispatch sensor updates
+          case home_assistant.parse_sensor_entities(json) {
+            Ok(sensors) -> {
+              // Filter to managed sensors and dispatch updates
+              sensors
+              |> list.filter(fn(sensor) {
+                set.contains(state.config.managed_sensor_ids, sensor.entity_id)
+              })
+              |> list.each(fn(sensor) {
+                process.send(
+                  state.event_spy,
+                  SensorUpdated(sensor.entity_id, sensor.temperature),
                 )
               })
               Nil

@@ -147,6 +147,15 @@ fn build_poller_config(
     |> list.flat_map(fn(room) { room.climate_entity_ids })
     |> set.from_list
 
+  // Extract managed sensor IDs (rooms with temperature sensors)
+  let managed_sensor_ids =
+    config.rooms
+    |> list.filter(fn(room) { option.is_some(room.schedule) })
+    |> list.filter_map(fn(room) {
+      option.to_result(room.temperature_sensor_entity_id, Nil)
+    })
+    |> set.from_list
+
   ha_poller_actor.PollerConfig(
     poll_interval_ms: default_poll_interval_ms,
     heating_entity_id: config.heating_id,
@@ -154,5 +163,6 @@ fn build_poller_config(
       config.sleep_switch_id,
     ),
     managed_trv_ids: managed_trv_ids,
+    managed_sensor_ids: managed_sensor_ids,
   )
 }

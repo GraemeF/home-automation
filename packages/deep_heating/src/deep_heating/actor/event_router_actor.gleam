@@ -3,15 +3,19 @@
 //// Responsibilities:
 //// - Listen for PollerEvents and route them to appropriate actors
 //// - Route TrvUpdated events to correct TrvActor (by entity_id → subject lookup)
+//// - Route SensorUpdated events to correct RoomActor (by sensor_id → subject lookup)
 //// - Route SleepButtonPressed events to HouseModeActor
 //// - Ignore poll status events (PollCompleted, PollFailed, etc.)
 
 import deep_heating/actor/ha_poller_actor.{type PollerEvent}
 import deep_heating/actor/house_mode_actor
+import deep_heating/actor/room_actor
 import deep_heating/actor/trv_actor
-import deep_heating/entity_id.{type ClimateEntityId}
+import deep_heating/entity_id.{type ClimateEntityId, type SensorEntityId}
+import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Subject}
+import gleam/option.{type Option}
 import gleam/otp/actor
 
 /// Opaque type for entity_id → TrvActor Subject mapping
@@ -26,11 +30,24 @@ pub fn build_trv_registry(
   TrvActorRegistry(mapping)
 }
 
+/// Opaque type for sensor_id → RoomActor Subject mapping
+pub opaque type SensorRegistry {
+  SensorRegistry(mapping: Dict(SensorEntityId, Subject(room_actor.Message)))
+}
+
+/// Build a SensorRegistry from a Dict of sensor_ids to RoomActor Subjects
+pub fn build_sensor_registry(
+  mapping: Dict(SensorEntityId, Subject(room_actor.Message)),
+) -> SensorRegistry {
+  SensorRegistry(mapping)
+}
+
 /// Configuration for starting the EventRouterActor
 pub type Config {
   Config(
     house_mode_actor: Subject(house_mode_actor.Message),
     trv_registry: TrvActorRegistry,
+    sensor_registry: SensorRegistry,
   )
 }
 
@@ -39,6 +56,7 @@ type State {
   State(
     house_mode_actor: Subject(house_mode_actor.Message),
     trv_registry: TrvActorRegistry,
+    sensor_registry: SensorRegistry,
   )
 }
 
@@ -50,6 +68,7 @@ pub fn start(config: Config) -> Result(Subject(PollerEvent), actor.StartError) {
     State(
       house_mode_actor: config.house_mode_actor,
       trv_registry: config.trv_registry,
+      sensor_registry: config.sensor_registry,
     )
 
   actor.new(initial_state)
@@ -70,6 +89,9 @@ fn route_event(event: PollerEvent, state: State) -> Nil {
   case event {
     ha_poller_actor.TrvUpdated(entity_id, update) -> {
       route_trv_update(entity_id, update, state.trv_registry)
+    }
+    ha_poller_actor.SensorUpdated(entity_id, temperature) -> {
+      route_sensor_update(entity_id, temperature, state.sensor_registry)
     }
     ha_poller_actor.SleepButtonPressed -> {
       process.send(state.house_mode_actor, house_mode_actor.SleepButtonPressed)
@@ -96,6 +118,29 @@ fn route_trv_update(
     }
     Error(_) -> {
       // Unknown entity_id - ignore
+      Nil
+    }
+  }
+}
+
+fn route_sensor_update(
+  entity_id: SensorEntityId,
+  temperature: Option(Temperature),
+  sensor_registry: SensorRegistry,
+) -> Nil {
+  // Look up the RoomActor subject by sensor entity_id
+  case dict.get(sensor_registry.mapping, entity_id) {
+    Ok(room_subject) -> {
+      // Only send if we have a temperature value (ignore unavailable)
+      case temperature {
+        option.Some(temp) -> {
+          process.send(room_subject, room_actor.ExternalTempChanged(temp))
+        }
+        option.None -> Nil
+      }
+    }
+    Error(_) -> {
+      // Unknown sensor_id - ignore
       Nil
     }
   }

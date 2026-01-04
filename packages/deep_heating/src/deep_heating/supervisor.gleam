@@ -317,14 +317,17 @@ pub fn start_with_home_config(
       {
         Error(e) -> Error(RoomsStartError(e))
         Ok(rooms_sup) -> {
-          // Build TrvActorRegistry from RoomsSupervisor
+          // Build registries from RoomsSupervisor
           let trv_registry = build_trv_registry(rooms_sup, config.home_config)
+          let sensor_registry =
+            build_sensor_registry(rooms_sup, config.home_config)
 
           // Start EventRouterActor (reuses house_mode_subject from above)
           let router_config =
             event_router_actor.Config(
               house_mode_actor: house_mode_subject,
               trv_registry: trv_registry,
+              sensor_registry: sensor_registry,
             )
 
           case event_router_actor.start(router_config) {
@@ -403,6 +406,35 @@ fn build_trv_registry(
     })
 
   event_router_actor.build_trv_registry(dict.from_list(pairs))
+}
+
+fn build_sensor_registry(
+  rooms_sup: RoomsSupervisor,
+  home_config: HomeConfig,
+) -> event_router_actor.SensorRegistry {
+  // For each room with a temperature sensor, map sensor_id to RoomActor subject
+  let pairs =
+    home_config.rooms
+    |> list.filter_map(fn(room_config) {
+      // Only include rooms that have a temperature sensor
+      case room_config.temperature_sensor_entity_id {
+        option.None -> Error(Nil)
+        option.Some(sensor_id) -> {
+          // Find the RoomSupervisor for this room by name
+          case rooms_supervisor.get_room_by_name(rooms_sup, room_config.name) {
+            Error(_) -> Error(Nil)
+            Ok(room_sup) -> {
+              case rooms_supervisor.get_room_actor(room_sup) {
+                Error(_) -> Error(Nil)
+                Ok(room_ref) -> Ok(#(sensor_id, room_ref.subject))
+              }
+            }
+          }
+        }
+      }
+    })
+
+  event_router_actor.build_sensor_registry(dict.from_list(pairs))
 }
 
 /// Get the rooms supervisor

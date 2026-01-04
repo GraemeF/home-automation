@@ -1,9 +1,11 @@
 import deep_heating/actor/event_router_actor
 import deep_heating/actor/ha_poller_actor
 import deep_heating/actor/house_mode_actor
+import deep_heating/actor/room_actor
 import deep_heating/actor/trv_actor
 import deep_heating/entity_id
 import deep_heating/mode
+import deep_heating/schedule as deep_heating_schedule
 import deep_heating/temperature
 import gleam/dict
 import gleam/erlang/process
@@ -17,6 +19,11 @@ import gleeunit/should
 /// Create an empty TRV registry for tests that don't need TRV routing
 fn empty_trv_registry() -> event_router_actor.TrvActorRegistry {
   event_router_actor.build_trv_registry(dict.new())
+}
+
+/// Create an empty sensor registry for tests that don't need sensor routing
+fn empty_sensor_registry() -> event_router_actor.SensorRegistry {
+  event_router_actor.build_sensor_registry(dict.new())
 }
 
 // =============================================================================
@@ -35,6 +42,7 @@ pub fn event_router_actor_starts_successfully_test() {
     event_router_actor.Config(
       house_mode_actor: house_mode,
       trv_registry: empty_trv_registry(),
+      sensor_registry: empty_sensor_registry(),
     )
 
   let result = event_router_actor.start(config)
@@ -61,6 +69,7 @@ pub fn routes_sleep_button_pressed_to_house_mode_actor_test() {
     event_router_actor.Config(
       house_mode_actor: house_mode,
       trv_registry: empty_trv_registry(),
+      sensor_registry: empty_sensor_registry(),
     )
 
   // Start router - it returns the subject to send events to
@@ -121,6 +130,7 @@ pub fn routes_trv_updated_to_correct_trv_actor_test() {
     event_router_actor.Config(
       house_mode_actor: house_mode,
       trv_registry: trv_registry,
+      sensor_registry: empty_sensor_registry(),
     )
 
   // Start router - it returns the subject to send events to
@@ -162,6 +172,7 @@ pub fn ignores_trv_updated_for_unknown_entity_test() {
     event_router_actor.Config(
       house_mode_actor: house_mode,
       trv_registry: empty_trv_registry(),
+      sensor_registry: empty_sensor_registry(),
     )
 
   let assert Ok(router_subject) = event_router_actor.start(config)
@@ -202,6 +213,7 @@ pub fn ignores_poll_completed_events_test() {
     event_router_actor.Config(
       house_mode_actor: house_mode,
       trv_registry: empty_trv_registry(),
+      sensor_registry: empty_sensor_registry(),
     )
 
   let assert Ok(router_subject) = event_router_actor.start(config)
@@ -215,6 +227,129 @@ pub fn ignores_poll_completed_events_test() {
   process.send(router_subject, ha_poller_actor.BackoffReset)
 
   // Give it a moment
+  process.sleep(50)
+
+  // If we get here without crashing, the test passes
+  should.be_true(True)
+}
+
+// =============================================================================
+// SensorUpdated Routing Tests
+// =============================================================================
+
+pub fn routes_sensor_updated_to_correct_room_actor_test() {
+  // When a SensorUpdated event is received, it should be routed to the
+  // correct RoomActor based on sensor_id → room_actor mapping
+
+  // Create a spy to receive messages from RoomActor (for decision/aggregator)
+  let decision_spy: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let aggregator_spy: process.Subject(room_actor.AggregatorMessage) =
+    process.new_subject()
+
+  // Create the sensor_id we'll be updating
+  let assert Ok(lounge_sensor) =
+    entity_id.sensor_entity_id("sensor.lounge_temperature")
+
+  // Create a simple schedule for the room
+  let schedule =
+    deep_heating_schedule.WeekSchedule(
+      monday: [],
+      tuesday: [],
+      wednesday: [],
+      thursday: [],
+      friday: [],
+      saturday: [],
+      sunday: [],
+    )
+
+  // Start RoomActor
+  let assert Ok(room_started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: schedule,
+      decision_actor: decision_spy,
+      state_aggregator: aggregator_spy,
+    )
+
+  // Build sensor registry with the RoomActor's subject
+  let sensor_registry =
+    event_router_actor.build_sensor_registry(
+      dict.from_list([#(lounge_sensor, room_started.data)]),
+    )
+
+  // Start HouseModeActor (required for config)
+  let assert Ok(house_mode) =
+    house_mode_actor.start_with_timer_interval(
+      fn() { house_mode_actor.local_datetime(2026, 1, 4, 12, 0, 0) },
+      0,
+    )
+
+  let config =
+    event_router_actor.Config(
+      house_mode_actor: house_mode,
+      trv_registry: empty_trv_registry(),
+      sensor_registry: sensor_registry,
+    )
+
+  // Start router
+  let assert Ok(router_subject) = event_router_actor.start(config)
+
+  // Send SensorUpdated event to router
+  process.send(
+    router_subject,
+    ha_poller_actor.SensorUpdated(
+      lounge_sensor,
+      Some(temperature.temperature(21.5)),
+    ),
+  )
+
+  // Give it a moment to process
+  process.sleep(100)
+
+  // The RoomActor should have updated its state and notified the aggregator
+  // Check the aggregator spy for RoomUpdated message
+  let assert Ok(aggregator_message) = process.receive(aggregator_spy, 500)
+  case aggregator_message {
+    room_actor.RoomUpdated(name, state) -> {
+      name |> should.equal("lounge")
+      // The room should have received the temperature update
+      state.temperature |> should.equal(Some(temperature.temperature(21.5)))
+    }
+  }
+}
+
+pub fn ignores_sensor_updated_for_unknown_sensor_test() {
+  // When a SensorUpdated event is received for a sensor not in the registry,
+  // it should be silently ignored (no crash)
+
+  let assert Ok(house_mode) =
+    house_mode_actor.start_with_timer_interval(
+      fn() { house_mode_actor.local_datetime(2026, 1, 4, 12, 0, 0) },
+      0,
+    )
+
+  let config =
+    event_router_actor.Config(
+      house_mode_actor: house_mode,
+      trv_registry: empty_trv_registry(),
+      sensor_registry: empty_sensor_registry(),
+    )
+
+  let assert Ok(router_subject) = event_router_actor.start(config)
+
+  // Send SensorUpdated for unknown sensor
+  let assert Ok(unknown_sensor) =
+    entity_id.sensor_entity_id("sensor.unknown_temp")
+  process.send(
+    router_subject,
+    ha_poller_actor.SensorUpdated(
+      unknown_sensor,
+      Some(temperature.temperature(20.0)),
+    ),
+  )
+
+  // Give it a moment - should not crash
   process.sleep(50)
 
   // If we get here without crashing, the test passes
