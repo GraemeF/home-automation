@@ -89,37 +89,43 @@ fn result_to_string_error(result: Result(a, b)) -> Result(Nil, String) {
 
 // HTML ------------------------------------------------------------------------
 
-fn serve_html() -> Response(ResponseData) {
-  let html_content =
-    html([attribute.lang("en")], [
-      html.head([], [
-        html.meta([attribute.charset("utf-8")]),
-        html.meta([
-          attribute.name("viewport"),
-          attribute.content("width=device-width, initial-scale=1"),
-        ]),
-        html.title([], "Deep Heating"),
-        // Include Tailwind CSS for styling (using CDN for development)
-        html.link([
-          attribute.rel("stylesheet"),
-          attribute.href(
-            "https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css",
-          ),
-        ]),
-        html.script([attribute.src("https://cdn.tailwindcss.com")], ""),
-        // Include the Lustre server component runtime
-        html.script(
-          [attribute.type_("module"), attribute.src("/lustre/runtime.mjs")],
-          "",
+/// Render the HTML page as a string.
+/// This is the main HTML document served to browsers.
+pub fn render_html_page() -> String {
+  html([attribute.lang("en")], [
+    html.head([], [
+      html.meta([attribute.charset("utf-8")]),
+      html.meta([
+        attribute.name("viewport"),
+        attribute.content("width=device-width, initial-scale=1"),
+      ]),
+      html.title([], "Deep Heating"),
+      // Include Tailwind CSS for styling (using CDN for development)
+      html.link([
+        attribute.rel("stylesheet"),
+        attribute.href(
+          "https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css",
         ),
       ]),
-      html.body([attribute.class("bg-base-200 min-h-screen")], [
-        // The Lustre server component element connects to /ws
-        server_component.element([server_component.route("/ws")], []),
-      ]),
-    ])
-    |> element.to_document_string_tree
-    |> bytes_tree.from_string_tree
+      html.script([attribute.src("https://cdn.tailwindcss.com")], ""),
+      // Include the Lustre server component runtime
+      html.script(
+        [attribute.type_("module"), attribute.src("/lustre/runtime.mjs")],
+        "",
+      ),
+    ]),
+    html.body([attribute.class("bg-base-200 min-h-screen")], [
+      // The Lustre server component element connects to /ws
+      server_component.element([server_component.route("/ws")], []),
+    ]),
+  ])
+  |> element.to_document_string
+}
+
+fn serve_html() -> Response(ResponseData) {
+  let html_content =
+    render_html_page()
+    |> bytes_tree.from_string
 
   response.new(200)
   |> response.set_body(mist.Bytes(html_content))
