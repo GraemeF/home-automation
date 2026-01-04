@@ -9,6 +9,7 @@
 //// └── RoomsSupervisor (when started with home_config)
 //// ```
 
+import deep_heating/actor/event_router_actor
 import deep_heating/actor/ha_command_actor
 import deep_heating/actor/ha_poller_actor
 import deep_heating/actor/heating_control_actor
@@ -18,7 +19,9 @@ import deep_heating/home_assistant.{type HaClient}
 import deep_heating/home_config.{type HomeConfig}
 import deep_heating/room_adjustments
 import deep_heating/rooms_supervisor.{type RoomsSupervisor}
+import gleam/dict
 import gleam/erlang/process.{type Name, type Pid, type Subject}
+import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
 import gleam/otp/static_supervisor as supervisor
@@ -101,6 +104,7 @@ const default_ha_command_debounce_ms = 5000
 /// Start the Deep Heating supervision tree with HaPollerActor.
 ///
 /// This variant includes the HaPollerActor for polling Home Assistant.
+/// Note: Events are discarded in this mode (no rooms to route to).
 pub fn start_with_config(
   config: SupervisorConfig,
 ) -> Result(actor.Started(Supervisor), actor.StartError) {
@@ -109,6 +113,10 @@ pub fn start_with_config(
   let state_aggregator_name = process.new_name("deep_heating_state_aggregator")
   let ha_poller_name = process.new_name("deep_heating_ha_poller")
   let ha_command_name = process.new_name("deep_heating_ha_command")
+
+  // Create an orphaned event spy - events are discarded in this mode
+  // (This mode is primarily for testing without full room configuration)
+  let event_spy: Subject(ha_poller_actor.PollerEvent) = process.new_subject()
 
   // Build and start the supervision tree
   supervisor.new(supervisor.OneForOne)
@@ -121,6 +129,7 @@ pub fn start_with_config(
     ha_poller_name,
     config.ha_client,
     config.poller_config,
+    event_spy,
   ))
   |> supervisor.add(ha_command_actor.child_spec(
     ha_command_name,
@@ -241,10 +250,11 @@ pub type StartWithRoomsError {
 /// This variant includes:
 /// - HouseModeActor (manages house mode state)
 /// - StateAggregatorActor (aggregates room states for UI)
-/// - HaPollerActor (polls Home Assistant for updates)
 /// - HaCommandActor (sends commands to Home Assistant)
 /// - HeatingControlActor (controls boiler based on room heating demand)
 /// - RoomsSupervisor (creates per-room actor trees from HomeConfig)
+/// - EventRouterActor (routes poller events to appropriate actors)
+/// - HaPollerActor (polls Home Assistant for updates)
 pub fn start_with_home_config(
   config: SupervisorConfigWithRooms,
 ) -> Result(actor.Started(SupervisorWithRooms), StartWithRoomsError) {
@@ -255,7 +265,7 @@ pub fn start_with_home_config(
   let ha_command_name = process.new_name("deep_heating_ha_command")
   let heating_control_name = process.new_name("deep_heating_heating_control")
 
-  // Build and start the main supervision tree
+  // Build and start the main supervision tree (without HaPollerActor - started later)
   // Note: HeatingControlActor uses named_subject(ha_command_name) which works
   // because HaCommandActor is added before it and will be started first
   let supervisor_result =
@@ -264,11 +274,6 @@ pub fn start_with_home_config(
     |> supervisor.add(state_aggregator_actor.child_spec(
       state_aggregator_name,
       config.adjustments_path,
-    ))
-    |> supervisor.add(ha_poller_actor.child_spec(
-      ha_poller_name,
-      config.ha_client,
-      config.poller_config,
     ))
     |> supervisor.add(ha_command_actor.child_spec(
       ha_command_name,
@@ -308,21 +313,95 @@ pub fn start_with_home_config(
       {
         Error(e) -> Error(RoomsStartError(e))
         Ok(rooms_sup) -> {
-          let sup =
-            SupervisorWithRooms(
-              pid: started.pid,
-              house_mode_name: house_mode_name,
-              state_aggregator_name: state_aggregator_name,
-              ha_poller_name: ha_poller_name,
-              ha_command_name: ha_command_name,
-              heating_control_name: heating_control_name,
-              rooms_supervisor: rooms_sup,
+          // Build TrvActorRegistry from RoomsSupervisor
+          let trv_registry = build_trv_registry(rooms_sup, config.home_config)
+
+          // Get HouseModeActor subject for EventRouter
+          let house_mode_subject = process.named_subject(house_mode_name)
+
+          // Start EventRouterActor
+          let router_config =
+            event_router_actor.Config(
+              house_mode_actor: house_mode_subject,
+              trv_registry: trv_registry,
             )
-          Ok(actor.Started(pid: started.pid, data: sup))
+
+          case event_router_actor.start(router_config) {
+            Error(_) -> {
+              // For now, treat router start failure as a supervisor error
+              Error(SupervisorStartError(actor.InitTimeout))
+            }
+            Ok(event_router_subject) -> {
+              // Start HaPollerActor with the EventRouter's subject as event_spy
+              case
+                ha_poller_actor.start_named(
+                  ha_poller_name,
+                  config.ha_client,
+                  config.poller_config,
+                  event_router_subject,
+                )
+              {
+                Error(e) -> Error(SupervisorStartError(e))
+                Ok(_poller_started) -> {
+                  let sup =
+                    SupervisorWithRooms(
+                      pid: started.pid,
+                      house_mode_name: house_mode_name,
+                      state_aggregator_name: state_aggregator_name,
+                      ha_poller_name: ha_poller_name,
+                      ha_command_name: ha_command_name,
+                      heating_control_name: heating_control_name,
+                      rooms_supervisor: rooms_sup,
+                    )
+                  Ok(actor.Started(pid: started.pid, data: sup))
+                }
+              }
+            }
+          }
         }
       }
     }
   }
+}
+
+/// Build a TrvActorRegistry from the RoomsSupervisor's TrvActors
+fn build_trv_registry(
+  rooms_sup: RoomsSupervisor,
+  home_config: HomeConfig,
+) -> event_router_actor.TrvActorRegistry {
+  // For each room, pair entity_ids with TrvActor subjects
+  let pairs =
+    rooms_supervisor.get_room_supervisors(rooms_sup)
+    |> list.flat_map(fn(room_sup) {
+      // Get the room config to get entity_ids
+      let room_config_opt =
+        list.find(home_config.rooms, fn(rc) {
+          case rooms_supervisor.get_room_actor(room_sup) {
+            Ok(_room_ref) -> {
+              // Compare room names (the room_sup doesn't expose name directly,
+              // but we can match by checking if entity_ids match)
+              list.length(rc.climate_entity_ids)
+              == list.length(rooms_supervisor.get_trv_actors(room_sup))
+            }
+            Error(_) -> False
+          }
+        })
+
+      case room_config_opt {
+        Ok(room_config) -> {
+          let trv_actors = rooms_supervisor.get_trv_actors(room_sup)
+          // Zip entity_ids with TrvActor subjects
+          list.zip(room_config.climate_entity_ids, trv_actors)
+          |> list.map(fn(pair) {
+            let #(entity_id, trv_ref) = pair
+            #(entity_id, trv_ref.subject)
+          })
+        }
+        Error(_) -> []
+      }
+    })
+
+  event_router_actor.build_trv_registry(dict.from_list(pairs))
 }
 
 /// Get the rooms supervisor

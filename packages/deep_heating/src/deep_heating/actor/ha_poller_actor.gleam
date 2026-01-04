@@ -117,16 +117,14 @@ pub fn start(
   |> actor.start
 }
 
-/// Start the HaPollerActor and register it with the given name
+/// Start the HaPollerActor and register it with the given name.
+/// Events are sent to the provided event_spy subject.
 pub fn start_named(
   name: Name(Message),
   ha_client: HaClient,
   config: PollerConfig,
+  event_spy: Subject(PollerEvent),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
-  // Create an internal event spy - events are currently discarded
-  // TODO: Route events to appropriate actors
-  let event_spy: Subject(PollerEvent) = process.new_subject()
-
   actor.new_with_initialiser(1000, fn(self_subject) {
     let initial_state =
       State(
@@ -154,8 +152,9 @@ pub fn child_spec(
   name: Name(Message),
   ha_client: HaClient,
   config: PollerConfig,
+  event_spy: Subject(PollerEvent),
 ) -> supervision.ChildSpecification(Subject(Message)) {
-  supervision.worker(fn() { start_named(name, ha_client, config) })
+  supervision.worker(fn() { start_named(name, ha_client, config, event_spy) })
 }
 
 fn register_with_name(
