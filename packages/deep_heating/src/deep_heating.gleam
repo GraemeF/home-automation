@@ -1,12 +1,53 @@
+import deep_heating/server
+import deep_heating/supervisor
 import gleam/erlang/process
+import gleam/int
 import gleam/io
+import gleam/string
 
 /// Main entry point for Deep Heating.
-/// Will start the supervision tree once actors are implemented.
+/// Starts the supervision tree and HTTP/WebSocket server.
 pub fn main() -> Nil {
   io.println("Deep Heating starting...")
 
-  // TODO: Start supervision tree here
-  // For now, just keep the process alive
+  // Start the supervision tree
+  case supervisor.start() {
+    Ok(started) -> {
+      io.println("Supervision tree started")
+
+      // Get the state aggregator actor
+      case supervisor.get_state_aggregator(started.data) {
+        Ok(aggregator_ref) -> {
+          io.println("Got state aggregator reference")
+
+          // Create server config with a no-op room adjuster for now
+          // TODO: Wire up room adjustment when RoomActors are running
+          let config =
+            server.default_config(aggregator_ref.subject, fn(_, _) { Nil })
+
+          // Start the HTTP/WebSocket server
+          case server.start(config) {
+            Ok(Nil) -> {
+              io.println(
+                "Server started on http://localhost:"
+                <> int.to_string(server.default_port),
+              )
+            }
+            Error(e) -> {
+              io.println("Failed to start server: " <> e)
+            }
+          }
+        }
+        Error(Nil) -> {
+          io.println("Failed to get state aggregator reference")
+        }
+      }
+    }
+    Error(e) -> {
+      io.println("Failed to start supervision tree: " <> string.inspect(e))
+    }
+  }
+
+  // Keep the process alive
   process.sleep_forever()
 }

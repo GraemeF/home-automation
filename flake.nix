@@ -449,14 +449,14 @@ ${mkS6RunScript def}RUNSCRIPT
 
               # Gleam toolchain
               pkgs.gleam
-              pkgs.erlang_27  # OTP 27 for BEAM runtime
-              pkgs.rebar3     # Erlang build tool (Gleam dependency)
+              pkgs.erlang_28  # OTP 28 for BEAM runtime
+              pkgs.rebar3     # Erlang build tool (uses nixpkgs default OTP 28)
             ];
 
             shellHook = ''
               echo "Deep Heating development environment loaded!"
               echo "Gleam version: $(gleam --version)"
-              echo "Erlang/OTP version: $(erl -noshell -eval 'io:format("~s~n", [erlang:system_info(otp_release)]), halt().')"
+              echo "Erlang/OTP version: $(erl -noshell -eval 'io:format("OTP ~s~n", [erlang:system_info(otp_release)]), halt().')"
               echo "Bun version: $(bun --version)"
               echo "System: ${system}"
               echo ""
