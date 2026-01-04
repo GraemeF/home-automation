@@ -275,6 +275,107 @@ EOF
             };
           };
 
+          # GLEAM BUILD
+          # ===========
+          # Gleam-based Deep Heating backend using OTP actors
+
+          # Filtered source for Gleam project only
+          gleamSrc = pkgs.lib.cleanSourceWith {
+            src = ./packages/deep_heating;
+            filter = path: type:
+              let
+                baseName = baseNameOf path;
+                relPath = pkgs.lib.removePrefix (toString ./packages/deep_heating + "/") (toString path);
+              in
+              !(
+                pkgs.lib.hasPrefix "build" relPath
+                || pkgs.lib.hasPrefix ".git" relPath
+                || baseName == "result"
+              );
+          };
+
+          # Hash of manifest.toml - invalidates cache when deps change
+          gleamManifestHash = builtins.substring 0 8 (builtins.hashFile "sha256" ./packages/deep_heating/manifest.toml);
+
+          # Fixed-Output Derivation for Gleam dependencies
+          # Downloads deps from Hex and caches them reproducibly
+          gleamDeps = pkgs.stdenv.mkDerivation {
+            pname = "deep-heating-gleam-deps-${gleamManifestHash}";
+            version = "0.1.0";
+
+            src = gleamSrc;
+            nativeBuildInputs = [ pkgs.gleam pkgs.cacert ];
+
+            # FOD settings - allows network access during build
+            outputHashAlgo = "sha256";
+            outputHashMode = "recursive";
+            # To update: run `nix build .#gleamDeps` and use the hash from the error
+            outputHash = "sha256-wya1eCIxjl5gcvC05BEsbeFdsQBXSs6+kVT4K1ZfHPg=";
+
+            buildPhase = ''
+              export HOME=$TMPDIR
+              export HEX_HOME=$TMPDIR/.hex
+              export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
+              gleam deps download
+            '';
+
+            installPhase = ''
+              mkdir -p $out
+              cp -r build/packages/* $out/
+
+              # Sort packages.toml for reproducibility
+              if [ -f $out/packages.toml ]; then
+                head -1 $out/packages.toml > $out/packages.toml.sorted
+                tail -n +2 $out/packages.toml | sort >> $out/packages.toml.sorted
+                mv $out/packages.toml.sorted $out/packages.toml
+              fi
+            '';
+          };
+
+          # Main Gleam build - produces Erlang shipment
+          deep-heating-gleam = pkgs.stdenv.mkDerivation {
+            pname = "deep-heating-gleam";
+            version = "0.1.0";
+
+            src = gleamSrc;
+            nativeBuildInputs = [ pkgs.gleam pkgs.erlang_28 pkgs.rebar3 ];
+
+            SOURCE_DATE_EPOCH = lastModified;
+
+            buildPhase = ''
+              # Copy in the cached dependencies (need writable copies)
+              mkdir -p build/packages
+              cp -r ${gleamDeps}/* build/packages/
+              chmod -R u+w build/packages/
+
+              # Build the Erlang release
+              gleam export erlang-shipment
+            '';
+
+            installPhase = ''
+              mkdir -p $out/lib/deep-heating-gleam
+              cp -r build/erlang-shipment/* $out/lib/deep-heating-gleam/
+
+              # Create wrapper script
+              mkdir -p $out/bin
+              cat > $out/bin/deep-heating-gleam <<EOF
+#!/bin/sh
+exec $out/lib/deep-heating-gleam/entrypoint.sh run "\$@"
+EOF
+              chmod +x $out/bin/deep-heating-gleam
+
+              echo "Installation complete!"
+              echo "  Size: $(du -sh $out | cut -f1)"
+            '';
+
+            meta = with pkgs.lib; {
+              description = "Deep Heating Gleam backend - TRV control with OTP actors";
+              homepage = "https://github.com/GraemeF/home-automation";
+              license = licenses.mit;
+              platforms = platforms.unix;
+            };
+          };
+
           # S6 SERVICE CONFIGURATION (using raw s6 from nixpkgs)
           # ===================================================
           # s6-svscan expects a scandir with service subdirectories.
@@ -428,6 +529,8 @@ ${mkS6RunScript def}RUNSCRIPT
         in
         {
           inherit prunedWorkspace bunDepsWeb bunDepsDeepHeating bunDepsFull validateDeps generateBunNix generateBunNixDeepHeating deep-heating-web deep-heating;
+          # Gleam packages
+          inherit gleamDeps deep-heating-gleam;
         } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
           # Linux-only packages
           inherit s6Services nginxConfig containerInit dockerImage;
