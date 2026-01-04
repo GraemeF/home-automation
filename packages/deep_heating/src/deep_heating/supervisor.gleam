@@ -302,12 +302,16 @@ pub fn start_with_home_config(
         room_adjustments.load_from_env()
         |> result.unwrap([])
 
+      // Get HouseModeActor subject for room registration
+      let house_mode_subject = process.named_subject(house_mode_name)
+
       // Start rooms supervisor with the HomeConfig
       case
         rooms_supervisor.start(
           config: config.home_config,
           state_aggregator: state_aggregator_subject,
           ha_commands: ha_commands,
+          house_mode: house_mode_subject,
           initial_adjustments: initial_adjustments,
         )
       {
@@ -316,10 +320,7 @@ pub fn start_with_home_config(
           // Build TrvActorRegistry from RoomsSupervisor
           let trv_registry = build_trv_registry(rooms_sup, config.home_config)
 
-          // Get HouseModeActor subject for EventRouter
-          let house_mode_subject = process.named_subject(house_mode_name)
-
-          // Start EventRouterActor
+          // Start EventRouterActor (reuses house_mode_subject from above)
           let router_config =
             event_router_actor.Config(
               house_mode_actor: house_mode_subject,

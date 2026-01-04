@@ -16,6 +16,7 @@
 //// ```
 
 import deep_heating/actor/ha_command_actor
+import deep_heating/actor/house_mode_actor
 import deep_heating/actor/room_actor
 import deep_heating/actor/room_decision_actor
 import deep_heating/actor/state_aggregator_actor
@@ -89,10 +90,13 @@ type TrvActorConfig {
 /// - RoomActor (aggregates TRV states)
 /// - TrvActors (one per TRV in the room)
 /// - RoomDecisionActor (computes TRV setpoints)
+///
+/// Registers the RoomActor with HouseModeActor for mode broadcasts.
 pub fn start_room(
   room_config room_config: RoomConfig,
   state_aggregator state_aggregator: Subject(state_aggregator_actor.Message),
   ha_commands ha_commands: Subject(ha_command_actor.Message),
+  house_mode house_mode: Subject(house_mode_actor.Message),
   initial_adjustments initial_adjustments: List(RoomAdjustment),
 ) -> Result(RoomSupervisor, StartError) {
   // Get schedule - rooms must have a schedule configured
@@ -149,6 +153,9 @@ pub fn start_room(
     state_aggregator,
     state_aggregator_actor.RegisterRoomActor(room_config.name, room_subject),
   )
+
+  // Register the room actor with the house mode actor for mode broadcasts
+  process.send(house_mode, house_mode_actor.RegisterRoomActor(room_subject))
 
   // Coerce room subject to type TrvActor expects
   let room_for_trv: Subject(trv_actor.RoomMessage) =
@@ -258,6 +265,7 @@ pub fn start(
   config config: HomeConfig,
   state_aggregator state_aggregator: Subject(state_aggregator_actor.Message),
   ha_commands ha_commands: Subject(ha_command_actor.Message),
+  house_mode house_mode: Subject(house_mode_actor.Message),
   initial_adjustments initial_adjustments: List(RoomAdjustment),
 ) -> Result(RoomsSupervisor, StartError) {
   config.rooms
@@ -266,6 +274,7 @@ pub fn start(
       room_config: room_config,
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
+      house_mode: house_mode,
       initial_adjustments: initial_adjustments,
     )
     |> result.map(fn(room_sup) { #(room_config.name, room_sup) })
