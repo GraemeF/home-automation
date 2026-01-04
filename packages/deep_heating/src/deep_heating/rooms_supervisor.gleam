@@ -27,6 +27,7 @@ import gleam/erlang/process.{type Pid, type Subject}
 import gleam/list
 import gleam/option.{None, Some}
 import gleam/otp/actor
+import gleam/otp/factory_supervisor as factory
 import gleam/result
 
 // =============================================================================
@@ -42,9 +43,9 @@ fn coerce_subject(subject: Subject(a)) -> Subject(b)
 // Types
 // =============================================================================
 
-/// Reference to a running actor
+/// Reference to a running actor with its registered name
 pub type ActorRef(msg) {
-  ActorRef(pid: Pid, subject: Subject(msg))
+  ActorRef(pid: Pid, subject: Subject(msg), name: process.Name(msg))
 }
 
 /// Handle to a single room's supervision tree
@@ -66,6 +67,16 @@ pub opaque type RoomsSupervisor {
 pub type StartError {
   ActorStartError(actor.StartError)
   ConfigError(String)
+}
+
+/// Configuration for starting a TRV actor under supervision
+type TrvActorConfig {
+  TrvActorConfig(
+    entity_id: ClimateEntityId,
+    name: process.Name(trv_actor.Message),
+    room_actor: Subject(trv_actor.RoomMessage),
+    ha_commands: Subject(trv_actor.HaCommand),
+  )
 }
 
 // =============================================================================
@@ -105,6 +116,9 @@ pub fn start_room(
   let aggregator_for_room: Subject(room_actor.AggregatorMessage) =
     coerce_subject(state_aggregator)
 
+  // Create a name for the room actor
+  let room_actor_name = process.new_name("room_actor_" <> room_config.name)
+
   // Start the RoomActor
   use room_started <- result.try(
     room_actor.start(
@@ -117,7 +131,12 @@ pub fn start_room(
   )
 
   let room_subject = room_started.data
-  let room_ref = ActorRef(pid: room_started.pid, subject: room_subject)
+  let room_ref =
+    ActorRef(
+      pid: room_started.pid,
+      subject: room_subject,
+      name: room_actor_name,
+    )
 
   // Register the room actor with the state aggregator for adjustment forwarding
   process.send(
@@ -129,16 +148,20 @@ pub fn start_room(
   let room_for_trv: Subject(trv_actor.RoomMessage) =
     coerce_subject(room_subject)
 
-  // Start TrvActors for each TRV in the room
-  use trv_refs <- result.try(
-    room_config.climate_entity_ids
-    |> list.try_map(fn(entity_id) {
-      start_trv_actor(entity_id, room_for_trv, ha_commands)
-    }),
-  )
+  // Start TrvActors under a factory supervisor for fault tolerance
+  use trv_refs <- result.try(start_supervised_trv_actors(
+    room_config.name,
+    room_config.climate_entity_ids,
+    room_for_trv,
+    ha_commands,
+  ))
 
   // Start the command forwarder actor - it creates its own Subject
   use trv_command_subject <- result.try(start_trv_command_forwarder(trv_refs))
+
+  // Create a name for the decision actor
+  let decision_actor_name =
+    process.new_name("decision_actor_" <> room_config.name)
 
   // Start the RoomDecisionActor with the forwarder's Subject
   use decision_started <- result.try(
@@ -147,7 +170,11 @@ pub fn start_room(
   )
 
   let decision_ref =
-    ActorRef(pid: decision_started.pid, subject: decision_started.data)
+    ActorRef(
+      pid: decision_started.pid,
+      subject: decision_started.data,
+      name: decision_actor_name,
+    )
 
   Ok(RoomSupervisor(
     room_name: room_config.name,
@@ -157,16 +184,55 @@ pub fn start_room(
   ))
 }
 
-fn start_trv_actor(
-  entity_id: ClimateEntityId,
+/// Start a TRV actor from configuration - used by factory_supervisor
+fn start_trv_from_config(
+  config: TrvActorConfig,
+) -> Result(actor.Started(Subject(trv_actor.Message)), actor.StartError) {
+  trv_actor.start(
+    config.entity_id,
+    config.name,
+    config.room_actor,
+    config.ha_commands,
+  )
+}
+
+/// Start TRV actors under a factory supervisor for fault tolerance.
+/// Returns the supervisor and actor references.
+fn start_supervised_trv_actors(
+  room_name: String,
+  entity_ids: List(ClimateEntityId),
   room_actor: Subject(trv_actor.RoomMessage),
   ha_commands: Subject(trv_actor.HaCommand),
-) -> Result(ActorRef(trv_actor.Message), StartError) {
-  trv_actor.start(entity_id, room_actor, ha_commands)
-  |> result.map(fn(started) {
-    ActorRef(pid: started.pid, subject: started.data)
+) -> Result(List(ActorRef(trv_actor.Message)), StartError) {
+  // Create names for all TRV actors upfront (names are stable across restarts)
+  let configs =
+    list.map(entity_ids, fn(entity_id) {
+      let entity_id_str = entity_id.climate_entity_id_to_string(entity_id)
+      let name =
+        process.new_name("trv_actor_" <> room_name <> "_" <> entity_id_str)
+      TrvActorConfig(
+        entity_id: entity_id,
+        name: name,
+        room_actor: room_actor,
+        ha_commands: ha_commands,
+      )
+    })
+
+  // Start factory supervisor for TRV actors
+  use trv_supervisor <- result.try(
+    factory.worker_child(start_trv_from_config)
+    |> factory.start
+    |> result.map_error(ActorStartError),
+  )
+
+  // Start each TRV actor under the supervisor
+  list.try_map(configs, fn(config) {
+    factory.start_child(trv_supervisor.data, config)
+    |> result.map(fn(started) {
+      ActorRef(pid: started.pid, subject: started.data, name: config.name)
+    })
+    |> result.map_error(ActorStartError)
   })
-  |> result.map_error(ActorStartError)
 }
 
 /// Internal state for the TrvCommand forwarder actor

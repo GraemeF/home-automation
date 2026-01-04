@@ -344,6 +344,54 @@ pub fn room_supervisor_registers_room_actor_with_state_aggregator_test() {
   state.adjustment |> should.equal(2.0)
 }
 
+// =============================================================================
+// OTP Supervision Tests - Fault Tolerance
+// =============================================================================
+
+pub fn trv_actor_is_restarted_when_it_crashes_test() {
+  // This test verifies that TRV actors are supervised and automatically
+  // restarted when they crash. This is the core value of OTP supervision.
+  //
+  // With Named Subjects, we can query the actor by name after restart
+  // because the restarted actor re-registers with the same name.
+  let state_aggregator: process.Subject(state_aggregator_actor.Message) =
+    process.new_subject()
+  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let room_config = make_single_room_config()
+
+  let assert Ok(room_sup) =
+    rooms_supervisor.start_room(
+      room_config: room_config,
+      state_aggregator: state_aggregator,
+      ha_commands: ha_commands,
+    )
+
+  // Get the TRV actor's name and current pid
+  let assert [trv_ref] = rooms_supervisor.get_trv_actors(room_sup)
+  let original_pid = trv_ref.pid
+  let trv_name = trv_ref.name
+
+  // Verify it's alive by sending a message via named subject
+  let trv_subject = process.named_subject(trv_name)
+  let reply1 = process.new_subject()
+  process.send(trv_subject, trv_actor.GetState(reply1))
+  let assert Ok(_) = process.receive(reply1, 1000)
+
+  // Kill the TRV actor
+  process.kill(original_pid)
+
+  // Give supervision time to restart it
+  process.sleep(200)
+
+  // Query again via the same name - the restarted actor should respond
+  let reply2 = process.new_subject()
+  process.send(trv_subject, trv_actor.GetState(reply2))
+  let result = process.receive(reply2, 1000)
+
+  // Should be able to communicate with the restarted actor
+  should.be_ok(result)
+}
+
 pub fn rooms_supervisor_can_get_room_by_name_test() {
   let assert Ok(sleep_switch) =
     entity_id.goodnight_entity_id("input_button.goodnight")

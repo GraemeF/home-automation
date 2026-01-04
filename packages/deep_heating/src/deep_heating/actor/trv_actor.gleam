@@ -9,7 +9,7 @@
 import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/mode.{type HvacMode, HvacOff}
 import deep_heating/temperature.{type Temperature}
-import gleam/erlang/process.{type Subject}
+import gleam/erlang/process.{type Name, type Subject}
 import gleam/option.{type Option, None}
 import gleam/otp/actor
 
@@ -75,9 +75,12 @@ type ActorState {
   )
 }
 
-/// Start the TrvActor with the given entity ID and dependencies
+/// Start the TrvActor with the given entity ID, name, and dependencies.
+/// The actor registers with the given name, allowing it to be addressed
+/// via `named_subject(name)` even after restarts.
 pub fn start(
   entity_id: ClimateEntityId,
+  name: Name(Message),
   room_actor: Subject(RoomMessage),
   ha_commands: Subject(HaCommand),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
@@ -97,6 +100,7 @@ pub fn start(
     )
 
   actor.new(initial_state)
+  |> actor.named(name)
   |> actor.on_message(handle_message)
   |> actor.start
 }
