@@ -13,6 +13,7 @@ import deep_heating/mode.{
   HvacOff, RoomModeOff,
 }
 import deep_heating/schedule.{type TimeOfDay, type WeekSchedule, type Weekday}
+import deep_heating/state
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Subject}
@@ -95,7 +96,7 @@ pub type DecisionMessage {
 
 /// Messages that RoomActor notifies to the state aggregator
 pub type AggregatorMessage {
-  RoomUpdated(name: String, state: RoomState)
+  RoomUpdated(name: String, state: state.RoomState)
 }
 
 /// Function type for getting current date/time (for testability)
@@ -428,9 +429,52 @@ fn update_trv_is_heating(
   ActorState(..state, room: new_room)
 }
 
-fn notify_state_changed(state: ActorState) -> Nil {
-  process.send(state.decision_actor, RoomStateChanged(state.room))
-  process.send(state.state_aggregator, RoomUpdated(state.room.name, state.room))
+fn notify_state_changed(actor_state: ActorState) -> Nil {
+  process.send(actor_state.decision_actor, RoomStateChanged(actor_state.room))
+  // Convert internal RoomState to state.RoomState for the aggregator
+  let aggregator_state = to_aggregator_state(actor_state.room)
+  process.send(
+    actor_state.state_aggregator,
+    RoomUpdated(actor_state.room.name, aggregator_state),
+  )
+}
+
+/// Convert internal RoomState to state.RoomState for the aggregator
+fn to_aggregator_state(room: RoomState) -> state.RoomState {
+  // Convert TRV states to RadiatorState list
+  let radiators =
+    dict.to_list(room.trv_states)
+    |> list.map(fn(pair) {
+      let #(entity_id, trv) = pair
+      state.RadiatorState(
+        name: entity_id.climate_entity_id_to_string(entity_id),
+        temperature: option.map(trv.temperature, fn(t) {
+          state.TemperatureReading(temperature: t, time: 0)
+        }),
+        target_temperature: option.map(trv.target, fn(t) {
+          state.TemperatureReading(temperature: t, time: 0)
+        }),
+        desired_target_temperature: None,
+        is_heating: Some(trv.is_heating),
+      )
+    })
+
+  // Check if any TRV is heating
+  let is_any_heating =
+    dict.values(room.trv_states)
+    |> list.any(fn(trv) { trv.is_heating })
+
+  state.RoomState(
+    name: room.name,
+    temperature: option.map(room.temperature, fn(t) {
+      state.TemperatureReading(temperature: t, time: 0)
+    }),
+    target_temperature: room.target_temperature,
+    radiators: radiators,
+    mode: Some(room.room_mode),
+    is_heating: Some(is_any_heating),
+    adjustment: room.adjustment,
+  )
 }
 
 /// Recompute the target temperature for the room based on current state and time

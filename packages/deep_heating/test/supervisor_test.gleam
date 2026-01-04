@@ -12,10 +12,13 @@ import deep_heating/temperature
 import envoy
 import gleam/erlang/process
 import gleam/list
-import gleam/option.{None, Some}
+import gleam/option.{Some}
 import gleam/set
 import gleeunit/should
 import simplifile
+
+/// Test adjustments path - using /tmp for test safety
+const test_adjustments_path = "/tmp/deep_heating_test_adjustments.json"
 
 // Supervisor startup tests
 
@@ -145,7 +148,7 @@ pub fn supervisor_has_ha_poller_actor_test() {
     supervisor.start_with_config(supervisor.SupervisorConfig(
       ha_client: ha_client,
       poller_config: poller_config,
-      adjustments_path: option.None,
+      adjustments_path: test_adjustments_path,
     ))
 
   // Get the ha poller actor from the supervisor
@@ -162,7 +165,7 @@ pub fn ha_poller_actor_is_alive_test() {
     supervisor.start_with_config(supervisor.SupervisorConfig(
       ha_client: ha_client,
       poller_config: poller_config,
-      adjustments_path: option.None,
+      adjustments_path: test_adjustments_path,
     ))
 
   let assert Ok(ha_poller) = supervisor.get_ha_poller(started.data)
@@ -178,7 +181,7 @@ pub fn supervisor_restarts_crashed_ha_poller_actor_test() {
     supervisor.start_with_config(supervisor.SupervisorConfig(
       ha_client: ha_client,
       poller_config: poller_config,
-      adjustments_path: option.None,
+      adjustments_path: test_adjustments_path,
     ))
 
   // Get the HaPollerActor's PID
@@ -220,7 +223,7 @@ pub fn supervisor_has_ha_command_actor_test() {
     supervisor.start_with_config(supervisor.SupervisorConfig(
       ha_client: ha_client,
       poller_config: poller_config,
-      adjustments_path: option.None,
+      adjustments_path: test_adjustments_path,
     ))
 
   // Get the ha command actor from the supervisor
@@ -237,7 +240,7 @@ pub fn ha_command_actor_is_alive_test() {
     supervisor.start_with_config(supervisor.SupervisorConfig(
       ha_client: ha_client,
       poller_config: poller_config,
-      adjustments_path: option.None,
+      adjustments_path: test_adjustments_path,
     ))
 
   let assert Ok(ha_command) = supervisor.get_ha_command_actor(started.data)
@@ -253,7 +256,7 @@ pub fn ha_command_actor_responds_to_messages_test() {
     supervisor.start_with_config(supervisor.SupervisorConfig(
       ha_client: ha_client,
       poller_config: poller_config,
-      adjustments_path: option.None,
+      adjustments_path: test_adjustments_path,
     ))
 
   let assert Ok(ha_command) = supervisor.get_ha_command_actor(started.data)
@@ -329,7 +332,7 @@ pub fn supervisor_starts_rooms_with_home_config_test() {
     supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
       ha_client: ha_client,
       poller_config: poller_config,
-      adjustments_path: None,
+      adjustments_path: test_adjustments_path,
       home_config: home_config,
     ))
 
@@ -351,7 +354,7 @@ pub fn supervisor_rooms_are_accessible_by_name_test() {
     supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
       ha_client: ha_client,
       poller_config: poller_config,
-      adjustments_path: None,
+      adjustments_path: test_adjustments_path,
       home_config: home_config,
     ))
 
@@ -373,7 +376,7 @@ pub fn supervisor_room_actors_are_alive_test() {
     supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
       ha_client: ha_client,
       poller_config: poller_config,
-      adjustments_path: None,
+      adjustments_path: test_adjustments_path,
       home_config: home_config,
     ))
 
@@ -413,7 +416,7 @@ pub fn supervisor_loads_room_adjustments_from_env_test() {
     supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
       ha_client: ha_client,
       poller_config: poller_config,
-      adjustments_path: Some(test_path),
+      adjustments_path: test_path,
       home_config: home_config,
     ))
 
@@ -447,7 +450,7 @@ pub fn supervisor_has_heating_control_actor_when_started_with_home_config_test()
     supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
       ha_client: ha_client,
       poller_config: poller_config,
-      adjustments_path: None,
+      adjustments_path: test_adjustments_path,
       home_config: home_config,
     ))
 
@@ -466,7 +469,7 @@ pub fn heating_control_actor_is_alive_when_started_with_home_config_test() {
     supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
       ha_client: ha_client,
       poller_config: poller_config,
-      adjustments_path: None,
+      adjustments_path: test_adjustments_path,
       home_config: home_config,
     ))
 

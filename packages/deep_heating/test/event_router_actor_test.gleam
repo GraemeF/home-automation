@@ -311,10 +311,14 @@ pub fn routes_sensor_updated_to_correct_room_actor_test() {
   // Check the aggregator spy for RoomUpdated message
   let assert Ok(aggregator_message) = process.receive(aggregator_spy, 500)
   case aggregator_message {
-    room_actor.RoomUpdated(name, state) -> {
+    room_actor.RoomUpdated(name, room_state) -> {
       name |> should.equal("lounge")
-      // The room should have received the temperature update
-      state.temperature |> should.equal(Some(temperature.temperature(21.5)))
+      // The room should have received the temperature update (now wrapped in TemperatureReading)
+      let expected_temp = temperature.temperature(21.5)
+      case room_state.temperature {
+        Some(reading) -> reading.temperature |> should.equal(expected_temp)
+        None -> should.fail()
+      }
     }
   }
 }

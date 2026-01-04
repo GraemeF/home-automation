@@ -43,8 +43,8 @@ pub type SupervisorConfig {
   SupervisorConfig(
     ha_client: HaClient,
     poller_config: ha_poller_actor.PollerConfig,
-    /// Path to persist room adjustments (None = no persistence)
-    adjustments_path: Option(String),
+    /// Path to persist room adjustments
+    adjustments_path: String,
   )
 }
 
@@ -53,8 +53,8 @@ pub type SupervisorConfigWithRooms {
   SupervisorConfigWithRooms(
     ha_client: HaClient,
     poller_config: ha_poller_actor.PollerConfig,
-    /// Path to persist room adjustments (None = no persistence)
-    adjustments_path: Option(String),
+    /// Path to persist room adjustments
+    adjustments_path: String,
     /// Home configuration defining rooms, TRVs, and schedules
     home_config: HomeConfig,
   )
@@ -92,7 +92,7 @@ pub fn start() -> Result(actor.Started(Supervisor), actor.StartError) {
   |> supervisor.add(house_mode_actor.child_spec(house_mode_name))
   |> supervisor.add(state_aggregator_actor.child_spec(
     state_aggregator_name,
-    None,
+    room_adjustments.default_path,
   ))
   |> supervisor.start
   |> wrap_result(house_mode_name, state_aggregator_name, None, None)

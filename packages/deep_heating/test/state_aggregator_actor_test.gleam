@@ -381,7 +381,7 @@ pub fn state_aggregator_persists_adjustments_when_path_configured_test() {
 
   // Start with persistence enabled
   let assert Ok(actor) =
-    state_aggregator_actor.start_link_with_persistence(option.Some(test_path))
+    state_aggregator_actor.start_link_with_persistence(test_path)
 
   // Send a room update with a non-zero adjustment
   let room_state =
@@ -411,40 +411,12 @@ pub fn state_aggregator_persists_adjustments_when_path_configured_test() {
   ])
 }
 
-pub fn state_aggregator_does_not_persist_when_path_not_configured_test() {
-  let test_path = "/tmp/test_no_persist.json"
-  // Clean up any existing file
-  let _ = simplifile.delete(test_path)
-
-  // Start without persistence (None)
-  let assert Ok(actor) =
-    state_aggregator_actor.start_link_with_persistence(option.None)
-
-  // Send a room update with a non-zero adjustment
-  let room_state =
-    state.RoomState(
-      name: "lounge",
-      temperature: option.None,
-      target_temperature: option.None,
-      radiators: [],
-      mode: option.None,
-      is_heating: option.None,
-      adjustment: 1.5,
-    )
-  process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
-  process.sleep(50)
-
-  // File should not exist (no persistence configured)
-  let assert Ok(file_exists) = simplifile.is_file(test_path)
-  file_exists |> should.be_false
-}
-
 pub fn state_aggregator_persists_multiple_rooms_test() {
   let test_path = "/tmp/test_persist_multiple.json"
   let _ = simplifile.delete(test_path)
 
   let assert Ok(actor) =
-    state_aggregator_actor.start_link_with_persistence(option.Some(test_path))
+    state_aggregator_actor.start_link_with_persistence(test_path)
 
   // Send updates for multiple rooms with different adjustments
   let lounge_state =
@@ -498,7 +470,7 @@ pub fn state_aggregator_only_persists_on_adjustment_change_test() {
   let _ = simplifile.delete(test_path)
 
   let assert Ok(actor) =
-    state_aggregator_actor.start_link_with_persistence(option.Some(test_path))
+    state_aggregator_actor.start_link_with_persistence(test_path)
 
   // Send initial room update with no adjustment (0.0)
   let room_state_initial =

@@ -4,6 +4,10 @@
 //// Format matches TypeScript implementation: [{"roomName": "...", "adjustment": N}, ...]
 
 import envoy
+
+/// Default path for room adjustments file (standard HA addon data location)
+pub const default_path = "/data/room_adjustments.json"
+
 import gleam/dynamic/decode.{type Decoder}
 import gleam/int
 import gleam/json
@@ -74,6 +78,12 @@ pub fn save(
 pub fn path_from_env() -> Result(String, Nil) {
   envoy.get("ROOM_ADJUSTMENTS_PATH")
   |> result.map_error(fn(_) { Nil })
+}
+
+/// Get the path from env var, falling back to the default path.
+pub fn path_from_env_with_default() -> String {
+  path_from_env()
+  |> result.unwrap(default_path)
 }
 
 /// Load room adjustments from the ROOM_ADJUSTMENTS_PATH environment variable.

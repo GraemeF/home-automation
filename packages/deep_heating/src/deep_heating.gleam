@@ -10,8 +10,7 @@ import gleam/erlang/process
 import gleam/int
 import gleam/io
 import gleam/list
-import gleam/option.{type Option, None, Some}
-import gleam/result
+import gleam/option
 import gleam/set
 import gleam/string
 
@@ -115,8 +114,8 @@ fn build_supervisor_config() -> Result(
           // Build PollerConfig from home config
           let poller_config = build_poller_config(config)
 
-          // Get adjustments path from env (optional)
-          let adjustments_path = get_adjustments_path()
+          // Get adjustments path from env, or use default
+          let adjustments_path = room_adjustments.path_from_env_with_default()
 
           Ok(supervisor.SupervisorConfig(
             ha_client: ha_client,
@@ -127,13 +126,6 @@ fn build_supervisor_config() -> Result(
       }
     }
   }
-}
-
-/// Get the ROOM_ADJUSTMENTS_PATH from environment, if set.
-fn get_adjustments_path() -> Option(String) {
-  room_adjustments.path_from_env()
-  |> result.map(Some)
-  |> result.unwrap(None)
 }
 
 /// Build PollerConfig from HomeConfig

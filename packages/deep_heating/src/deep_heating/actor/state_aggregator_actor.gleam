@@ -13,7 +13,6 @@ import deep_heating/state.{type DeepHeatingState, type RoomState}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/list
-import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
 import gleam/otp/supervision
 
@@ -47,21 +46,22 @@ pub type State {
     self_subject: Subject(Message),
     /// Registry of room actors by name
     room_actors: Dict(String, Subject(room_actor.Message)),
-    /// Path to save adjustments (None = no persistence)
-    adjustments_path: Option(String),
+    /// Path to save adjustments
+    adjustments_path: String,
     /// Track previous adjustments to detect changes
     previous_adjustments: Dict(String, Float),
   )
 }
 
 /// Start the StateAggregatorActor without name registration (for testing)
+/// Uses default persistence path
 pub fn start_link() -> Result(Subject(Message), actor.StartError) {
-  start_link_with_persistence(None)
+  start_link_with_persistence(room_adjustments.default_path)
 }
 
-/// Start the StateAggregatorActor with optional persistence path
+/// Start the StateAggregatorActor with persistence path
 pub fn start_link_with_persistence(
-  adjustments_path: Option(String),
+  adjustments_path: String,
 ) -> Result(Subject(Message), actor.StartError) {
   actor.new_with_initialiser(1000, fn(self_subject) {
     actor.initialised(State(
@@ -84,7 +84,7 @@ pub fn start_link_with_persistence(
 /// Start the StateAggregatorActor and register it with the given name
 pub fn start(
   name: Name(Message),
-  adjustments_path: Option(String),
+  adjustments_path: String,
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   actor.new_with_initialiser(1000, fn(self_subject) {
     actor.initialised(State(
@@ -107,7 +107,7 @@ pub fn start(
 /// Create a child specification for supervision
 pub fn child_spec(
   name: Name(Message),
-  adjustments_path: Option(String),
+  adjustments_path: String,
 ) -> supervision.ChildSpecification(Subject(Message)) {
   supervision.worker(fn() { start(name, adjustments_path) })
 }
@@ -153,9 +153,9 @@ fn handle_message(
           room_state.adjustment,
         )
 
-      // Persist if changed and path is configured
-      case adjustment_changed, actor_state.adjustments_path {
-        True, Some(path) -> {
+      // Persist if adjustment changed
+      case adjustment_changed {
+        True -> {
           // Build list of all current adjustments
           let adjustments =
             list.map(new_current.rooms, fn(r) {
@@ -165,10 +165,11 @@ fn handle_message(
               )
             })
           // Save (ignore errors for now - we don't want to crash on I/O failure)
-          let _ = room_adjustments.save(path, adjustments)
+          let _ =
+            room_adjustments.save(actor_state.adjustments_path, adjustments)
           Nil
         }
-        _, _ -> Nil
+        False -> Nil
       }
 
       let new_state =
