@@ -9,13 +9,15 @@
 
 import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/mode.{
-  type HouseMode, type HvacMode, HouseModeAuto, HouseModeSleeping, HvacOff,
+  type HouseMode, type HvacMode, type RoomMode, HouseModeAuto, HouseModeSleeping,
+  HvacOff, RoomModeOff,
 }
 import deep_heating/schedule.{type TimeOfDay, type WeekSchedule, type Weekday}
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Subject}
 import gleam/float
+import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
 
@@ -77,6 +79,8 @@ pub type RoomState {
     target_temperature: Option(Temperature),
     /// House-wide operating mode
     house_mode: HouseMode,
+    /// Derived room mode (Off if any TRV is off, otherwise from house_mode)
+    room_mode: RoomMode,
     /// User adjustment to scheduled temperature (degrees)
     adjustment: Float,
     /// State of each TRV in this room
@@ -142,14 +146,16 @@ pub fn start(
       time: time,
     )
 
+  let initial_trv_states = dict.new()
   let initial_room =
     RoomState(
       name: name,
       temperature: None,
       target_temperature: initial_target,
       house_mode: HouseModeAuto,
+      room_mode: derive_room_mode(initial_trv_states, HouseModeAuto),
       adjustment: 0.0,
-      trv_states: dict.new(),
+      trv_states: initial_trv_states,
     )
   let initial_state =
     ActorState(
@@ -194,7 +200,9 @@ fn handle_message(
       actor.continue(new_state)
     }
     HouseModeChanged(new_mode) -> {
-      let new_room = RoomState(..state.room, house_mode: new_mode)
+      let new_room_mode = derive_room_mode(state.room.trv_states, new_mode)
+      let new_room =
+        RoomState(..state.room, house_mode: new_mode, room_mode: new_room_mode)
       let updated_state = ActorState(..state, room: new_room)
       // Recompute target temperature with new house mode
       let new_state = recompute_room_target(updated_state)
@@ -239,7 +247,13 @@ fn update_trv_temperature(
 
   let new_trv_states =
     dict.insert(state.room.trv_states, entity_id, updated_trv)
-  let new_room = RoomState(..state.room, trv_states: new_trv_states)
+  let new_room_mode = derive_room_mode(new_trv_states, state.room.house_mode)
+  let new_room =
+    RoomState(
+      ..state.room,
+      trv_states: new_trv_states,
+      room_mode: new_room_mode,
+    )
   ActorState(..state, room: new_room)
 }
 
@@ -262,7 +276,13 @@ fn update_trv_target(
 
   let new_trv_states =
     dict.insert(state.room.trv_states, entity_id, updated_trv)
-  let new_room = RoomState(..state.room, trv_states: new_trv_states)
+  let new_room_mode = derive_room_mode(new_trv_states, state.room.house_mode)
+  let new_room =
+    RoomState(
+      ..state.room,
+      trv_states: new_trv_states,
+      room_mode: new_room_mode,
+    )
   ActorState(..state, room: new_room)
 }
 
@@ -285,7 +305,13 @@ fn update_trv_mode(
 
   let new_trv_states =
     dict.insert(state.room.trv_states, entity_id, updated_trv)
-  let new_room = RoomState(..state.room, trv_states: new_trv_states)
+  let new_room_mode = derive_room_mode(new_trv_states, state.room.house_mode)
+  let new_room =
+    RoomState(
+      ..state.room,
+      trv_states: new_trv_states,
+      room_mode: new_room_mode,
+    )
   ActorState(..state, room: new_room)
 }
 
@@ -308,7 +334,13 @@ fn update_trv_is_heating(
 
   let new_trv_states =
     dict.insert(state.room.trv_states, entity_id, updated_trv)
-  let new_room = RoomState(..state.room, trv_states: new_trv_states)
+  let new_room_mode = derive_room_mode(new_trv_states, state.room.house_mode)
+  let new_room =
+    RoomState(
+      ..state.room,
+      trv_states: new_trv_states,
+      room_mode: new_room_mode,
+    )
   ActorState(..state, room: new_room)
 }
 
@@ -369,4 +401,21 @@ fn clamp_adjustment(value: Float) -> Float {
   value
   |> float.max(min_adjustment)
   |> float.min(max_adjustment)
+}
+
+/// Derive the room mode from TRV modes and house mode.
+/// If any TRV is in HvacOff mode, room mode is RoomModeOff.
+/// Otherwise, derive from house mode.
+pub fn derive_room_mode(
+  trv_states: Dict(ClimateEntityId, TrvState),
+  house_mode: HouseMode,
+) -> RoomMode {
+  let any_trv_off =
+    dict.values(trv_states)
+    |> list.any(fn(trv) { trv.mode == HvacOff })
+
+  case any_trv_off {
+    True -> RoomModeOff
+    False -> mode.house_mode_to_room_mode(house_mode)
+  }
 }

@@ -19,15 +19,16 @@ fn make_boiler_entity_id() -> entity_id.ClimateEntityId {
 }
 
 fn make_room_state(
-  name: String,
-  temp: Float,
-  target: Float,
+  name name: String,
+  temp temp: Float,
+  target target: Float,
 ) -> room_actor.RoomState {
   room_actor.RoomState(
     name: name,
     temperature: option.Some(temperature.temperature(temp)),
     target_temperature: option.Some(temperature.temperature(target)),
     house_mode: mode.HouseModeAuto,
+    room_mode: mode.RoomModeAuto,
     adjustment: 0.0,
     trv_states: dict.new(),
   )

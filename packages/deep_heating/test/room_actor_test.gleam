@@ -798,3 +798,177 @@ pub fn room_actor_notifies_state_aggregator_on_trv_change_test() {
     }
   }
 }
+
+// =============================================================================
+// Room Mode Derivation Tests
+// =============================================================================
+
+pub fn room_actor_initial_room_mode_is_auto_test() {
+  // When house_mode is Auto and no TRVs, room_mode should be Auto
+  let decision_actor = process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  state.room_mode |> should.equal(mode.RoomModeAuto)
+}
+
+pub fn room_actor_room_mode_is_off_when_any_trv_off_test() {
+  // If any TRV has HvacOff mode, room_mode should be RoomModeOff
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // Set TRV mode to Off
+  process.send(started.data, room_actor.TrvModeChanged(trv_id, mode.HvacOff))
+  process.sleep(10)
+
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  state.room_mode |> should.equal(mode.RoomModeOff)
+}
+
+pub fn room_actor_room_mode_is_auto_when_all_trvs_heat_test() {
+  // If all TRVs are in heat mode and house_mode is Auto, room_mode is Auto
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  let assert Ok(trv1) = entity_id.climate_entity_id("climate.lounge_trv_1")
+  let assert Ok(trv2) = entity_id.climate_entity_id("climate.lounge_trv_2")
+
+  // Set both TRVs to Heat mode
+  process.send(started.data, room_actor.TrvModeChanged(trv1, mode.HvacHeat))
+  process.send(started.data, room_actor.TrvModeChanged(trv2, mode.HvacHeat))
+  process.sleep(10)
+
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  state.room_mode |> should.equal(mode.RoomModeAuto)
+}
+
+pub fn room_actor_room_mode_is_off_when_one_of_many_trvs_off_test() {
+  // If even one TRV is off, room_mode should be Off
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  let assert Ok(trv1) = entity_id.climate_entity_id("climate.lounge_trv_1")
+  let assert Ok(trv2) = entity_id.climate_entity_id("climate.lounge_trv_2")
+
+  // One TRV is Heat, one is Off
+  process.send(started.data, room_actor.TrvModeChanged(trv1, mode.HvacHeat))
+  process.send(started.data, room_actor.TrvModeChanged(trv2, mode.HvacOff))
+  process.sleep(10)
+
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  state.room_mode |> should.equal(mode.RoomModeOff)
+}
+
+pub fn room_actor_room_mode_is_sleeping_when_house_sleeping_test() {
+  // If house_mode is Sleeping and no TRV is off, room_mode is Sleeping
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // Set TRV to Heat mode
+  process.send(started.data, room_actor.TrvModeChanged(trv_id, mode.HvacHeat))
+  // Set house mode to Sleeping
+  process.send(
+    started.data,
+    room_actor.HouseModeChanged(mode.HouseModeSleeping),
+  )
+  process.sleep(10)
+
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  state.room_mode |> should.equal(mode.RoomModeSleeping)
+}
+
+pub fn room_actor_room_mode_off_overrides_sleeping_test() {
+  // TRV off should override house sleeping mode
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // Set house mode to Sleeping
+  process.send(
+    started.data,
+    room_actor.HouseModeChanged(mode.HouseModeSleeping),
+  )
+  // Set TRV to Off mode
+  process.send(started.data, room_actor.TrvModeChanged(trv_id, mode.HvacOff))
+  process.sleep(10)
+
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  // Off overrides Sleeping
+  state.room_mode |> should.equal(mode.RoomModeOff)
+}
