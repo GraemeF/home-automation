@@ -6,7 +6,7 @@
 
     # beads: Git-based issue tracker designed for AI coding workflows
     beads = {
-      url = "github:steveyegge/beads/v0.42.0";
+      url = "github:steveyegge/beads/v0.43.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
