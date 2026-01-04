@@ -3,13 +3,15 @@ import deep_heating/actor/state_aggregator_actor
 import deep_heating/entity_id
 import deep_heating/home_assistant
 import deep_heating/home_config
+import deep_heating/room_adjustments
 import deep_heating/server
 import deep_heating/supervisor
 import gleam/erlang/process
 import gleam/int
 import gleam/io
 import gleam/list
-import gleam/option
+import gleam/option.{type Option, None, Some}
+import gleam/result
 import gleam/set
 import gleam/string
 
@@ -113,14 +115,25 @@ fn build_supervisor_config() -> Result(
           // Build PollerConfig from home config
           let poller_config = build_poller_config(config)
 
+          // Get adjustments path from env (optional)
+          let adjustments_path = get_adjustments_path()
+
           Ok(supervisor.SupervisorConfig(
             ha_client: ha_client,
             poller_config: poller_config,
+            adjustments_path: adjustments_path,
           ))
         }
       }
     }
   }
+}
+
+/// Get the ROOM_ADJUSTMENTS_PATH from environment, if set.
+fn get_adjustments_path() -> Option(String) {
+  room_adjustments.path_from_env()
+  |> result.map(Some)
+  |> result.unwrap(None)
 }
 
 /// Build PollerConfig from HomeConfig

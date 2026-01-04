@@ -96,6 +96,76 @@ pub fn room_actor_returns_initial_state_test() {
   state.adjustment |> should.equal(0.0)
 }
 
+pub fn room_actor_starts_with_initial_adjustment_test() {
+  let decision_actor = process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start_with_adjustment(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+      initial_adjustment: 1.5,
+    )
+
+  // Query state
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  // Verify initial adjustment is set
+  state.adjustment |> should.equal(1.5)
+}
+
+pub fn room_actor_applies_initial_adjustment_to_target_test() {
+  let decision_actor = process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  // Schedule has 20°C, adjustment of +2.0 should result in 22°C target
+  let assert Ok(started) =
+    room_actor.start_with_adjustment(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+      initial_adjustment: 2.0,
+    )
+
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  // Target should be schedule (20°C) + adjustment (2°C) = 22°C
+  state.target_temperature
+  |> should.equal(option.Some(temperature.temperature(22.0)))
+}
+
+pub fn room_actor_clamps_initial_adjustment_test() {
+  let decision_actor = process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  // Initial adjustment exceeds max (3.0), should be clamped
+  let assert Ok(started) =
+    room_actor.start_with_adjustment(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+      initial_adjustment: 5.0,
+    )
+
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  // Should be clamped to max adjustment (3.0)
+  state.adjustment |> should.equal(3.0)
+}
+
 // =============================================================================
 // TRV State Aggregation Tests
 // =============================================================================
@@ -1042,6 +1112,7 @@ pub fn timer_triggers_target_recomputation_test() {
       state_aggregator: state_aggregator,
       get_time: get_time,
       timer_interval_ms: 100,
+      initial_adjustment: 0.0,
     )
 
   // Check initial state - should be 18°C (time is 08:59)

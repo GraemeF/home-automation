@@ -5,12 +5,15 @@
 //// - Maintain complete DeepHeatingState
 //// - Throttle updates (100ms) to avoid overwhelming clients
 //// - Broadcast state to WebSocket client subscribers
+//// - Persist room adjustments to disk when they change
 
 import deep_heating/actor/room_actor
+import deep_heating/room_adjustments
 import deep_heating/state.{type DeepHeatingState, type RoomState}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/list
+import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
 import gleam/otp/supervision
 
@@ -44,11 +47,22 @@ pub type State {
     self_subject: Subject(Message),
     /// Registry of room actors by name
     room_actors: Dict(String, Subject(room_actor.Message)),
+    /// Path to save adjustments (None = no persistence)
+    adjustments_path: Option(String),
+    /// Track previous adjustments to detect changes
+    previous_adjustments: Dict(String, Float),
   )
 }
 
 /// Start the StateAggregatorActor without name registration (for testing)
 pub fn start_link() -> Result(Subject(Message), actor.StartError) {
+  start_link_with_persistence(None)
+}
+
+/// Start the StateAggregatorActor with optional persistence path
+pub fn start_link_with_persistence(
+  adjustments_path: Option(String),
+) -> Result(Subject(Message), actor.StartError) {
   actor.new_with_initialiser(1000, fn(self_subject) {
     actor.initialised(State(
       current: state.empty_deep_heating_state(),
@@ -56,6 +70,8 @@ pub fn start_link() -> Result(Subject(Message), actor.StartError) {
       broadcast_pending: False,
       self_subject: self_subject,
       room_actors: dict.new(),
+      adjustments_path: adjustments_path,
+      previous_adjustments: dict.new(),
     ))
     |> actor.returning(self_subject)
     |> Ok
@@ -68,6 +84,7 @@ pub fn start_link() -> Result(Subject(Message), actor.StartError) {
 /// Start the StateAggregatorActor and register it with the given name
 pub fn start(
   name: Name(Message),
+  adjustments_path: Option(String),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   actor.new_with_initialiser(1000, fn(self_subject) {
     actor.initialised(State(
@@ -76,6 +93,8 @@ pub fn start(
       broadcast_pending: False,
       self_subject: self_subject,
       room_actors: dict.new(),
+      adjustments_path: adjustments_path,
+      previous_adjustments: dict.new(),
     ))
     |> actor.returning(self_subject)
     |> Ok
@@ -88,8 +107,9 @@ pub fn start(
 /// Create a child specification for supervision
 pub fn child_spec(
   name: Name(Message),
+  adjustments_path: Option(String),
 ) -> supervision.ChildSpecification(Subject(Message)) {
-  supervision.worker(fn() { start(name) })
+  supervision.worker(fn() { start(name, adjustments_path) })
 }
 
 fn handle_message(
@@ -116,7 +136,48 @@ fn handle_message(
     }
     RoomUpdated(name, room_state) -> {
       let new_current = update_room(actor_state.current, name, room_state)
-      let new_state = State(..actor_state, current: new_current)
+
+      // Check if adjustment changed and persist if needed
+      let previous_adjustment =
+        dict.get(actor_state.previous_adjustments, name)
+      let adjustment_changed = case previous_adjustment {
+        Ok(prev) -> prev != room_state.adjustment
+        Error(_) -> True
+        // First update for this room
+      }
+
+      // Update previous adjustments
+      let new_previous =
+        dict.insert(
+          actor_state.previous_adjustments,
+          name,
+          room_state.adjustment,
+        )
+
+      // Persist if changed and path is configured
+      case adjustment_changed, actor_state.adjustments_path {
+        True, Some(path) -> {
+          // Build list of all current adjustments
+          let adjustments =
+            list.map(new_current.rooms, fn(r) {
+              room_adjustments.RoomAdjustment(
+                room_name: r.name,
+                adjustment: r.adjustment,
+              )
+            })
+          // Save (ignore errors for now - we don't want to crash on I/O failure)
+          let _ = room_adjustments.save(path, adjustments)
+          Nil
+        }
+        _, _ -> Nil
+      }
+
+      let new_state =
+        State(
+          ..actor_state,
+          current: new_current,
+          previous_adjustments: new_previous,
+        )
       schedule_broadcast_if_needed(new_state)
     }
     Broadcast -> {

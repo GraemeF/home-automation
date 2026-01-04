@@ -21,6 +21,7 @@ import deep_heating/actor/state_aggregator_actor
 import deep_heating/actor/trv_actor
 import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/home_config.{type HomeConfig, type RoomConfig}
+import deep_heating/room_adjustments.{type RoomAdjustment}
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Pid, type Subject}
@@ -93,6 +94,7 @@ pub fn start_room(
   room_config room_config: RoomConfig,
   state_aggregator state_aggregator: Subject(state_aggregator_actor.Message),
   ha_commands ha_commands: Subject(trv_actor.HaCommand),
+  initial_adjustments initial_adjustments: List(RoomAdjustment),
 ) -> Result(RoomSupervisor, StartError) {
   // Get schedule - rooms must have a schedule configured
   use room_schedule <- result.try(case room_config.schedule {
@@ -102,6 +104,10 @@ pub fn start_room(
         "Room '" <> room_config.name <> "' has no schedule configured",
       ))
   })
+
+  // Look up initial adjustment for this room
+  let initial_adjustment =
+    room_adjustments.get_adjustment(initial_adjustments, room_config.name)
 
   // First, create a subject for decision actor messages.
   // We'll use this when starting the room actor, then start the decision actor.
@@ -119,13 +125,14 @@ pub fn start_room(
   // Create a name for the room actor
   let room_actor_name = process.new_name("room_actor_" <> room_config.name)
 
-  // Start the RoomActor
+  // Start the RoomActor with initial adjustment
   use room_started <- result.try(
-    room_actor.start(
+    room_actor.start_with_adjustment(
       name: room_config.name,
       schedule: room_schedule,
       decision_actor: decision_for_room,
       state_aggregator: aggregator_for_room,
+      initial_adjustment: initial_adjustment,
     )
     |> result.map_error(ActorStartError),
   )
@@ -318,6 +325,7 @@ pub fn start(
   config config: HomeConfig,
   state_aggregator state_aggregator: Subject(state_aggregator_actor.Message),
   ha_commands ha_commands: Subject(trv_actor.HaCommand),
+  initial_adjustments initial_adjustments: List(RoomAdjustment),
 ) -> Result(RoomsSupervisor, StartError) {
   config.rooms
   |> list.try_map(fn(room_config) {
@@ -325,6 +333,7 @@ pub fn start(
       room_config: room_config,
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
+      initial_adjustments: initial_adjustments,
     )
     |> result.map(fn(room_sup) { #(room_config.name, room_sup) })
   })

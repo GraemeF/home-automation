@@ -6,6 +6,7 @@ import deep_heating/actor/trv_actor
 import deep_heating/entity_id
 import deep_heating/home_config.{type RoomConfig, HomeConfig, RoomConfig}
 import deep_heating/mode
+import deep_heating/room_adjustments
 import deep_heating/rooms_supervisor
 import deep_heating/schedule
 import deep_heating/temperature
@@ -82,6 +83,7 @@ pub fn room_supervisor_starts_successfully_test() {
       room_config: room_config,
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
+      initial_adjustments: [],
     )
 
   should.be_ok(result)
@@ -98,6 +100,7 @@ pub fn room_supervisor_starts_room_actor_test() {
       room_config: room_config,
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
+      initial_adjustments: [],
     )
 
   // Should be able to get the room actor subject
@@ -111,6 +114,62 @@ pub fn room_supervisor_starts_room_actor_test() {
   state.name |> should.equal("lounge")
 }
 
+pub fn room_supervisor_starts_room_with_initial_adjustment_test() {
+  let state_aggregator: process.Subject(state_aggregator_actor.Message) =
+    process.new_subject()
+  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let room_config = make_single_room_config()
+
+  // Create initial adjustments list with lounge at +1.5
+  let initial_adjustments = [
+    room_adjustments.RoomAdjustment(room_name: "lounge", adjustment: 1.5),
+  ]
+
+  let assert Ok(room_sup) =
+    rooms_supervisor.start_room(
+      room_config: room_config,
+      state_aggregator: state_aggregator,
+      ha_commands: ha_commands,
+      initial_adjustments: initial_adjustments,
+    )
+
+  // Query the room actor to verify initial adjustment is set
+  let assert Ok(room_actor_ref) = rooms_supervisor.get_room_actor(room_sup)
+  let reply = process.new_subject()
+  process.send(room_actor_ref.subject, room_actor.GetState(reply))
+  let assert Ok(state) = process.receive(reply, 1000)
+
+  state.adjustment |> should.equal(1.5)
+}
+
+pub fn room_supervisor_uses_zero_adjustment_for_unknown_room_test() {
+  let state_aggregator: process.Subject(state_aggregator_actor.Message) =
+    process.new_subject()
+  let ha_commands: process.Subject(trv_actor.HaCommand) = process.new_subject()
+  let room_config = make_single_room_config()
+
+  // Adjustments list doesn't include lounge
+  let initial_adjustments = [
+    room_adjustments.RoomAdjustment(room_name: "kitchen", adjustment: 2.0),
+  ]
+
+  let assert Ok(room_sup) =
+    rooms_supervisor.start_room(
+      room_config: room_config,
+      state_aggregator: state_aggregator,
+      ha_commands: ha_commands,
+      initial_adjustments: initial_adjustments,
+    )
+
+  // Query the room actor - should have 0.0 adjustment (not in list)
+  let assert Ok(room_actor_ref) = rooms_supervisor.get_room_actor(room_sup)
+  let reply = process.new_subject()
+  process.send(room_actor_ref.subject, room_actor.GetState(reply))
+  let assert Ok(state) = process.receive(reply, 1000)
+
+  state.adjustment |> should.equal(0.0)
+}
+
 pub fn room_supervisor_starts_trv_actors_test() {
   let state_aggregator: process.Subject(state_aggregator_actor.Message) =
     process.new_subject()
@@ -122,6 +181,7 @@ pub fn room_supervisor_starts_trv_actors_test() {
       room_config: room_config,
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
+      initial_adjustments: [],
     )
 
   // Should be able to get the TRV actor subjects
@@ -151,6 +211,7 @@ pub fn room_supervisor_starts_decision_actor_test() {
       room_config: room_config,
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
+      initial_adjustments: [],
     )
 
   // Should be able to get the decision actor subject
@@ -169,6 +230,7 @@ pub fn room_supervisor_with_multiple_trvs_test() {
       room_config: room_config,
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
+      initial_adjustments: [],
     )
 
   // Should have two TRV actors
@@ -193,6 +255,7 @@ pub fn trv_update_reaches_room_actor_test() {
       room_config: room_config,
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
+      initial_adjustments: [],
     )
 
   // Get the TRV actor
@@ -237,6 +300,7 @@ pub fn room_decision_sends_command_to_trv_test() {
       room_config: room_config,
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
+      initial_adjustments: [],
     )
 
   // Get actors
@@ -305,6 +369,7 @@ pub fn rooms_supervisor_starts_all_rooms_test() {
       config: config,
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
+      initial_adjustments: [],
     )
 
   // Should have supervisors for both rooms
@@ -325,6 +390,7 @@ pub fn room_supervisor_registers_room_actor_with_state_aggregator_test() {
       room_config: room_config,
       state_aggregator: state_agg,
       ha_commands: ha_commands,
+      initial_adjustments: [],
     )
 
   // Give time for any async registration
@@ -364,6 +430,7 @@ pub fn trv_actor_is_restarted_when_it_crashes_test() {
       room_config: room_config,
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
+      initial_adjustments: [],
     )
 
   // Get the TRV actor's name and current pid
@@ -413,6 +480,7 @@ pub fn rooms_supervisor_can_get_room_by_name_test() {
       config: config,
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
+      initial_adjustments: [],
     )
 
   // Should be able to look up rooms by name

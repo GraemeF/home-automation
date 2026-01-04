@@ -32,6 +32,8 @@ pub type SupervisorConfig {
   SupervisorConfig(
     ha_client: HaClient,
     poller_config: ha_poller_actor.PollerConfig,
+    /// Path to persist room adjustments (None = no persistence)
+    adjustments_path: Option(String),
   )
 }
 
@@ -52,7 +54,7 @@ pub fn start() -> Result(actor.Started(Supervisor), actor.StartError) {
   // Build and start the supervision tree
   supervisor.new(supervisor.OneForOne)
   |> supervisor.add(house_mode_actor.child_spec(house_mode_name))
-  |> supervisor.add(state_aggregator_actor.child_spec(state_aggregator_name))
+  |> supervisor.add(state_aggregator_actor.child_spec(state_aggregator_name, None))
   |> supervisor.start
   |> wrap_result(house_mode_name, state_aggregator_name, None)
 }
@@ -71,7 +73,10 @@ pub fn start_with_config(
   // Build and start the supervision tree
   supervisor.new(supervisor.OneForOne)
   |> supervisor.add(house_mode_actor.child_spec(house_mode_name))
-  |> supervisor.add(state_aggregator_actor.child_spec(state_aggregator_name))
+  |> supervisor.add(state_aggregator_actor.child_spec(
+    state_aggregator_name,
+    config.adjustments_path,
+  ))
   |> supervisor.add(ha_poller_actor.child_spec(
     ha_poller_name,
     config.ha_client,

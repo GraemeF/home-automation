@@ -3,6 +3,7 @@ import deep_heating/entity_id
 import deep_heating/home_assistant
 import deep_heating/supervisor
 import gleam/erlang/process
+import gleam/option
 import gleam/set
 import gleeunit/should
 
@@ -133,6 +134,7 @@ pub fn supervisor_has_ha_poller_actor_test() {
     supervisor.start_with_config(supervisor.SupervisorConfig(
       ha_client: ha_client,
       poller_config: poller_config,
+      adjustments_path: option.None,
     ))
 
   // Get the ha poller actor from the supervisor
@@ -149,6 +151,7 @@ pub fn ha_poller_actor_is_alive_test() {
     supervisor.start_with_config(supervisor.SupervisorConfig(
       ha_client: ha_client,
       poller_config: poller_config,
+      adjustments_path: option.None,
     ))
 
   let assert Ok(ha_poller) = supervisor.get_ha_poller(started.data)
@@ -164,6 +167,7 @@ pub fn supervisor_restarts_crashed_ha_poller_actor_test() {
     supervisor.start_with_config(supervisor.SupervisorConfig(
       ha_client: ha_client,
       poller_config: poller_config,
+      adjustments_path: option.None,
     ))
 
   // Get the HaPollerActor's PID

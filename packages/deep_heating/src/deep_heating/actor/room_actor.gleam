@@ -144,12 +144,30 @@ type ActorState {
 }
 
 /// Start the RoomActor with the given configuration.
-/// Uses the default 60-second timer interval for schedule refresh.
+/// Uses the default 60-second timer interval for schedule refresh and zero adjustment.
 pub fn start(
   name name: String,
   schedule schedule: WeekSchedule,
   decision_actor decision_actor: Subject(DecisionMessage),
   state_aggregator state_aggregator: Subject(AggregatorMessage),
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  start_with_adjustment(
+    name: name,
+    schedule: schedule,
+    decision_actor: decision_actor,
+    state_aggregator: state_aggregator,
+    initial_adjustment: 0.0,
+  )
+}
+
+/// Start the RoomActor with an initial adjustment value.
+/// Uses the default 60-second timer interval for schedule refresh.
+pub fn start_with_adjustment(
+  name name: String,
+  schedule schedule: WeekSchedule,
+  decision_actor decision_actor: Subject(DecisionMessage),
+  state_aggregator state_aggregator: Subject(AggregatorMessage),
+  initial_adjustment initial_adjustment: Float,
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   start_with_timer_interval(
     name: name,
@@ -158,6 +176,7 @@ pub fn start(
     state_aggregator: state_aggregator,
     get_time: get_current_datetime,
     timer_interval_ms: default_timer_interval_ms,
+    initial_adjustment: initial_adjustment,
   )
 }
 
@@ -170,14 +189,18 @@ pub fn start_with_timer_interval(
   state_aggregator state_aggregator: Subject(AggregatorMessage),
   get_time get_time: GetDateTime,
   timer_interval_ms timer_interval_ms: Int,
+  initial_adjustment initial_adjustment: Float,
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  // Clamp initial adjustment to valid range
+  let clamped_adjustment = clamp_adjustment(initial_adjustment)
+
   // Compute initial target temperature based on schedule and current time
   let #(weekday, time) = get_time()
   let initial_target =
     compute_target_temperature(
       schedule: schedule,
       house_mode: HouseModeAuto,
-      adjustment: 0.0,
+      adjustment: clamped_adjustment,
       day: weekday,
       time: time,
     )
@@ -190,7 +213,7 @@ pub fn start_with_timer_interval(
       target_temperature: initial_target,
       house_mode: HouseModeAuto,
       room_mode: derive_room_mode(initial_trv_states, HouseModeAuto),
-      adjustment: 0.0,
+      adjustment: clamped_adjustment,
       trv_states: initial_trv_states,
     )
 
