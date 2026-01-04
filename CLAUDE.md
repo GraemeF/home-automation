@@ -82,12 +82,123 @@ deep-heating-state → deep-heating-types
 deep-heating-home-assistant → deep-heating-types
 ```
 
-### Key Patterns
+### Key Patterns (TypeScript)
 
 - **Reactive streams**: RxJS throughout for state and event handling
 - **Effect library**: Used for typed functional effects in some modules
 - **Real-time**: Native WebSocket for client-server communication
 - **Strict TypeScript**: `exactOptionalPropertyTypes: true` enabled
+
+## Gleam Architecture (packages/deep_heating)
+
+The Gleam implementation follows a **Ports and Adapters** (Hexagonal) architecture with an OTP actor model.
+
+### Architectural Philosophy
+
+**Ports** = Message types and Subjects expressed in domain language
+- Message types describe domain concepts (e.g., `RoomStateChanged`, `HouseModeChanged`, `AdjustmentChanged`)
+- Subjects (`Subject(Message)`) provide the interface contracts between components
+
+**Adapters** = Actors that receive and act upon those messages
+- Actors implement the behaviour behind the ports
+- Infrastructure concerns (HTTP, WebSocket, file I/O, HA API) live in adapters
+- Domain logic should be testable without infrastructure
+
+### Directory Structure
+
+```
+packages/deep_heating/src/deep_heating/
+├── actor/                    # Actor implementations (adapters)
+│   ├── event_router_actor    # Routes HA events to correct handlers
+│   ├── ha_command_actor      # Infrastructure: sends commands to HA API
+│   ├── ha_poller_actor       # Infrastructure: polls HA API for state
+│   ├── heating_control_actor # Controls main heating system
+│   ├── house_mode_actor      # Domain: manages house-wide mode
+│   ├── room_actor            # Domain: aggregates room state
+│   ├── room_decision_actor   # Domain: computes TRV setpoints
+│   ├── state_aggregator_actor # Broadcasts state to UI clients
+│   └── trv_actor             # Domain: holds TRV state
+├── mode.gleam               # Domain types: HouseMode, RoomMode, HvacMode
+├── schedule.gleam           # Domain logic: schedules, time handling
+├── state.gleam              # Domain types: RoomState, DeepHeatingState
+├── temperature.gleam        # Domain type: Temperature with constraints
+├── entity_id.gleam          # Domain type: ClimateEntityId
+├── home_assistant.gleam     # Infrastructure: HA HTTP client
+├── server.gleam             # Infrastructure: WebSocket server
+├── supervisor.gleam         # OTP supervision tree
+└── rooms_supervisor.gleam   # Per-room supervision factory
+```
+
+### Layer Separation
+
+| Layer | Files | Responsibility |
+|-------|-------|----------------|
+| **Domain Types** | `mode.gleam`, `state.gleam`, `temperature.gleam`, `schedule.gleam`, `entity_id.gleam` | Pure data types, no I/O |
+| **Domain Logic** | `room_actor`, `room_decision_actor`, `house_mode_actor`, `trv_actor` | Business rules, testable with mocked time |
+| **Infrastructure** | `home_assistant.gleam`, `ha_poller_actor`, `ha_command_actor`, `server.gleam` | HTTP, WebSocket, polling |
+| **Orchestration** | `supervisor.gleam`, `rooms_supervisor.gleam` | Process supervision |
+
+### Message Flow
+
+```
+Home Assistant API
+        ↓
+   HaPollerActor (infrastructure)
+        ↓
+   PollerEvent
+        ↓
+   EventRouterActor
+        ├→ TrvActor → RoomActor → RoomDecisionActor → HaCommandActor → HA API
+        └→ HouseModeActor → broadcasts to RoomActors
+```
+
+### Domain vs Infrastructure Examples
+
+**Domain Actor** (`room_decision_actor.gleam`):
+```gleam
+/// Pure domain function - no infrastructure dependencies
+fn compute_desired_trv_target(
+  room_target: Temperature,
+  room_temp: Option(Temperature),
+  trv_temp: Option(Temperature),
+) -> Temperature {
+  // Offset compensation: trvTarget = roomTarget + trvTemp - roomTemp
+  // Clamped to safe bounds (7-32°C)
+}
+```
+
+**Infrastructure Adapter** (`ha_command_actor.gleam`):
+```gleam
+/// Sends HTTP requests to Home Assistant
+/// Debounces commands (5s) to avoid API flooding
+/// Has skip_http flag for testing
+```
+
+### Development Guidelines
+
+When adding new features to the Gleam codebase:
+
+1. **Define domain types first** in dedicated files (`mode.gleam`, `state.gleam`, etc.)
+   - Types should express domain concepts, not implementation details
+   - No infrastructure imports in domain type files
+
+2. **Message types live with their actors** (acceptable compromise)
+   - Each actor defines its own `Message` type
+   - Cross-actor communication uses explicit `Subject(OtherActor.Message)`
+
+3. **Domain actors should be testable without infrastructure**
+   - Inject time providers (`GetDateTime` function type)
+   - Inject Subjects for dependencies rather than hardcoding
+   - Use `skip_http` flags or similar for infrastructure actors
+
+4. **Infrastructure adapters isolate external systems**
+   - HTTP clients, WebSocket handlers, file I/O
+   - Should be swappable without changing domain logic
+   - Use testability hooks (spy subjects, skip flags)
+
+5. **Pure functions for complex domain logic**
+   - Extract into standalone functions (e.g., `compute_target_temperature`)
+   - Can be tested independently of actors
 
 ## Testing
 
