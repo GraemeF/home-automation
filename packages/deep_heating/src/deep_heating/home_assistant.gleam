@@ -10,6 +10,7 @@ import gleam/http
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
 import gleam/httpc
+import gleam/int
 import gleam/json
 import gleam/list
 import gleam/option.{type Option, None, Some}
@@ -29,6 +30,19 @@ pub type HaError {
   ApiError(status: Int, body: String)
   JsonParseError(message: String)
   EnvVarNotSet(name: String)
+}
+
+/// Convert an HaError to a human-readable string
+pub fn error_to_string(err: HaError) -> String {
+  case err {
+    ConnectionError(msg) -> "ConnectionError: " <> msg
+    AuthenticationError -> "AuthenticationError"
+    EntityNotFound(entity_id) -> "EntityNotFound: " <> entity_id
+    ApiError(status, body) ->
+      "ApiError(" <> int.to_string(status) <> "): " <> body
+    JsonParseError(msg) -> "JsonParseError: " <> msg
+    EnvVarNotSet(name) -> "EnvVarNotSet: " <> name
+  }
 }
 
 /// Create an HaClient from environment variables.

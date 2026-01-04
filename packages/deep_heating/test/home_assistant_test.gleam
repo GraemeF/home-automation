@@ -385,3 +385,49 @@ pub fn ha_client_from_env_returns_error_when_neither_var_set_test() {
   // Should fail on the first missing var (URL)
   result |> should.equal(Error(home_assistant.EnvVarNotSet("SUPERVISOR_URL")))
 }
+
+// -----------------------------------------------------------------------------
+// error_to_string tests
+// -----------------------------------------------------------------------------
+
+pub fn error_to_string_formats_connection_error_test() {
+  let err = home_assistant.ConnectionError("Failed to connect")
+
+  home_assistant.error_to_string(err)
+  |> should.equal("ConnectionError: Failed to connect")
+}
+
+pub fn error_to_string_formats_authentication_error_test() {
+  let err = home_assistant.AuthenticationError
+
+  home_assistant.error_to_string(err)
+  |> should.equal("AuthenticationError")
+}
+
+pub fn error_to_string_formats_entity_not_found_test() {
+  let err = home_assistant.EntityNotFound("climate.missing_trv")
+
+  home_assistant.error_to_string(err)
+  |> should.equal("EntityNotFound: climate.missing_trv")
+}
+
+pub fn error_to_string_formats_api_error_test() {
+  let err = home_assistant.ApiError(500, "Internal Server Error")
+
+  home_assistant.error_to_string(err)
+  |> should.equal("ApiError(500): Internal Server Error")
+}
+
+pub fn error_to_string_formats_json_parse_error_test() {
+  let err = home_assistant.JsonParseError("Unexpected token")
+
+  home_assistant.error_to_string(err)
+  |> should.equal("JsonParseError: Unexpected token")
+}
+
+pub fn error_to_string_formats_env_var_not_set_test() {
+  let err = home_assistant.EnvVarNotSet("SUPERVISOR_URL")
+
+  home_assistant.error_to_string(err)
+  |> should.equal("EnvVarNotSet: SUPERVISOR_URL")
+}

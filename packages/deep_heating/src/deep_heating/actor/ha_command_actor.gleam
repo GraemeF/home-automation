@@ -12,7 +12,6 @@ import deep_heating/mode.{type HvacMode}
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Subject}
-import gleam/int
 import gleam/io
 import gleam/otp/actor
 
@@ -184,7 +183,7 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
                     Error(err) -> {
                       io.println(
                         "TRV set_temperature failed: "
-                        <> ha_error_to_string(err),
+                        <> home_assistant.error_to_string(err),
                       )
                     }
                   }
@@ -196,7 +195,8 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
                     Ok(_) -> Nil
                     Error(err) -> {
                       io.println(
-                        "TRV set_hvac_mode failed: " <> ha_error_to_string(err),
+                        "TRV set_hvac_mode failed: "
+                        <> home_assistant.error_to_string(err),
                       )
                     }
                   }
@@ -287,7 +287,7 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
                     Error(err) -> {
                       io.println(
                         "Heating set_temperature failed: "
-                        <> ha_error_to_string(err),
+                        <> home_assistant.error_to_string(err),
                       )
                     }
                   }
@@ -300,7 +300,7 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
                     Error(err) -> {
                       io.println(
                         "Heating set_hvac_mode failed: "
-                        <> ha_error_to_string(err),
+                        <> home_assistant.error_to_string(err),
                       )
                     }
                   }
@@ -332,17 +332,5 @@ fn result_to_bool(r: Result(a, b)) -> Bool {
   case r {
     Ok(_) -> True
     Error(_) -> False
-  }
-}
-
-fn ha_error_to_string(err: home_assistant.HaError) -> String {
-  case err {
-    home_assistant.ConnectionError(msg) -> "ConnectionError: " <> msg
-    home_assistant.AuthenticationError -> "AuthenticationError"
-    home_assistant.EntityNotFound(entity_id) -> "EntityNotFound: " <> entity_id
-    home_assistant.ApiError(status, body) ->
-      "ApiError(" <> int.to_string(status) <> "): " <> body
-    home_assistant.JsonParseError(msg) -> "JsonParseError: " <> msg
-    home_assistant.EnvVarNotSet(name) -> "EnvVarNotSet: " <> name
   }
 }

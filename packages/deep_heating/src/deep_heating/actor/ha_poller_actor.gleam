@@ -259,7 +259,10 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
           }
         }
         Error(err) -> {
-          process.send(state.event_spy, PollFailed(ha_error_to_string(err)))
+          process.send(
+            state.event_spy,
+            PollFailed(home_assistant.error_to_string(err)),
+          )
           state.last_sleep_button_state
         }
       }
@@ -324,17 +327,5 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
     InjectMockError(error) -> {
       actor.continue(State(..state, mock_error: Some(error)))
     }
-  }
-}
-
-fn ha_error_to_string(err: home_assistant.HaError) -> String {
-  case err {
-    home_assistant.ConnectionError(msg) -> "ConnectionError: " <> msg
-    home_assistant.AuthenticationError -> "AuthenticationError"
-    home_assistant.EntityNotFound(entity_id) -> "EntityNotFound: " <> entity_id
-    home_assistant.ApiError(status, body) ->
-      "ApiError(" <> int.to_string(status) <> "): " <> body
-    home_assistant.JsonParseError(msg) -> "JsonParseError: " <> msg
-    home_assistant.EnvVarNotSet(name) -> "EnvVarNotSet: " <> name
   }
 }
