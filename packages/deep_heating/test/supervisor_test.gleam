@@ -431,3 +431,45 @@ pub fn supervisor_loads_room_adjustments_from_env_test() {
   // The room should have the adjustment from the persisted file
   state.adjustment |> should.equal(1.5)
 }
+
+// =============================================================================
+// HeatingControlActor wiring tests
+// =============================================================================
+
+pub fn supervisor_has_heating_control_actor_when_started_with_home_config_test() {
+  // When started with home config, supervisor should have HeatingControlActor
+  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
+  let home_config = make_test_home_config()
+  let poller_config = create_test_poller_config()
+
+  let assert Ok(started) =
+    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
+      ha_client: ha_client,
+      poller_config: poller_config,
+      adjustments_path: None,
+      home_config: home_config,
+    ))
+
+  // Get the heating control actor from the supervisor
+  let result = supervisor.get_heating_control_actor(started.data)
+  should.be_ok(result)
+}
+
+pub fn heating_control_actor_is_alive_when_started_with_home_config_test() {
+  // The HeatingControlActor should be running
+  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
+  let home_config = make_test_home_config()
+  let poller_config = create_test_poller_config()
+
+  let assert Ok(started) =
+    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
+      ha_client: ha_client,
+      poller_config: poller_config,
+      adjustments_path: None,
+      home_config: home_config,
+    ))
+
+  let assert Ok(heating_control) =
+    supervisor.get_heating_control_actor(started.data)
+  process.is_alive(heating_control.pid) |> should.be_true
+}

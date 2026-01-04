@@ -11,6 +11,7 @@
 
 import deep_heating/actor/ha_command_actor
 import deep_heating/actor/ha_poller_actor
+import deep_heating/actor/heating_control_actor
 import deep_heating/actor/house_mode_actor
 import deep_heating/actor/state_aggregator_actor
 import deep_heating/actor/trv_actor
@@ -64,6 +65,8 @@ pub opaque type SupervisorWithRooms {
     house_mode_name: Name(house_mode_actor.Message),
     state_aggregator_name: Name(state_aggregator_actor.Message),
     ha_poller_name: Name(ha_poller_actor.Message),
+    ha_command_name: Name(ha_command_actor.Message),
+    heating_control_name: Name(heating_control_actor.Message),
     rooms_supervisor: RoomsSupervisor,
   )
 }
@@ -240,6 +243,8 @@ pub type StartWithRoomsError {
 /// - HouseModeActor (manages house mode state)
 /// - StateAggregatorActor (aggregates room states for UI)
 /// - HaPollerActor (polls Home Assistant for updates)
+/// - HaCommandActor (sends commands to Home Assistant)
+/// - HeatingControlActor (controls boiler based on room heating demand)
 /// - RoomsSupervisor (creates per-room actor trees from HomeConfig)
 pub fn start_with_home_config(
   config: SupervisorConfigWithRooms,
@@ -248,8 +253,12 @@ pub fn start_with_home_config(
   let house_mode_name = process.new_name("deep_heating_house_mode")
   let state_aggregator_name = process.new_name("deep_heating_state_aggregator")
   let ha_poller_name = process.new_name("deep_heating_ha_poller")
+  let ha_command_name = process.new_name("deep_heating_ha_command")
+  let heating_control_name = process.new_name("deep_heating_heating_control")
 
   // Build and start the main supervision tree
+  // Note: HeatingControlActor uses named_subject(ha_command_name) which works
+  // because HaCommandActor is added before it and will be started first
   let supervisor_result =
     supervisor.new(supervisor.OneForOne)
     |> supervisor.add(house_mode_actor.child_spec(house_mode_name))
@@ -262,6 +271,16 @@ pub fn start_with_home_config(
       config.ha_client,
       config.poller_config,
     ))
+    |> supervisor.add(ha_command_actor.child_spec(
+      ha_command_name,
+      config.ha_client,
+      default_ha_command_debounce_ms,
+    ))
+    |> supervisor.add(heating_control_actor.child_spec(
+      heating_control_name,
+      config.home_config.heating_id,
+      process.named_subject(ha_command_name),
+    ))
     |> supervisor.start
 
   case supervisor_result {
@@ -272,7 +291,7 @@ pub fn start_with_home_config(
         process.named_subject(state_aggregator_name)
 
       // Create a dummy ha_commands subject for now
-      // TODO: Wire up HaCommandActor (dh-33jq.48)
+      // TODO: Wire up TRV commands to HaCommandActor (dh-33jq.55)
       let ha_commands: Subject(trv_actor.HaCommand) = process.new_subject()
 
       // Load initial adjustments from environment
@@ -297,6 +316,8 @@ pub fn start_with_home_config(
               house_mode_name: house_mode_name,
               state_aggregator_name: state_aggregator_name,
               ha_poller_name: ha_poller_name,
+              ha_command_name: ha_command_name,
+              heating_control_name: heating_control_name,
               rooms_supervisor: rooms_sup,
             )
           Ok(actor.Started(pid: started.pid, data: sup))
@@ -311,4 +332,17 @@ pub fn get_rooms_supervisor(
   sup: SupervisorWithRooms,
 ) -> Result(RoomsSupervisor, Nil) {
   Ok(sup.rooms_supervisor)
+}
+
+/// Get a reference to the HeatingControlActor (only available with home config)
+pub fn get_heating_control_actor(
+  sup: SupervisorWithRooms,
+) -> Result(ActorRef(heating_control_actor.Message), Nil) {
+  case process.named(sup.heating_control_name) {
+    Ok(pid) -> {
+      let subject = process.named_subject(sup.heating_control_name)
+      Ok(ActorRef(pid: pid, subject: subject))
+    }
+    Error(_) -> Error(Nil)
+  }
 }

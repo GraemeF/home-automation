@@ -13,10 +13,11 @@ import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/mode
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
-import gleam/erlang/process.{type Subject}
+import gleam/erlang/process.{type Name, type Subject}
 import gleam/list
 import gleam/option
 import gleam/otp/actor
+import gleam/otp/supervision
 
 /// Messages handled by the HeatingControlActor
 pub type Message {
@@ -54,6 +55,35 @@ pub fn start(
   actor.new(initial_state)
   |> actor.on_message(handle_message)
   |> actor.start
+}
+
+/// Start the HeatingControlActor and register it with the given name
+pub fn start_named(
+  name: Name(Message),
+  boiler_entity_id: ClimateEntityId,
+  ha_commands: Subject(ha_command_actor.Message),
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  let initial_state =
+    State(
+      boiler_entity_id: boiler_entity_id,
+      ha_commands: ha_commands,
+      boiler_is_heating: False,
+      room_states: dict.new(),
+    )
+
+  actor.new(initial_state)
+  |> actor.named(name)
+  |> actor.on_message(handle_message)
+  |> actor.start
+}
+
+/// Create a child specification for supervision
+pub fn child_spec(
+  name: Name(Message),
+  boiler_entity_id: ClimateEntityId,
+  ha_commands: Subject(ha_command_actor.Message),
+) -> supervision.ChildSpecification(Subject(Message)) {
+  supervision.worker(fn() { start_named(name, boiler_entity_id, ha_commands) })
 }
 
 fn handle_message(state: State, message: Message) -> actor.Next(State, Message) {
