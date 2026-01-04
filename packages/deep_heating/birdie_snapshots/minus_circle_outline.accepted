@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: minus_circle_outline
+file: ./test/ui/icons_test.gleam
+test_name: minus_circle_outline_test
+---
+<svg xmlns="http://www.w3.org/2000/svg" data-testid="minus-circle-outline" fill="none" height="24" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path xmlns="http://www.w3.org/2000/svg" d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke-linecap="round" stroke-linejoin="round"></path></svg>

@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: minus_circle_solid
+file: ./test/ui/icons_test.gleam
+test_name: minus_circle_solid_test
+---
+<svg xmlns="http://www.w3.org/2000/svg" data-testid="minus-circle-solid" fill="currentColor" height="24" viewBox="0 0 24 24" width="24"><path xmlns="http://www.w3.org/2000/svg" clip-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-3 9.75a.75.75 0 0 1 0-1.5h6a.75.75 0 0 1 0 1.5H9Z" fill-rule="evenodd"></path></svg>
