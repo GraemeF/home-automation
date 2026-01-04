@@ -377,19 +377,12 @@ fn build_trv_registry(
   let pairs =
     rooms_supervisor.get_room_supervisors(rooms_sup)
     |> list.flat_map(fn(room_sup) {
-      // Get the room config to get entity_ids
+      // Get room name directly from RoomSupervisor for reliable matching
+      let room_name = rooms_supervisor.get_room_name(room_sup)
+
+      // Find the RoomConfig by name
       let room_config_opt =
-        list.find(home_config.rooms, fn(rc) {
-          case rooms_supervisor.get_room_actor(room_sup) {
-            Ok(_room_ref) -> {
-              // Compare room names (the room_sup doesn't expose name directly,
-              // but we can match by checking if entity_ids match)
-              list.length(rc.climate_entity_ids)
-              == list.length(rooms_supervisor.get_trv_actors(room_sup))
-            }
-            Error(_) -> False
-          }
-        })
+        list.find(home_config.rooms, fn(rc) { rc.name == room_name })
 
       case room_config_opt {
         Ok(room_config) -> {

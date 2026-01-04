@@ -273,6 +273,11 @@ fn start_supervised_trv_actors(
 // RoomSupervisor Accessors
 // =============================================================================
 
+/// Get the room name from a RoomSupervisor
+pub fn get_room_name(sup: RoomSupervisor) -> String {
+  sup.room_name
+}
+
 /// Get the RoomActor reference from a RoomSupervisor
 pub fn get_room_actor(
   sup: RoomSupervisor,

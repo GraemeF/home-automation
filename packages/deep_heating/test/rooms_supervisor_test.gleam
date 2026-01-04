@@ -490,6 +490,28 @@ pub fn trv_actor_is_restarted_when_it_crashes_test() {
   should.be_ok(result)
 }
 
+pub fn room_supervisor_exposes_room_name_test() {
+  // This test verifies that RoomSupervisor exposes its room_name directly,
+  // enabling reliable matching without fragile entity count comparisons.
+  let state_aggregator: process.Subject(state_aggregator_actor.Message) =
+    process.new_subject()
+  let ha_commands: process.Subject(ha_command_actor.Message) =
+    process.new_subject()
+  let room_config = make_single_room_config()
+
+  let assert Ok(room_sup) =
+    rooms_supervisor.start_room(
+      room_config: room_config,
+      state_aggregator: state_aggregator,
+      ha_commands: ha_commands,
+      house_mode: make_dummy_house_mode(),
+      initial_adjustments: [],
+    )
+
+  // Should be able to get the room name directly from RoomSupervisor
+  rooms_supervisor.get_room_name(room_sup) |> should.equal("lounge")
+}
+
 pub fn rooms_supervisor_can_get_room_by_name_test() {
   let assert Ok(sleep_switch) =
     entity_id.goodnight_entity_id("input_button.goodnight")
