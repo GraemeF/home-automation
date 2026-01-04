@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: connection_overlay_when_disconnected
+file: ./test/ui/components/connection_overlay_test.gleam
+test_name: connection_overlay_when_disconnected_test
+---
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" data-testid="connection-overlay"><div class="flex flex-col items-center gap-4"><span class="loading loading-spinner loading-lg text-primary" data-testid="spinner"></span><div class="text-white text-lg">Connecting...</div></div></div>

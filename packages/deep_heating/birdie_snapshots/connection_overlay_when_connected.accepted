@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: connection_overlay_when_connected
+file: ./test/ui/components/connection_overlay_test.gleam
+test_name: connection_overlay_when_connected_test
+---
+
