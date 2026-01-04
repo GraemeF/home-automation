@@ -80,6 +80,39 @@ type TrvActorConfig {
   )
 }
 
+/// Create an adapter that forwards domain TrvCommand to infrastructure ha_command_actor.
+/// Returns a Subject(TrvCommand) that can be passed to RoomDecisionActor.
+fn create_trv_command_adapter(
+  ha_commands: Subject(ha_command_actor.Message),
+) -> Subject(room_decision_actor.TrvCommand) {
+  let trv_commands: Subject(room_decision_actor.TrvCommand) =
+    process.new_subject()
+
+  // Spawn an unlinked process that forwards TrvCommand → ha_command_actor.Message
+  let _ =
+    process.spawn_unlinked(fn() {
+      forward_trv_commands(trv_commands, ha_commands)
+    })
+
+  trv_commands
+}
+
+/// Receive TrvCommands and forward to ha_command_actor
+fn forward_trv_commands(
+  trv_commands: Subject(room_decision_actor.TrvCommand),
+  ha_commands: Subject(ha_command_actor.Message),
+) -> Nil {
+  case process.receive_forever(trv_commands) {
+    room_decision_actor.TrvCommand(entity_id, mode, target) -> {
+      process.send(
+        ha_commands,
+        ha_command_actor.SetTrvAction(entity_id, mode, target),
+      )
+      forward_trv_commands(trv_commands, ha_commands)
+    }
+  }
+}
+
 // =============================================================================
 // RoomSupervisor - Single Room
 // =============================================================================
@@ -172,9 +205,12 @@ pub fn start_room(
   let decision_actor_name =
     process.new_name("decision_actor_" <> room_config.name)
 
-  // Start the RoomDecisionActor - sends commands directly to HaCommandActor
+  // Create an adapter that forwards domain TrvCommand to infrastructure ha_command_actor
+  let trv_commands = create_trv_command_adapter(ha_commands)
+
+  // Start the RoomDecisionActor with domain-only interface
   use decision_started <- result.try(
-    room_decision_actor.start(ha_commands: ha_commands)
+    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
     |> result.map_error(ActorStartError),
   )
 
