@@ -80,8 +80,9 @@ pub fn sends_room_target_when_room_at_temperature_test() {
   let assert Ok(cmd) = process.receive(trv_commands, 1000)
 
   case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, target) -> {
+    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
       entity_id |> should.equal(trv_id)
+      cmd_mode |> should.equal(mode.HvacHeat)
       temperature.unwrap(target) |> should.equal(20.0)
     }
   }
@@ -112,8 +113,9 @@ pub fn pushes_trv_target_higher_when_room_is_cold_test() {
   let assert Ok(cmd) = process.receive(trv_commands, 1000)
 
   case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, target) -> {
+    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
       entity_id |> should.equal(trv_id)
+      cmd_mode |> should.equal(mode.HvacHeat)
       // Offset formula: 20 + 20 - 19 = 21
       temperature.unwrap(target) |> should.equal(21.0)
     }
@@ -145,8 +147,9 @@ pub fn backs_off_trv_when_room_is_hot_test() {
   let assert Ok(cmd) = process.receive(trv_commands, 1000)
 
   case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, target) -> {
+    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
       entity_id |> should.equal(trv_id)
+      cmd_mode |> should.equal(mode.HvacHeat)
       // Offset formula: 20 + 20 - 21 = 19
       temperature.unwrap(target) |> should.equal(19.0)
     }
@@ -188,8 +191,9 @@ pub fn uses_room_target_when_no_external_sensor_test() {
   let assert Ok(cmd) = process.receive(trv_commands, 1000)
 
   case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, target) -> {
+    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
       entity_id |> should.equal(trv_id)
+      cmd_mode |> should.equal(mode.HvacHeat)
       // Should just use the room target directly
       temperature.unwrap(target) |> should.equal(20.0)
     }
@@ -272,8 +276,8 @@ pub fn handles_multiple_trvs_in_room_test() {
 
   // Collect the entity IDs that received commands
   let ids = case cmd1, cmd2 {
-    room_decision_actor.SetTrvTarget(id1, _),
-      room_decision_actor.SetTrvTarget(id2, _)
+    room_decision_actor.SetTrvTarget(id1, _, _),
+      room_decision_actor.SetTrvTarget(id2, _, _)
     -> [id1, id2]
   }
 
@@ -322,8 +326,9 @@ pub fn handles_trv_with_missing_temperature_test() {
   let assert Ok(cmd) = process.receive(trv_commands, 1000)
 
   case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, target) -> {
+    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
       entity_id |> should.equal(trv_id)
+      cmd_mode |> should.equal(mode.HvacHeat)
       // With no TRV temp data, should use room target directly
       temperature.unwrap(target) |> should.equal(20.0)
     }
@@ -364,8 +369,9 @@ pub fn handles_trv_with_missing_target_test() {
   let assert Ok(cmd) = process.receive(trv_commands, 1000)
 
   case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, _target) -> {
+    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, _target) -> {
       entity_id |> should.equal(trv_id)
+      cmd_mode |> should.equal(mode.HvacHeat)
       // Command was sent, meaning system handled missing target gracefully
     }
   }
@@ -406,8 +412,9 @@ pub fn handles_completely_unknown_trv_test() {
   let assert Ok(cmd) = process.receive(trv_commands, 1000)
 
   case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, target) -> {
+    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
       entity_id |> should.equal(trv_id)
+      cmd_mode |> should.equal(mode.HvacHeat)
       // Should fall back to room target
       temperature.unwrap(target) |> should.equal(20.0)
     }
@@ -445,8 +452,9 @@ pub fn offset_formula_accounts_for_trv_temperature_test() {
   let assert Ok(cmd) = process.receive(trv_commands, 1000)
 
   case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, target) -> {
+    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
       entity_id |> should.equal(trv_id)
+      cmd_mode |> should.equal(mode.HvacHeat)
       // Offset formula: 20 + 22 - 18 = 24°C
       // Round up (heating required): 24.0
       temperature.unwrap(target) |> should.equal(24.0)
@@ -485,8 +493,9 @@ pub fn clamps_trv_target_to_minimum_7c_test() {
   let assert Ok(cmd) = process.receive(trv_commands, 1000)
 
   case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, target) -> {
+    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
       entity_id |> should.equal(trv_id)
+      cmd_mode |> should.equal(mode.HvacHeat)
       // Offset formula: 10 + 10 - 15 = 5°C
       // Should be clamped to minimum: 7°C
       temperature.unwrap(target) |> should.equal(7.0)
@@ -521,8 +530,9 @@ pub fn clamps_trv_target_to_maximum_32c_test() {
   let assert Ok(cmd) = process.receive(trv_commands, 1000)
 
   case cmd {
-    room_decision_actor.SetTrvTarget(entity_id, target) -> {
+    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
       entity_id |> should.equal(trv_id)
+      cmd_mode |> should.equal(mode.HvacHeat)
       // Offset formula: 25 + 25 - 15 = 35°C
       // Should be clamped to maximum: 32°C
       temperature.unwrap(target) |> should.equal(32.0)
@@ -572,4 +582,52 @@ pub fn skips_trv_when_mode_is_off_test() {
   // Should NOT receive any command (TRV is off)
   let result = process.receive(trv_commands, 100)
   result |> should.be_error
+}
+
+// =============================================================================
+// Mode Change Tests - TRV mode auto→heat conversion
+// =============================================================================
+
+pub fn sends_mode_change_when_trv_in_auto_mode_test() {
+  // When TRV is in HvacAuto mode, we must change it to HvacHeat mode.
+  // This matches TypeScript behavior: determineAction returns mode: 'heat'
+  // when current mode is 'auto'.
+  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
+    process.new_subject()
+
+  let assert Ok(started) = room_decision_actor.start(trv_commands: trv_commands)
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // TRV is in AUTO mode - should receive mode change to HEAT
+  let trv_state =
+    room_actor.TrvState(
+      temperature: option.Some(temperature.temperature(20.0)),
+      target: option.Some(temperature.temperature(20.0)),
+      mode: mode.HvacAuto,
+      is_heating: False,
+    )
+  let room_state =
+    room_actor.RoomState(
+      name: "lounge",
+      temperature: option.Some(temperature.temperature(20.0)),
+      target_temperature: option.Some(temperature.temperature(20.0)),
+      house_mode: mode.HouseModeAuto,
+      room_mode: mode.RoomModeAuto,
+      adjustment: 0.0,
+      trv_states: dict.from_list([#(trv_id, trv_state)]),
+    )
+
+  process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
+
+  // Should receive command with mode set to Heat
+  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+
+  case cmd {
+    room_decision_actor.SetTrvTarget(entity_id, cmd_mode, target) -> {
+      entity_id |> should.equal(trv_id)
+      cmd_mode |> should.equal(mode.HvacHeat)
+      temperature.unwrap(target) |> should.equal(20.0)
+    }
+  }
 }

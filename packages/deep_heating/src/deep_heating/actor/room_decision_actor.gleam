@@ -17,7 +17,11 @@ import gleam/otp/actor
 
 /// Commands sent to TRV actors
 pub type TrvCommand {
-  SetTrvTarget(entity_id: ClimateEntityId, target: Temperature)
+  SetTrvTarget(
+    entity_id: ClimateEntityId,
+    mode: mode.HvacMode,
+    target: Temperature,
+  )
 }
 
 /// Messages handled by the RoomDecisionActor
@@ -91,9 +95,10 @@ fn evaluate_and_send_commands(
                 False -> current_state
                 True -> {
                   // Target changed or first time, send command
+                  // Always set mode to HvacHeat (converts auto→heat)
                   process.send(
                     current_state.trv_commands,
-                    SetTrvTarget(entity_id, desired_target),
+                    SetTrvTarget(entity_id, mode.HvacHeat, desired_target),
                   )
                   // Update last sent target
                   State(
