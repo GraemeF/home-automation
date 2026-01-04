@@ -343,5 +343,6 @@ fn ha_error_to_string(err: home_assistant.HaError) -> String {
     home_assistant.ApiError(status, body) ->
       "ApiError(" <> int.to_string(status) <> "): " <> body
     home_assistant.JsonParseError(msg) -> "JsonParseError: " <> msg
+    home_assistant.EnvVarNotSet(name) -> "EnvVarNotSet: " <> name
   }
 }

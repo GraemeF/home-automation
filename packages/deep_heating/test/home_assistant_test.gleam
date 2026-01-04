@@ -2,6 +2,7 @@ import deep_heating/entity_id
 import deep_heating/home_assistant.{HaClient}
 import deep_heating/mode
 import deep_heating/temperature
+import envoy
 import gleam/http
 import gleam/http/request
 import gleam/list
@@ -327,4 +328,60 @@ pub fn find_input_button_state_finds_entity_among_mixed_entities_test() {
     home_assistant.find_input_button_state(json, "input_button.goodnight")
 
   result |> should.equal(Ok("2026-01-03T15:45:00+00:00"))
+}
+
+// -----------------------------------------------------------------------------
+// ha_client_from_env tests
+// -----------------------------------------------------------------------------
+
+pub fn ha_client_from_env_returns_client_when_both_vars_set_test() {
+  // Set up env vars
+  envoy.set("SUPERVISOR_URL", "http://supervisor/core")
+  envoy.set("SUPERVISOR_TOKEN", "my-secret-token")
+
+  let result = home_assistant.ha_client_from_env()
+
+  result
+  |> should.equal(Ok(HaClient("http://supervisor/core", "my-secret-token")))
+
+  // Clean up
+  envoy.unset("SUPERVISOR_URL")
+  envoy.unset("SUPERVISOR_TOKEN")
+}
+
+pub fn ha_client_from_env_returns_error_when_url_not_set_test() {
+  // Ensure URL is not set but token is
+  envoy.unset("SUPERVISOR_URL")
+  envoy.set("SUPERVISOR_TOKEN", "my-token")
+
+  let result = home_assistant.ha_client_from_env()
+
+  result |> should.equal(Error(home_assistant.EnvVarNotSet("SUPERVISOR_URL")))
+
+  // Clean up
+  envoy.unset("SUPERVISOR_TOKEN")
+}
+
+pub fn ha_client_from_env_returns_error_when_token_not_set_test() {
+  // Ensure token is not set but URL is
+  envoy.set("SUPERVISOR_URL", "http://supervisor/core")
+  envoy.unset("SUPERVISOR_TOKEN")
+
+  let result = home_assistant.ha_client_from_env()
+
+  result |> should.equal(Error(home_assistant.EnvVarNotSet("SUPERVISOR_TOKEN")))
+
+  // Clean up
+  envoy.unset("SUPERVISOR_URL")
+}
+
+pub fn ha_client_from_env_returns_error_when_neither_var_set_test() {
+  // Ensure neither is set
+  envoy.unset("SUPERVISOR_URL")
+  envoy.unset("SUPERVISOR_TOKEN")
+
+  let result = home_assistant.ha_client_from_env()
+
+  // Should fail on the first missing var (URL)
+  result |> should.equal(Error(home_assistant.EnvVarNotSet("SUPERVISOR_URL")))
 }

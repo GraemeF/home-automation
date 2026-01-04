@@ -4,6 +4,7 @@
 import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/mode.{type HvacMode}
 import deep_heating/temperature.{type Temperature}
+import envoy
 import gleam/dynamic/decode.{type Decoder}
 import gleam/http
 import gleam/http/request.{type Request}
@@ -27,6 +28,22 @@ pub type HaError {
   EntityNotFound(entity_id: String)
   ApiError(status: Int, body: String)
   JsonParseError(message: String)
+  EnvVarNotSet(name: String)
+}
+
+/// Create an HaClient from environment variables.
+/// Reads SUPERVISOR_URL and SUPERVISOR_TOKEN.
+/// Returns Error(EnvVarNotSet) if either is missing.
+pub fn ha_client_from_env() -> Result(HaClient, HaError) {
+  use url <- result.try(
+    envoy.get("SUPERVISOR_URL")
+    |> result.map_error(fn(_) { EnvVarNotSet("SUPERVISOR_URL") }),
+  )
+  use token <- result.try(
+    envoy.get("SUPERVISOR_TOKEN")
+    |> result.map_error(fn(_) { EnvVarNotSet("SUPERVISOR_TOKEN") }),
+  )
+  Ok(HaClient(url, token))
 }
 
 /// Build an HTTP request to fetch all entity states from Home Assistant.
