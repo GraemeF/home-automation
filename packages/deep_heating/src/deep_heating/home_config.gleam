@@ -8,6 +8,7 @@ import deep_heating/schedule.{
   type DaySchedule, type WeekSchedule, ScheduleEntry, WeekSchedule,
 }
 import deep_heating/temperature
+import envoy
 import gleam/dict.{type Dict}
 import gleam/dynamic/decode.{type Decoder}
 import gleam/int
@@ -16,6 +17,7 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
+import simplifile
 
 /// Configuration for a single room
 pub type RoomConfig {
@@ -36,10 +38,12 @@ pub type HomeConfig {
   )
 }
 
-/// Errors that can occur when parsing configuration
+/// Errors that can occur when parsing or loading configuration
 pub type ConfigError {
   JsonParseError(message: String)
   ValidationError(message: String)
+  FileReadError(message: String)
+  EnvNotSetError(message: String)
 }
 
 /// Parse a JSON string into HomeConfig
@@ -50,6 +54,24 @@ pub fn parse(json_string: String) -> Result(HomeConfig, ConfigError) {
     JsonParseError("Failed to parse config JSON: " <> string.inspect(err))
   })
   |> result.try(convert_raw_to_config)
+}
+
+/// Load configuration from a file path
+pub fn load_from_file(path: String) -> Result(HomeConfig, ConfigError) {
+  simplifile.read(path)
+  |> result.map_error(fn(err) {
+    FileReadError("Failed to read config file: " <> string.inspect(err))
+  })
+  |> result.try(parse)
+}
+
+/// Load configuration from the HOME_CONFIG_PATH environment variable
+pub fn load_from_env() -> Result(HomeConfig, ConfigError) {
+  envoy.get("HOME_CONFIG_PATH")
+  |> result.map_error(fn(_) {
+    EnvNotSetError("HOME_CONFIG_PATH environment variable not set")
+  })
+  |> result.try(load_from_file)
 }
 
 // -----------------------------------------------------------------------------
