@@ -127,8 +127,10 @@ bd show <id>                          # View issue details
 bd create --title="..." --type=task   # Create issue (type: task|bug|feature)
 bd update <id> --status=in_progress   # Claim work
 bd close <id>                         # Mark complete
-bd sync                               # Sync with remote (run at session end)
+bd sync                               # Sync with remote (at session end, from repo root!)
 ```
+
+**Important:** Always run `bd sync` from the repository root, not from a subdirectory. The command needs access to the git worktree metadata.
 
 Issues sync to the `beads-metadata` branch automatically via daemon. The database is shared across all worktrees.
 
