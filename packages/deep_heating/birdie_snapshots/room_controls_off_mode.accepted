@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: room_controls_off_mode
+file: ./test/ui/components/room_controls_test.gleam
+test_name: room_controls_off_mode_test
+---
+<div class="flex items-center gap-2">Controls placeholder</div>

@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: heating_badge_when_idle
+file: ./test/ui/components/heating_badge_test.gleam
+test_name: heating_badge_when_idle_test
+---
+<div class="flex items-center gap-2"><span class="badge badge-success">Idle</span></div>

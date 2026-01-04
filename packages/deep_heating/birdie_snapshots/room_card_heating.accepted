@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: room_card_heating
+file: ./test/ui/components/room_card_test.gleam
+test_name: room_card_heating_test
+---
+<div class="card card-compact bg-base-200 shadow-md"><div class="card-body">Room card placeholder</div></div>

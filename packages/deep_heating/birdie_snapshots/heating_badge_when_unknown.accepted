@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: heating_badge_when_unknown
+file: ./test/ui/components/heating_badge_test.gleam
+test_name: heating_badge_when_unknown_test
+---
+<div class="flex items-center gap-2"><span class="badge badge-ghost">Unknown</span></div>
