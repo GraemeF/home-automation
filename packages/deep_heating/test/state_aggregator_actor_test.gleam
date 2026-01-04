@@ -468,7 +468,10 @@ pub fn state_aggregator_persists_multiple_rooms_test() {
       adjustment: -0.5,
     )
 
-  process.send(actor, state_aggregator_actor.RoomUpdated("lounge", lounge_state))
+  process.send(
+    actor,
+    state_aggregator_actor.RoomUpdated("lounge", lounge_state),
+  )
   process.send(
     actor,
     state_aggregator_actor.RoomUpdated("bedroom", bedroom_state),

@@ -24,7 +24,9 @@ pub type PersistenceError {
 }
 
 /// Parse a JSON string into a list of room adjustments
-pub fn parse(json_string: String) -> Result(List(RoomAdjustment), PersistenceError) {
+pub fn parse(
+  json_string: String,
+) -> Result(List(RoomAdjustment), PersistenceError) {
   json.parse(json_string, adjustments_decoder())
   |> result.map_error(fn(err) {
     JsonParseError("Failed to parse adjustments JSON: " <> string.inspect(err))
@@ -62,7 +64,9 @@ pub fn save(
   let json_str = to_json(adjustments)
   simplifile.write(path, json_str)
   |> result.map_error(fn(err) {
-    FileWriteError("Failed to write adjustments file: " <> simplifile.describe_error(err))
+    FileWriteError(
+      "Failed to write adjustments file: " <> simplifile.describe_error(err),
+    )
   })
 }
 
@@ -84,7 +88,10 @@ pub fn load_from_env() -> Result(List(RoomAdjustment), PersistenceError) {
 
 /// Get the adjustment for a room by name.
 /// Returns 0.0 if the room is not found.
-pub fn get_adjustment(adjustments: List(RoomAdjustment), room_name: String) -> Float {
+pub fn get_adjustment(
+  adjustments: List(RoomAdjustment),
+  room_name: String,
+) -> Float {
   adjustments
   |> list.find(fn(adj) { adj.room_name == room_name })
   |> result.map(fn(adj) { adj.adjustment })
@@ -102,7 +109,10 @@ fn adjustments_decoder() -> Decoder(List(RoomAdjustment)) {
 fn adjustment_decoder() -> Decoder(RoomAdjustment) {
   decode.field("roomName", decode.string, fn(room_name) {
     decode.field("adjustment", number_decoder(), fn(adjustment) {
-      decode.success(RoomAdjustment(room_name: room_name, adjustment: adjustment))
+      decode.success(RoomAdjustment(
+        room_name: room_name,
+        adjustment: adjustment,
+      ))
     })
   })
 }

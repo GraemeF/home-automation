@@ -138,8 +138,7 @@ fn handle_message(
       let new_current = update_room(actor_state.current, name, room_state)
 
       // Check if adjustment changed and persist if needed
-      let previous_adjustment =
-        dict.get(actor_state.previous_adjustments, name)
+      let previous_adjustment = dict.get(actor_state.previous_adjustments, name)
       let adjustment_changed = case previous_adjustment {
         Ok(prev) -> prev != room_state.adjustment
         Error(_) -> True

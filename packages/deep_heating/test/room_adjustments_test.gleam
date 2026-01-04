@@ -10,7 +10,8 @@ import simplifile
 // =============================================================================
 
 pub fn room_adjustment_has_correct_fields_test() {
-  let adj = room_adjustments.RoomAdjustment(room_name: "lounge", adjustment: 1.5)
+  let adj =
+    room_adjustments.RoomAdjustment(room_name: "lounge", adjustment: 1.5)
   adj.room_name |> should.equal("lounge")
   adj.adjustment |> should.equal(1.5)
 }
