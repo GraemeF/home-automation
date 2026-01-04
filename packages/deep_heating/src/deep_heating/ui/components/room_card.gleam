@@ -68,9 +68,15 @@ fn is_room_heating(room: RoomState) -> Bool {
   }
 }
 
+/// Heating background color - matches TypeScript version's #FF9700 (orange)
+const heating_bg = "bg-[#FF9700]"
+
+/// Cooling background color - matches TypeScript version's #77DAE8 (blue)
+const cooling_bg = "bg-[#77DAE8]"
+
 fn background_class(is_heating: Bool) -> String {
   case is_heating {
-    True -> "bg-heating"
-    False -> "bg-cooling"
+    True -> heating_bg
+    False -> cooling_bg
   }
 }

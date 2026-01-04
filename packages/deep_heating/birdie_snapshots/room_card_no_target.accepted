@@ -4,4 +4,4 @@ title: room_card_no_target
 file: ./test/ui/components/room_card_test.gleam
 test_name: room_card_no_target_test
 ---
-<div class="card card-sm w-44 shadow-md bg-cooling" data-room-name="Test Room" data-testid="room-card" style="color: white"><div class="card-body p-3"><div class="card-title text-sm flex items-center gap-1">Test Room</div><div class="stat-value text-right text-2xl" data-testid="current-temp">20.0°C</div></div></div>
+<div class="card card-sm w-44 shadow-md bg-[#77DAE8]" data-room-name="Test Room" data-testid="room-card" style="color: white"><div class="card-body p-3"><div class="card-title text-sm flex items-center gap-1">Test Room</div><div class="stat-value text-right text-2xl" data-testid="current-temp">20.0°C</div></div></div>
