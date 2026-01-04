@@ -15,7 +15,9 @@ import deep_heating/actor/state_aggregator_actor
 import deep_heating/actor/trv_actor
 import deep_heating/home_assistant.{type HaClient}
 import deep_heating/home_config.{type HomeConfig}
+import deep_heating/room_adjustments
 import deep_heating/rooms_supervisor.{type RoomsSupervisor}
+import gleam/result
 import gleam/erlang/process.{type Name, type Pid, type Subject}
 import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
@@ -237,13 +239,18 @@ pub fn start_with_home_config(
       // TODO: Wire up HaCommandActor (dh-33jq.48)
       let ha_commands: Subject(trv_actor.HaCommand) = process.new_subject()
 
+      // Load initial adjustments from environment
+      let initial_adjustments =
+        room_adjustments.load_from_env()
+        |> result.unwrap([])
+
       // Start rooms supervisor with the HomeConfig
       case
         rooms_supervisor.start(
           config: config.home_config,
           state_aggregator: state_aggregator_subject,
           ha_commands: ha_commands,
-          initial_adjustments: [],
+          initial_adjustments: initial_adjustments,
         )
       {
         Error(e) -> Error(RoomsStartError(e))

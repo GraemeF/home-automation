@@ -7,11 +7,13 @@ import deep_heating/rooms_supervisor
 import deep_heating/schedule
 import deep_heating/supervisor
 import deep_heating/temperature
+import envoy
 import gleam/erlang/process
 import gleam/list
 import gleam/option.{None, Some}
 import gleam/set
 import gleeunit/should
+import simplifile
 
 // Supervisor startup tests
 
@@ -317,4 +319,46 @@ pub fn supervisor_room_actors_are_alive_test() {
   // Should respond with state showing the room name
   let assert Ok(state) = process.receive(reply, 1000)
   state.name |> should.equal("lounge")
+}
+
+// =============================================================================
+// Room adjustments loading on startup tests
+// =============================================================================
+
+pub fn supervisor_loads_room_adjustments_from_env_test() {
+  // When ROOM_ADJUSTMENTS_PATH is set with persisted adjustments,
+  // RoomActors should start with those adjustments applied
+  let test_path = "/tmp/test_supervisor_adjustments.json"
+  let json = "[{\"roomName\": \"lounge\", \"adjustment\": 1.5}]"
+  let assert Ok(_) = simplifile.write(test_path, json)
+
+  // Set the environment variable
+  envoy.set("ROOM_ADJUSTMENTS_PATH", test_path)
+
+  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
+  let home_config = make_test_home_config()
+  let poller_config = create_test_poller_config()
+
+  let assert Ok(started) =
+    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
+      ha_client: ha_client,
+      poller_config: poller_config,
+      adjustments_path: Some(test_path),
+      home_config: home_config,
+    ))
+
+  // Get the lounge room actor and query its state
+  let assert Ok(rooms_sup) = supervisor.get_rooms_supervisor(started.data)
+  let assert Ok(lounge) = rooms_supervisor.get_room_by_name(rooms_sup, "lounge")
+  let assert Ok(room_actor_ref) = rooms_supervisor.get_room_actor(lounge)
+  let reply = process.new_subject()
+  process.send(room_actor_ref.subject, room_actor.GetState(reply))
+  let assert Ok(state) = process.receive(reply, 1000)
+
+  // Cleanup
+  envoy.unset("ROOM_ADJUSTMENTS_PATH")
+  let _ = simplifile.delete(test_path)
+
+  // The room should have the adjustment from the persisted file
+  state.adjustment |> should.equal(1.5)
 }
