@@ -55,17 +55,11 @@ pub fn html_page_contains_lustre_runtime_script_test() {
   |> should.be_true
 }
 
-pub fn html_page_contains_tailwind_test() {
+pub fn html_page_contains_styles_test() {
   let html = server.render_html_page()
+  // Tailwind + DaisyUI compiled CSS is bundled locally for offline HA addon support
   html
-  |> string.contains("tailwindcss.com")
-  |> should.be_true
-}
-
-pub fn html_page_contains_daisyui_test() {
-  let html = server.render_html_page()
-  html
-  |> string.contains("daisyui")
+  |> string.contains("/static/styles.css")
   |> should.be_true
 }
 

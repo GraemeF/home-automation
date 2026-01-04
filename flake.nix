@@ -82,6 +82,60 @@
             '';
           };
 
+          # Tailwind CSS standalone executable (no Node.js required)
+          # Version pinned for reproducibility - update hash when changing version
+          tailwindVersion = "4.1.8";
+          tailwindStandalone = pkgs.fetchurl {
+            url = "https://github.com/tailwindlabs/tailwindcss/releases/download/v${tailwindVersion}/tailwindcss-${
+              if pkgs.stdenv.hostPlatform.isDarwin then
+                if pkgs.stdenv.hostPlatform.isAarch64 then "macos-arm64" else "macos-x64"
+              else
+                if pkgs.stdenv.hostPlatform.isAarch64 then "linux-arm64" else "linux-x64"
+            }";
+            sha256 = if pkgs.stdenv.hostPlatform.isDarwin then
+              if pkgs.stdenv.hostPlatform.isAarch64 then
+                "sha256-GeUnkdNW3VnbaCdK42pYebqwzp2sI8x7Dxn8e3wdN6I="
+              else
+                "sha256-SmyyYNdcS9ygck+8w7I6WttScVrW14WVRjyGEoyhwyk="
+            else
+              if pkgs.stdenv.hostPlatform.isAarch64 then
+                "sha256-KKd9Hlmw5FtBaDweOUdiH9/nP2iVsF23w09j8/SJjo0="
+              else
+                "sha256-j4TOgQvf8iXlmXgdHi2qgrQoIikCHIZ6cbQZ9Z+aqDY=";
+          };
+
+          # DaisyUI bundle for Tailwind standalone
+          # Version pinned for reproducibility - update hash when changing version
+          daisyuiVersion = "5.0.14";
+          daisyuiBundle = pkgs.fetchurl {
+            url = "https://github.com/saadeghi/daisyui/releases/download/v${daisyuiVersion}/daisyui.mjs";
+            sha256 = "sha256-Gl5g0d7bEof8cM5k4qhaEKvViErdEGwNKyO4PrtPTdg=";
+          };
+
+          # Build Tailwind CSS with DaisyUI
+          tailwindCss = pkgs.stdenv.mkDerivation {
+            pname = "deep-heating-css";
+            version = "0.1.0";
+
+            src = gleamSrc;
+
+            buildPhase = ''
+              # Set up the CSS build environment
+              mkdir -p src/styles
+              cp ${daisyuiBundle} src/styles/daisyui.mjs
+              cp ${tailwindStandalone} ./tailwindcss
+              chmod +x ./tailwindcss
+
+              # Run Tailwind CLI to build CSS
+              ./tailwindcss -i ./src/styles/input.css -o ./styles.css --minify
+            '';
+
+            installPhase = ''
+              mkdir -p $out
+              cp styles.css $out/
+            '';
+          };
+
           # Main Gleam build - produces Erlang shipment
           deep-heating = pkgs.stdenv.mkDerivation {
             pname = "deep-heating";
@@ -97,6 +151,10 @@
               mkdir -p build/packages
               cp -r ${gleamDeps}/* build/packages/
               chmod -R u+w build/packages/
+
+              # Copy compiled CSS to priv directory
+              mkdir -p priv/static
+              cp ${tailwindCss}/styles.css priv/static/
 
               # Build the Erlang release
               gleam export erlang-shipment
@@ -166,7 +224,7 @@ EOF
         in
         {
           # Gleam packages
-          inherit gleamDeps deep-heating;
+          inherit gleamDeps deep-heating tailwindCss;
         } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
           # Linux-only packages
           inherit dockerImage;
@@ -176,6 +234,44 @@ EOF
       devShells = forAllSystems (system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
+
+          # Get the correct Tailwind standalone for this platform
+          tailwindPlatform = if pkgs.stdenv.hostPlatform.isDarwin then
+            if pkgs.stdenv.hostPlatform.isAarch64 then "macos-arm64" else "macos-x64"
+          else
+            if pkgs.stdenv.hostPlatform.isAarch64 then "linux-arm64" else "linux-x64";
+
+          # Script to set up local CSS development
+          setupCssScript = pkgs.writeShellScriptBin "setup-css" ''
+            set -e
+            cd packages/deep_heating/src/styles
+
+            # Download Tailwind standalone if not present
+            if [ ! -f tailwindcss ]; then
+              echo "Downloading Tailwind CSS v4.1.8 (${tailwindPlatform})..."
+              curl -sL "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.8/tailwindcss-${tailwindPlatform}" -o tailwindcss
+              chmod +x tailwindcss
+            fi
+
+            # Download DaisyUI bundle if not present
+            if [ ! -f daisyui.mjs ]; then
+              echo "Downloading DaisyUI v5.0.14..."
+              curl -sL "https://github.com/saadeghi/daisyui/releases/download/v5.0.14/daisyui.mjs" -o daisyui.mjs
+            fi
+
+            echo "CSS dev environment ready!"
+            echo "Run 'build-css' to compile, or 'build-css --watch' for watch mode"
+          '';
+
+          # Script to build CSS
+          buildCssScript = pkgs.writeShellScriptBin "build-css" ''
+            cd packages/deep_heating/src/styles
+            if [ ! -f tailwindcss ]; then
+              echo "Error: Run 'setup-css' first to download Tailwind CLI"
+              exit 1
+            fi
+            ./tailwindcss -i input.css -o ../../priv/static/styles.css --minify "$@"
+          '';
         in
         {
           default = pkgs.mkShell {
@@ -183,12 +279,17 @@ EOF
               pkgs.git
               pkgs.docker
               pkgs.pre-commit # Git hooks framework
+              pkgs.curl       # For downloading CSS dependencies
               beads.packages.${system}.default  # bd CLI for beads issue tracker
 
               # Gleam toolchain
               pkgs.gleam
               pkgs.erlang_28  # OTP 28 for BEAM runtime
               pkgs.rebar3     # Erlang build tool (uses nixpkgs default OTP 28)
+
+              # CSS development scripts
+              setupCssScript
+              buildCssScript
             ];
 
             shellHook = ''
@@ -201,6 +302,8 @@ EOF
               echo "  gleam build      - Build the project"
               echo "  gleam test       - Run tests"
               echo "  gleam run        - Run the project"
+              echo "  setup-css        - Download Tailwind/DaisyUI for local CSS development"
+              echo "  build-css        - Build CSS (add --watch for watch mode)"
 
               # Install pre-commit hooks
               pre-commit install --allow-missing-config 2>/dev/null || true

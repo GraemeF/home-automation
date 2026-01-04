@@ -2,3 +2,11 @@
 *.ez
 /build
 erl_crash.dump
+
+# Tailwind CLI (downloaded by daisyui.com/fast)
+/src/styles/tailwindcss
+/src/styles/daisyui*.mjs
+/src/styles/output.css
+
+# Compiled CSS for local dev (built by Tailwind CLI)
+/priv/static/styles.css

@@ -18,6 +18,7 @@ import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
 import gleam/int
 import gleam/json
+import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
 import lustre
@@ -80,6 +81,8 @@ pub fn start(config: ServerConfig) -> Result(Nil, String) {
       [] -> serve_html()
       // Serve the Lustre client runtime
       ["lustre", "runtime.mjs"] -> serve_runtime()
+      // Serve static assets (Tailwind, DaisyUI, etc.)
+      ["static", filename] -> serve_static(filename)
       // WebSocket endpoint for server component communication
       ["ws"] -> serve_websocket(request, config)
       // 404 for everything else
@@ -114,14 +117,11 @@ pub fn render_html_page() -> String {
         attribute.content("width=device-width, initial-scale=1"),
       ]),
       html.title([], "Deep Heating"),
-      // Include Tailwind CSS for styling (using CDN for development)
+      // Compiled Tailwind + DaisyUI CSS (built by Nix, bundled for offline HA addon)
       html.link([
         attribute.rel("stylesheet"),
-        attribute.href(
-          "https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css",
-        ),
+        attribute.href("/static/styles.css"),
       ]),
-      html.script([attribute.src("https://cdn.tailwindcss.com")], ""),
       // Include the Lustre server component runtime
       html.script(
         [attribute.type_("module"), attribute.src("/lustre/runtime.mjs")],
@@ -157,6 +157,32 @@ fn serve_runtime() -> Response(ResponseData) {
     Ok(file) ->
       response.new(200)
       |> response.prepend_header("content-type", "application/javascript")
+      |> response.set_body(file)
+
+    Error(_) ->
+      response.new(404)
+      |> response.set_body(mist.Bytes(bytes_tree.new()))
+  }
+}
+
+// Static Assets ----------------------------------------------------------------
+
+fn serve_static(filename: String) -> Response(ResponseData) {
+  // Serve static assets from our priv directory
+  let assert Ok(priv) = application.priv_directory("deep_heating")
+  let file_path = priv <> "/static/" <> filename
+
+  // Determine content type from extension
+  let content_type = case string.split(filename, ".") |> list.last {
+    Ok("js") -> "application/javascript"
+    Ok("css") -> "text/css"
+    _ -> "application/octet-stream"
+  }
+
+  case mist.send_file(file_path, offset: 0, limit: None) {
+    Ok(file) ->
+      response.new(200)
+      |> response.prepend_header("content-type", content_type)
       |> response.set_body(file)
 
     Error(_) ->
