@@ -6,7 +6,9 @@
 //// - Throttle updates (100ms) to avoid overwhelming clients
 //// - Broadcast state to WebSocket client subscribers
 
+import deep_heating/actor/room_actor
 import deep_heating/state.{type DeepHeatingState, type RoomState}
+import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/list
 import gleam/otp/actor
@@ -27,6 +29,10 @@ pub type Message {
   RoomUpdated(name: String, room_state: RoomState)
   /// Internal: broadcast to subscribers (triggered by throttle timer)
   Broadcast
+  /// Register a RoomActor by name (for adjustment forwarding)
+  RegisterRoomActor(name: String, actor: Subject(room_actor.Message))
+  /// Adjust a room's temperature (forwarded to RoomActor)
+  AdjustRoom(name: String, adjustment: Float)
 }
 
 /// Internal state of the aggregator
@@ -36,6 +42,8 @@ pub type State {
     subscribers: List(Subject(DeepHeatingState)),
     broadcast_pending: Bool,
     self_subject: Subject(Message),
+    /// Registry of room actors by name
+    room_actors: Dict(String, Subject(room_actor.Message)),
   )
 }
 
@@ -47,6 +55,7 @@ pub fn start_link() -> Result(Subject(Message), actor.StartError) {
       subscribers: [],
       broadcast_pending: False,
       self_subject: self_subject,
+      room_actors: dict.new(),
     ))
     |> actor.returning(self_subject)
     |> Ok
@@ -66,6 +75,7 @@ pub fn start(
       subscribers: [],
       broadcast_pending: False,
       self_subject: self_subject,
+      room_actors: dict.new(),
     ))
     |> actor.returning(self_subject)
     |> Ok
@@ -115,6 +125,27 @@ fn handle_message(
         process.send(subscriber, actor_state.current)
       })
       actor.continue(State(..actor_state, broadcast_pending: False))
+    }
+    RegisterRoomActor(name, room_actor_subject) -> {
+      let new_room_actors =
+        dict.insert(actor_state.room_actors, name, room_actor_subject)
+      actor.continue(State(..actor_state, room_actors: new_room_actors))
+    }
+    AdjustRoom(name, adjustment) -> {
+      // Look up the room actor and forward the adjustment
+      case dict.get(actor_state.room_actors, name) {
+        Ok(room_actor_subject) -> {
+          process.send(
+            room_actor_subject,
+            room_actor.AdjustmentChanged(adjustment),
+          )
+        }
+        Error(_) -> {
+          // Room not registered, silently ignore
+          Nil
+        }
+      }
+      actor.continue(actor_state)
     }
   }
 }

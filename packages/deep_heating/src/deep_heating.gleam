@@ -1,3 +1,4 @@
+import deep_heating/actor/state_aggregator_actor
 import deep_heating/server
 import deep_heating/supervisor
 import gleam/erlang/process
@@ -20,10 +21,16 @@ pub fn main() -> Nil {
         Ok(aggregator_ref) -> {
           io.println("Got state aggregator reference")
 
-          // Create server config with a no-op room adjuster for now
-          // TODO: Wire up room adjustment when RoomActors are running
+          // Create room adjuster callback that forwards to StateAggregatorActor
+          let room_adjuster = fn(room_name: String, adjustment: Float) {
+            process.send(
+              aggregator_ref.subject,
+              state_aggregator_actor.AdjustRoom(room_name, adjustment),
+            )
+          }
+
           let config =
-            server.default_config(aggregator_ref.subject, fn(_, _) { Nil })
+            server.default_config(aggregator_ref.subject, room_adjuster)
 
           // Start the HTTP/WebSocket server
           case server.start(config) {
