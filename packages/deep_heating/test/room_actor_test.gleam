@@ -972,3 +972,114 @@ pub fn room_actor_room_mode_off_overrides_sleeping_test() {
   // Off overrides Sleeping
   state.room_mode |> should.equal(mode.RoomModeOff)
 }
+
+// =============================================================================
+// Timer-Based Schedule Refresh Tests
+// =============================================================================
+
+fn make_schedule_with_morning_change() -> schedule.WeekSchedule {
+  // Schedule: 18°C at midnight, 21°C at 09:00
+  let assert Ok(midnight) = schedule.time_of_day(0, 0)
+  let assert Ok(morning) = schedule.time_of_day(9, 0)
+  let entries = [
+    schedule.ScheduleEntry(
+      start: midnight,
+      target_temperature: temperature.temperature(18.0),
+    ),
+    schedule.ScheduleEntry(
+      start: morning,
+      target_temperature: temperature.temperature(21.0),
+    ),
+  ]
+  schedule.WeekSchedule(
+    monday: entries,
+    tuesday: entries,
+    wednesday: entries,
+    thursday: entries,
+    friday: entries,
+    saturday: entries,
+    sunday: entries,
+  )
+}
+
+pub fn timer_triggers_target_recomputation_test() {
+  // The actor should automatically recompute target temperature every timer interval.
+  // This allows schedule changes to take effect without external triggers.
+  //
+  // Scenario:
+  // 1. Start with time 08:59 (scheduled temp 18°C)
+  // 2. After timer fires with time 09:01, target should update to 21°C
+
+  // Use an atomic counter to track call count across process boundaries
+  let counter = create_counter()
+
+  let get_time = fn() {
+    let count = increment_counter(counter)
+    case count {
+      // First call (init) - return 08:59 (before schedule change)
+      1 -> {
+        let assert Ok(time) = schedule.time_of_day(8, 59)
+        #(schedule.Monday, time)
+      }
+      // Subsequent calls - return 09:01 (after schedule change)
+      _ -> {
+        let assert Ok(time) = schedule.time_of_day(9, 1)
+        #(schedule.Monday, time)
+      }
+    }
+  }
+
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator = process.new_subject()
+
+  // Start actor with short timer interval (100ms for testing)
+  let assert Ok(started) =
+    room_actor.start_with_timer_interval(
+      name: "lounge",
+      schedule: make_schedule_with_morning_change(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+      get_time: get_time,
+      timer_interval_ms: 100,
+    )
+
+  // Check initial state - should be 18°C (time is 08:59)
+  let reply = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply))
+  let assert Ok(initial_state) = process.receive(reply, 1000)
+  initial_state.target_temperature
+  |> should.equal(option.Some(temperature.temperature(18.0)))
+
+  // Wait for timer to fire (>100ms)
+  process.sleep(150)
+
+  // Now target should be 21°C (time is 09:01 on timer re-evaluation)
+  let reply2 = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply2))
+  let assert Ok(updated_state) = process.receive(reply2, 1000)
+  updated_state.target_temperature
+  |> should.equal(option.Some(temperature.temperature(21.0)))
+
+  // Clean up
+  delete_counter(counter)
+}
+
+// =============================================================================
+// Atomics Counter Helpers for Cross-Process State
+// =============================================================================
+
+/// Opaque type for atomic counter reference
+type AtomicCounter
+
+/// Create an atomic counter, returns counter reference
+@external(erlang, "room_actor_test_ffi", "create_counter")
+fn create_counter() -> AtomicCounter
+
+/// Atomically increment counter and return new value
+@external(erlang, "room_actor_test_ffi", "increment_counter")
+fn increment_counter(counter: AtomicCounter) -> Int
+
+/// Delete counter (no-op for atomics, they're garbage collected)
+@external(erlang, "room_actor_test_ffi", "delete_counter")
+fn delete_counter(counter: AtomicCounter) -> Nil

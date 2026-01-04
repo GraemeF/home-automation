@@ -98,6 +98,13 @@ pub type AggregatorMessage {
   RoomUpdated(name: String, state: RoomState)
 }
 
+/// Function type for getting current date/time (for testability)
+pub type GetDateTime =
+  fn() -> #(Weekday, TimeOfDay)
+
+/// Default timer interval in milliseconds (60 seconds)
+pub const default_timer_interval_ms: Int = 60_000
+
 /// Messages handled by the RoomActor
 pub type Message {
   /// Get the current room state
@@ -116,6 +123,8 @@ pub type Message {
   AdjustmentChanged(adjustment: Float)
   /// External temperature sensor reading changed (from HaPollerActor)
   ExternalTempChanged(temperature: Temperature)
+  /// Internal: timer fired, recompute target from schedule
+  ReComputeTarget
 }
 
 /// Internal actor state including dependencies
@@ -125,18 +134,45 @@ type ActorState {
     schedule: WeekSchedule,
     decision_actor: Subject(DecisionMessage),
     state_aggregator: Subject(AggregatorMessage),
+    /// Function to get current date/time
+    get_time: GetDateTime,
+    /// Timer interval in milliseconds (0 to disable)
+    timer_interval_ms: Int,
+    /// Self subject for scheduling timer messages
+    self_subject: Option(Subject(Message)),
   )
 }
 
-/// Start the RoomActor with the given configuration
+/// Start the RoomActor with the given configuration.
+/// Uses the default 60-second timer interval for schedule refresh.
 pub fn start(
   name name: String,
   schedule schedule: WeekSchedule,
   decision_actor decision_actor: Subject(DecisionMessage),
   state_aggregator state_aggregator: Subject(AggregatorMessage),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  start_with_timer_interval(
+    name: name,
+    schedule: schedule,
+    decision_actor: decision_actor,
+    state_aggregator: state_aggregator,
+    get_time: get_current_datetime,
+    timer_interval_ms: default_timer_interval_ms,
+  )
+}
+
+/// Start the RoomActor with custom time provider and timer interval.
+/// Timer interval is in milliseconds (use 0 to disable timer).
+pub fn start_with_timer_interval(
+  name name: String,
+  schedule schedule: WeekSchedule,
+  decision_actor decision_actor: Subject(DecisionMessage),
+  state_aggregator state_aggregator: Subject(AggregatorMessage),
+  get_time get_time: GetDateTime,
+  timer_interval_ms timer_interval_ms: Int,
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   // Compute initial target temperature based on schedule and current time
-  let #(weekday, time) = get_current_datetime()
+  let #(weekday, time) = get_time()
   let initial_target =
     compute_target_temperature(
       schedule: schedule,
@@ -157,15 +193,32 @@ pub fn start(
       adjustment: 0.0,
       trv_states: initial_trv_states,
     )
-  let initial_state =
-    ActorState(
-      room: initial_room,
-      schedule: schedule,
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
-    )
 
-  actor.new(initial_state)
+  actor.new_with_initialiser(1000, fn(self_subject) {
+    // Schedule initial timer if interval > 0
+    case timer_interval_ms > 0 {
+      True -> {
+        process.send_after(self_subject, timer_interval_ms, ReComputeTarget)
+        Nil
+      }
+      False -> Nil
+    }
+
+    let initial_state =
+      ActorState(
+        room: initial_room,
+        schedule: schedule,
+        decision_actor: decision_actor,
+        state_aggregator: state_aggregator,
+        get_time: get_time,
+        timer_interval_ms: timer_interval_ms,
+        self_subject: Some(self_subject),
+      )
+
+    actor.initialised(initial_state)
+    |> actor.returning(self_subject)
+    |> Ok
+  })
   |> actor.on_message(handle_message)
   |> actor.start
 }
@@ -222,6 +275,14 @@ fn handle_message(
       let new_room = RoomState(..state.room, temperature: Some(temperature))
       let new_state = ActorState(..state, room: new_room)
       notify_state_changed(new_state)
+      actor.continue(new_state)
+    }
+    ReComputeTarget -> {
+      // Timer fired - recompute target temperature from schedule
+      let new_state = recompute_room_target(state)
+      notify_state_changed(new_state)
+      // Reschedule the timer for the next evaluation
+      reschedule_timer(new_state)
       actor.continue(new_state)
     }
   }
@@ -351,7 +412,7 @@ fn notify_state_changed(state: ActorState) -> Nil {
 
 /// Recompute the target temperature for the room based on current state and time
 fn recompute_room_target(state: ActorState) -> ActorState {
-  let #(weekday, time) = get_current_datetime()
+  let #(weekday, time) = { state.get_time }()
   let new_target =
     compute_target_temperature(
       schedule: state.schedule,
@@ -362,6 +423,17 @@ fn recompute_room_target(state: ActorState) -> ActorState {
     )
   let new_room = RoomState(..state.room, target_temperature: new_target)
   ActorState(..state, room: new_room)
+}
+
+/// Reschedule the timer for the next evaluation cycle
+fn reschedule_timer(state: ActorState) -> Nil {
+  case state.self_subject, state.timer_interval_ms > 0 {
+    Some(self), True -> {
+      process.send_after(self, state.timer_interval_ms, ReComputeTarget)
+      Nil
+    }
+    _, _ -> Nil
+  }
 }
 
 /// Compute the target temperature based on schedule, house mode, and adjustment.
