@@ -29,15 +29,21 @@ pub fn main() -> Nil {
             )
           }
 
+          // Use PORT env var if set, otherwise default
+          let port = server.port_from_env()
           let config =
-            server.default_config(aggregator_ref.subject, room_adjuster)
+            server.ServerConfig(
+              port:,
+              host: server.default_host,
+              state_aggregator: aggregator_ref.subject,
+              room_adjuster:,
+            )
 
           // Start the HTTP/WebSocket server
           case server.start(config) {
             Ok(Nil) -> {
               io.println(
-                "Server started on http://localhost:"
-                <> int.to_string(server.default_port),
+                "Server started on http://localhost:" <> int.to_string(port),
               )
             }
             Error(e) -> {

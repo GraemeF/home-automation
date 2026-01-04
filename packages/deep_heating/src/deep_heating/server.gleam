@@ -10,11 +10,13 @@ import deep_heating/state.{type DeepHeatingState}
 import deep_heating/ui/app
 import deep_heating/ui/msg.{type Msg, Connected, Disconnected, StateReceived}
 import deep_heating/ui/update
+import envoy
 import gleam/bytes_tree
 import gleam/erlang/application
 import gleam/erlang/process.{type Selector, type Subject}
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
+import gleam/int
 import gleam/json
 import gleam/option.{type Option, None, Some}
 import gleam/string
@@ -30,6 +32,18 @@ pub const default_port: Int = 8085
 
 /// Default host for the server
 pub const default_host: String = "0.0.0.0"
+
+/// Get the port from PORT environment variable, or default_port if not set/invalid.
+pub fn port_from_env() -> Int {
+  case envoy.get("PORT") {
+    Ok(port_str) ->
+      case int.parse(port_str) {
+        Ok(port) -> port
+        Error(_) -> default_port
+      }
+    Error(_) -> default_port
+  }
+}
 
 /// Configuration for the server
 pub type ServerConfig {
