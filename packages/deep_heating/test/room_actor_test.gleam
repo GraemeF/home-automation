@@ -764,3 +764,37 @@ pub fn room_actor_recomputes_target_on_adjustment_change_test() {
   let expected = temperature.add(initial_target, temperature.temperature(2.0))
   adjusted_state.target_temperature |> should.equal(option.Some(expected))
 }
+
+// =============================================================================
+// StateAggregator Notification Tests
+// =============================================================================
+
+pub fn room_actor_notifies_state_aggregator_on_trv_change_test() {
+  let decision_actor: process.Subject(room_actor.DecisionMessage) =
+    process.new_subject()
+  let state_aggregator: process.Subject(room_actor.AggregatorMessage) =
+    process.new_subject()
+
+  let assert Ok(started) =
+    room_actor.start(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor: decision_actor,
+      state_aggregator: state_aggregator,
+    )
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // Send TRV temperature update
+  let temp = temperature.temperature(21.5)
+  process.send(started.data, room_actor.TrvTemperatureChanged(trv_id, temp))
+
+  // State aggregator should receive notification
+  let assert Ok(msg) = process.receive(state_aggregator, 1000)
+  case msg {
+    room_actor.RoomUpdated(name, state) -> {
+      name |> should.equal("lounge")
+      state.name |> should.equal("lounge")
+    }
+  }
+}

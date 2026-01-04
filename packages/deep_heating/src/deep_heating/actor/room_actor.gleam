@@ -314,6 +314,7 @@ fn update_trv_is_heating(
 
 fn notify_state_changed(state: ActorState) -> Nil {
   process.send(state.decision_actor, RoomStateChanged(state.room))
+  process.send(state.state_aggregator, RoomUpdated(state.room.name, state.room))
 }
 
 /// Recompute the target temperature for the room based on current state and time
