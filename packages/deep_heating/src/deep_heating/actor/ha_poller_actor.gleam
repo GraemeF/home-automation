@@ -61,6 +61,8 @@ pub type PollerEvent {
     entity_id: SensorEntityId,
     temperature: option.Option(Temperature),
   )
+  /// Heating system status changed
+  HeatingStatusChanged(is_heating: Bool)
   /// Sleep button was pressed
   SleepButtonPressed
   /// Polling started
@@ -237,6 +239,19 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
                 process.send(
                   state.event_spy,
                   TrvUpdated(entity.entity_id, update),
+                )
+              })
+
+              // Find heating entity and emit HeatingStatusChanged
+              entities
+              |> list.find(fn(entity) {
+                entity.entity_id == state.config.heating_entity_id
+              })
+              |> option.from_result
+              |> option.map(fn(heating_entity) {
+                process.send(
+                  state.event_spy,
+                  HeatingStatusChanged(heating_entity.is_heating),
                 )
               })
               Nil

@@ -8,6 +8,7 @@
 //// - Ignore poll status events (PollCompleted, PollFailed, etc.)
 
 import deep_heating/actor/ha_poller_actor.{type PollerEvent}
+import deep_heating/actor/heating_control_actor
 import deep_heating/actor/house_mode_actor
 import deep_heating/actor/room_actor
 import deep_heating/actor/trv_actor
@@ -48,6 +49,7 @@ pub type Config {
     house_mode_actor: Subject(house_mode_actor.Message),
     trv_registry: TrvActorRegistry,
     sensor_registry: SensorRegistry,
+    heating_control_actor: Option(Subject(heating_control_actor.Message)),
   )
 }
 
@@ -57,6 +59,7 @@ type State {
     house_mode_actor: Subject(house_mode_actor.Message),
     trv_registry: TrvActorRegistry,
     sensor_registry: SensorRegistry,
+    heating_control_actor: Option(Subject(heating_control_actor.Message)),
   )
 }
 
@@ -69,6 +72,7 @@ pub fn start(config: Config) -> Result(Subject(PollerEvent), actor.StartError) {
       house_mode_actor: config.house_mode_actor,
       trv_registry: config.trv_registry,
       sensor_registry: config.sensor_registry,
+      heating_control_actor: config.heating_control_actor,
     )
 
   actor.new(initial_state)
@@ -95,6 +99,10 @@ fn route_event(event: PollerEvent, state: State) -> Nil {
     }
     ha_poller_actor.SleepButtonPressed -> {
       process.send(state.house_mode_actor, house_mode_actor.SleepButtonPressed)
+    }
+    // Route heating status to HeatingControlActor
+    ha_poller_actor.HeatingStatusChanged(is_heating) -> {
+      route_heating_status(is_heating, state.heating_control_actor)
     }
     // Ignore poll status events
     ha_poller_actor.PollingStarted -> Nil
@@ -141,6 +149,24 @@ fn route_sensor_update(
     }
     Error(_) -> {
       // Unknown sensor_id - ignore
+      Nil
+    }
+  }
+}
+
+fn route_heating_status(
+  is_heating: Bool,
+  heating_control_actor: Option(Subject(heating_control_actor.Message)),
+) -> Nil {
+  case heating_control_actor {
+    option.Some(subject) -> {
+      process.send(
+        subject,
+        heating_control_actor.BoilerStatusChanged(is_heating),
+      )
+    }
+    option.None -> {
+      // No HeatingControlActor configured - ignore
       Nil
     }
   }

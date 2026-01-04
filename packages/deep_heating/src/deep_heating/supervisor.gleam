@@ -322,12 +322,17 @@ pub fn start_with_home_config(
           let sensor_registry =
             build_sensor_registry(rooms_sup, config.home_config)
 
+          // Get HeatingControlActor subject for routing heating status events
+          let heating_control_subject =
+            process.named_subject(heating_control_name)
+
           // Start EventRouterActor (reuses house_mode_subject from above)
           let router_config =
             event_router_actor.Config(
               house_mode_actor: house_mode_subject,
               trv_registry: trv_registry,
               sensor_registry: sensor_registry,
+              heating_control_actor: option.Some(heating_control_subject),
             )
 
           case event_router_actor.start(router_config) {

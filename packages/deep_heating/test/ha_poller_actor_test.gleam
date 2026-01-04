@@ -806,3 +806,99 @@ pub fn sensor_update_handles_unavailable_sensor_test() {
 
   has_unavailable_sensor |> should.be_true
 }
+
+// =============================================================================
+// Heating Entity Polling Tests
+// =============================================================================
+
+pub fn dispatches_heating_status_changed_for_heating_entity_test() {
+  // When polling succeeds and returns the heating entity,
+  // should dispatch HeatingStatusChanged event
+  let event_spy: process.Subject(ha_poller_actor.PollerEvent) =
+    process.new_subject()
+
+  let assert Ok(heating_entity) = entity_id.climate_entity_id("climate.boiler")
+
+  let config =
+    ha_poller_actor.PollerConfig(
+      poll_interval_ms: 5000,
+      heating_entity_id: heating_entity,
+      sleep_button_entity_id: "input_button.goodnight",
+      managed_trv_ids: set.new(),
+      managed_sensor_ids: set.new(),
+    )
+
+  let assert Ok(started) =
+    ha_poller_actor.start(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      config: config,
+      event_spy: event_spy,
+    )
+
+  // Inject mock JSON response with heating entity that is heating
+  let mock_json =
+    "[{\"entity_id\":\"climate.boiler\",\"state\":\"heat\",\"attributes\":{\"current_temperature\":45.0,\"temperature\":50.0,\"hvac_action\":\"heating\"}}]"
+  process.send(started.data, ha_poller_actor.InjectMockResponse(mock_json))
+
+  // Trigger a poll
+  process.send(started.data, ha_poller_actor.PollNow)
+
+  // Should receive a HeatingStatusChanged event
+  let events = collect_events(event_spy, 5, 500)
+
+  // Check we got a HeatingStatusChanged event with is_heating=True
+  let has_heating_status =
+    list.any(events, fn(event) {
+      case event {
+        ha_poller_actor.HeatingStatusChanged(is_heating) -> is_heating == True
+        _ -> False
+      }
+    })
+
+  has_heating_status |> should.be_true
+}
+
+pub fn heating_status_changed_emits_false_when_not_heating_test() {
+  // When heating entity is not actively heating, should emit is_heating=False
+  let event_spy: process.Subject(ha_poller_actor.PollerEvent) =
+    process.new_subject()
+
+  let assert Ok(heating_entity) = entity_id.climate_entity_id("climate.boiler")
+
+  let config =
+    ha_poller_actor.PollerConfig(
+      poll_interval_ms: 5000,
+      heating_entity_id: heating_entity,
+      sleep_button_entity_id: "input_button.goodnight",
+      managed_trv_ids: set.new(),
+      managed_sensor_ids: set.new(),
+    )
+
+  let assert Ok(started) =
+    ha_poller_actor.start(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      config: config,
+      event_spy: event_spy,
+    )
+
+  // Inject mock JSON response with heating entity that is idle
+  let mock_json =
+    "[{\"entity_id\":\"climate.boiler\",\"state\":\"heat\",\"attributes\":{\"current_temperature\":45.0,\"temperature\":50.0,\"hvac_action\":\"idle\"}}]"
+  process.send(started.data, ha_poller_actor.InjectMockResponse(mock_json))
+
+  // Trigger a poll
+  process.send(started.data, ha_poller_actor.PollNow)
+
+  // Should receive a HeatingStatusChanged event with is_heating=False
+  let events = collect_events(event_spy, 5, 500)
+
+  let has_heating_status_false =
+    list.any(events, fn(event) {
+      case event {
+        ha_poller_actor.HeatingStatusChanged(is_heating) -> is_heating == False
+        _ -> False
+      }
+    })
+
+  has_heating_status_false |> should.be_true
+}
