@@ -114,6 +114,7 @@ packages/deep_heating/src/deep_heating/
 │   ├── room_actor.gleam      # Domain: aggregates room state
 │   ├── room_decision_actor.gleam # Domain: computes TRV setpoints
 │   ├── trv_actor.gleam       # Domain: holds TRV state
+│   ├── trv_command_adapter_actor.gleam # Adapter: domain TrvCommand → HA
 │   ├── rooms_supervisor.gleam # Per-room supervision factory
 │   └── room_adjustments.gleam # Room temp adjustment persistence
 │
@@ -155,7 +156,7 @@ packages/deep_heating/src/deep_heating/
 
 | Slice | Actors | Responsibility |
 |-------|--------|----------------|
-| **rooms/** | `room_actor`, `room_decision_actor`, `trv_actor` | Room temperature management, TRV control |
+| **rooms/** | `room_actor`, `room_decision_actor`, `trv_actor`, `trv_command_adapter_actor` | Room temperature management, TRV control |
 | **home_assistant/** | `ha_poller_actor`, `ha_command_actor` | HA API integration (infrastructure) |
 | **house_mode/** | `house_mode_actor` | House-wide mode management |
 | **heating/** | `heating_control_actor` | Main boiler control |
@@ -231,6 +232,10 @@ When adding new features to the Gleam codebase:
 6. **Pure functions for complex domain logic**
    - Extract into standalone functions (e.g., `compute_target_temperature`)
    - Can be tested independently of actors
+
+7. **Subject ownership and OTP patterns**
+   - See `docs/gleam-actor-architecture.md` for critical patterns around Subject ownership, `actor.named()`, and adapter actors
+   - TL;DR: A Subject can only be received by the process that created it
 
 ## Testing
 

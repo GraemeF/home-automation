@@ -282,3 +282,94 @@ The actor version:
 1. **TypeScript ecosystem**: Effect, RxJS tooling, npm packages
 2. **SvelteKit**: Would need Lustre or keep frontend separate
 3. **Team familiarity**: Gleam/BEAM is different from JS/TS
+
+## Gleam OTP Patterns and Gotchas
+
+### Subject Ownership (CRITICAL)
+
+A `Subject` in Gleam OTP is tied to the process that created it. Messages sent to a Subject go to the **creating process's mailbox**, not to any process that happens to have a reference to it.
+
+**Bug pattern (DON'T DO THIS):**
+```gleam
+// Parent creates Subject
+let subject = process.new_subject()
+
+// Parent spawns child, passes Subject
+process.spawn_unlinked(fn() {
+  // Child tries to receive - WILL NEVER WORK!
+  // Messages go to parent's mailbox, not child's
+  process.receive_forever(subject)
+})
+```
+
+**Fix: Child creates its own Subject:**
+```gleam
+let response_subject = process.new_subject()
+
+process.spawn_unlinked(fn() {
+  // Child creates ITS OWN Subject
+  let subject = process.new_subject()
+  // Sends it back to parent
+  process.send(response_subject, subject)
+  // Now child CAN receive on its own Subject
+  process.receive_forever(subject)
+})
+
+let assert Ok(child_subject) = process.receive(response_subject, 5000)
+```
+
+### Named Subjects and `actor.named()`
+
+`process.named_subject(name)` only works for actors that use `actor.named(name)` during startup.
+
+**Why it works:**
+1. `actor.named(name)` registers the actor's PID with Erlang's name registry
+2. The actor creates its Subject using `named_subject(name)` internally
+3. The actor selects on that Subject
+4. External callers using `named_subject(name)` get a Subject pointing to the same selector
+
+**Actors using `actor.named()` (can use `named_subject`):**
+- TrvActor ✓
+- HeatingControlActor (named variant) ✓
+- StateAggregatorActor (named variant) ✓
+
+**Actors NOT using `actor.named()` (must capture Subject at startup):**
+- EventRouterActor
+- HouseModeActor
+- HaCommandActor
+- HaPollerActor
+- RoomActor
+- RoomDecisionActor
+
+### Adapter Actor Pattern
+
+When you need an actor that receives one message type but converts to another (e.g., domain → infrastructure), use a custom selector:
+
+```gleam
+pub fn start(
+  ha_commands: Subject(ha_command_actor.Message),
+) -> Result(actor.Started(Subject(TrvCommand)), actor.StartError) {
+  actor.new_with_initialiser(5000, fn(_default_subject) {
+    // Create Subject for the type we WANT to receive
+    let trv_commands: Subject(TrvCommand) = process.new_subject()
+    let initial_state = State(ha_commands: ha_commands)
+
+    // Map incoming TrvCommand to our internal Message type
+    let selector =
+      process.new_selector()
+      |> process.select_map(trv_commands, fn(cmd) { TrvCommand(cmd) })
+
+    actor.initialised(initial_state)
+    |> actor.selecting(selector)
+    |> actor.returning(trv_commands)  // Return the Subject callers should use
+    |> Ok
+  })
+  |> actor.on_message(handle_message)
+  |> actor.start
+}
+```
+
+This avoids raw `spawn_unlinked` + `receive_forever` which:
+- Can't be supervised
+- Don't handle OTP shutdown
+- Cause test teardown issues
