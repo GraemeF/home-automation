@@ -56,16 +56,19 @@ pub type RoomMessage {
 
 /// Internal actor state including dependencies
 type ActorState {
-  ActorState(trv: TrvState, room_actor: Subject(RoomMessage))
+  ActorState(trv: TrvState, room_actor_name: Name(RoomMessage))
 }
 
 /// Start the TrvActor with the given entity ID, name, and dependencies.
 /// The actor registers with the given name, allowing it to be addressed
 /// via `named_subject(name)` even after restarts.
+///
+/// The room_actor_name is stored and looked up dynamically when sending messages,
+/// allowing the TrvActor to survive RoomActor restarts under supervision.
 pub fn start(
   entity_id: ClimateEntityId,
   name: Name(Message),
-  room_actor: Subject(RoomMessage),
+  room_actor_name: Name(RoomMessage),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   let initial_trv =
     TrvState(
@@ -75,12 +78,20 @@ pub fn start(
       mode: HvacOff,
       is_heating: False,
     )
-  let initial_state = ActorState(trv: initial_trv, room_actor: room_actor)
+  let initial_state = ActorState(trv: initial_trv, room_actor_name: room_actor_name)
 
   actor.new(initial_state)
   |> actor.named(name)
   |> actor.on_message(handle_message)
   |> actor.start
+}
+
+/// Send a message to the RoomActor by looking up its name.
+/// The name lookup creates a Subject that references the registered name,
+/// allowing the TrvActor to survive RoomActor restarts under supervision.
+fn send_to_room(name: Name(RoomMessage), msg: RoomMessage) -> Nil {
+  let room_actor: Subject(RoomMessage) = process.named_subject(name)
+  process.send(room_actor, msg)
 }
 
 fn handle_message(
@@ -105,7 +116,7 @@ fn handle_message(
 
       // Notify room actor of temperature changes
       notify_temperature_change(
-        state.room_actor,
+        state.room_actor_name,
         old_trv.entity_id,
         old_trv.temperature,
         new_trv.temperature,
@@ -113,7 +124,7 @@ fn handle_message(
 
       // Notify room actor of target changes
       notify_target_change(
-        state.room_actor,
+        state.room_actor_name,
         old_trv.entity_id,
         old_trv.target,
         new_trv.target,
@@ -121,7 +132,7 @@ fn handle_message(
 
       // Notify room actor of mode changes
       notify_mode_change(
-        state.room_actor,
+        state.room_actor_name,
         old_trv.entity_id,
         old_trv.mode,
         new_trv.mode,
@@ -129,7 +140,7 @@ fn handle_message(
 
       // Notify room actor of is_heating changes
       notify_is_heating_change(
-        state.room_actor,
+        state.room_actor_name,
         old_trv.entity_id,
         old_trv.is_heating,
         new_trv.is_heating,
@@ -141,7 +152,7 @@ fn handle_message(
 }
 
 fn notify_temperature_change(
-  room_actor: Subject(RoomMessage),
+  room_actor_name: Name(RoomMessage),
   entity_id: ClimateEntityId,
   old_temp: Option(Temperature),
   new_temp: Option(Temperature),
@@ -149,14 +160,14 @@ fn notify_temperature_change(
   case old_temp, new_temp {
     // Temperature changed to a new value
     _, option.Some(temp) if old_temp != new_temp -> {
-      process.send(room_actor, TrvTemperatureChanged(entity_id, temp))
+      send_to_room(room_actor_name, TrvTemperatureChanged(entity_id, temp))
     }
     _, _ -> Nil
   }
 }
 
 fn notify_target_change(
-  room_actor: Subject(RoomMessage),
+  room_actor_name: Name(RoomMessage),
   entity_id: ClimateEntityId,
   old_target: Option(Temperature),
   new_target: Option(Temperature),
@@ -164,33 +175,36 @@ fn notify_target_change(
   case old_target, new_target {
     // Target changed to a new value
     _, option.Some(target) if old_target != new_target -> {
-      process.send(room_actor, TrvTargetChanged(entity_id, target))
+      send_to_room(room_actor_name, TrvTargetChanged(entity_id, target))
     }
     _, _ -> Nil
   }
 }
 
 fn notify_mode_change(
-  room_actor: Subject(RoomMessage),
+  room_actor_name: Name(RoomMessage),
   entity_id: ClimateEntityId,
   old_mode: HvacMode,
   new_mode: HvacMode,
 ) -> Nil {
   case old_mode != new_mode {
-    True -> process.send(room_actor, TrvModeChanged(entity_id, new_mode))
+    True -> send_to_room(room_actor_name, TrvModeChanged(entity_id, new_mode))
     False -> Nil
   }
 }
 
 fn notify_is_heating_change(
-  room_actor: Subject(RoomMessage),
+  room_actor_name: Name(RoomMessage),
   entity_id: ClimateEntityId,
   old_is_heating: Bool,
   new_is_heating: Bool,
 ) -> Nil {
   case old_is_heating != new_is_heating {
     True ->
-      process.send(room_actor, TrvIsHeatingChanged(entity_id, new_is_heating))
+      send_to_room(
+        room_actor_name,
+        TrvIsHeatingChanged(entity_id, new_is_heating),
+      )
     False -> Nil
   }
 }

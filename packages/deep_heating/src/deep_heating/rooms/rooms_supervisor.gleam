@@ -26,7 +26,7 @@ import deep_heating/rooms/trv_actor
 import deep_heating/rooms/trv_command_adapter_actor
 import deep_heating/state/state_aggregator_actor
 import gleam/dict.{type Dict}
-import gleam/erlang/process.{type Pid, type Subject}
+import gleam/erlang/process.{type Name, type Pid, type Subject}
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
@@ -41,6 +41,11 @@ import gleam/result
 /// This is safe when the underlying message representations are compatible.
 @external(erlang, "rooms_supervisor_ffi", "identity")
 fn coerce_subject(subject: Subject(a)) -> Subject(b)
+
+/// Coerce a Name from one message type to another.
+/// This is safe when the underlying message representations are compatible.
+@external(erlang, "rooms_supervisor_ffi", "identity")
+fn coerce_name(name: Name(a)) -> Name(b)
 
 // =============================================================================
 // Types
@@ -77,7 +82,7 @@ type TrvActorConfig {
   TrvActorConfig(
     entity_id: ClimateEntityId,
     name: process.Name(trv_actor.Message),
-    room_actor: Subject(trv_actor.RoomMessage),
+    room_actor_name: process.Name(trv_actor.RoomMessage),
   )
 }
 
@@ -96,7 +101,7 @@ type TrvActorConfig {
 pub fn start_room(
   room_config room_config: RoomConfig,
   state_aggregator state_aggregator: Subject(state_aggregator_actor.Message),
-  ha_commands ha_commands: Subject(ha_command_actor.Message),
+  ha_command_name ha_command_name: process.Name(ha_command_actor.Message),
   house_mode house_mode: Subject(house_mode_actor.Message),
   heating_control heating_control: Option(
     Subject(room_actor.HeatingControlMessage),
@@ -116,24 +121,27 @@ pub fn start_room(
   let initial_adjustment =
     room_adjustments.get_adjustment(initial_adjustments, room_config.name)
 
-  // Create a name for the decision actor
+  // Create names for actors
   let decision_actor_name =
     process.new_name("decision_actor_" <> room_config.name)
+  let trv_adapter_name =
+    process.new_name("trv_adapter_" <> room_config.name)
 
-  // Start the TRV command adapter actor - properly supervised, handles OTP shutdown
-  use adapter_started <- result.try(
-    trv_command_adapter_actor.start(ha_commands)
+  // Start the TRV command adapter actor - uses named pattern for OTP supervision
+  use _adapter_started <- result.try(
+    trv_command_adapter_actor.start_named(
+      name: trv_adapter_name,
+      ha_command_name: ha_command_name,
+    )
     |> result.map_error(ActorStartError),
   )
-  let trv_commands = adapter_started.data
 
-  // Start the RoomDecisionActor FIRST so we can get its actual Subject
-  // (Must start before RoomActor so RoomActor can send to it)
+  // Start the RoomDecisionActor - looks up TrvCommandAdapterActor by name
   // Uses start_named for OTP supervision support
   use decision_started <- result.try(
     room_decision_actor.start_named(
       name: decision_actor_name,
-      trv_commands: trv_commands,
+      trv_adapter_name: trv_adapter_name,
     )
     |> result.map_error(ActorStartError),
   )
@@ -148,10 +156,10 @@ pub fn start_room(
       name: decision_actor_name,
     )
 
-  // Coerce the decision subject to the type RoomActor expects
+  // Coerce the decision actor name to the type RoomActor expects
   // (DecisionMessage and room_decision_actor.Message are structurally identical)
-  let decision_for_room: Subject(room_actor.DecisionMessage) =
-    coerce_subject(decision_subject)
+  let decision_name_for_room: Name(room_actor.DecisionMessage) =
+    coerce_name(decision_actor_name)
 
   // Coerce state aggregator subject to type RoomActor expects
   let aggregator_for_room: Subject(room_actor.AggregatorMessage) =
@@ -160,14 +168,14 @@ pub fn start_room(
   // Create a name for the room actor
   let room_actor_name = process.new_name("room_actor_" <> room_config.name)
 
-  // Start the RoomActor with the DecisionActor's actual Subject
+  // Start the RoomActor - looks up RoomDecisionActor by name
   // Uses start_named for OTP supervision support
   use room_started <- result.try(
     room_actor.start_named(
       actor_name: room_actor_name,
       room_name: room_config.name,
       schedule: room_schedule,
-      decision_actor: decision_for_room,
+      decision_actor_name: decision_name_for_room,
       state_aggregator: aggregator_for_room,
       heating_control: heating_control,
       get_time: room_actor.get_current_datetime,
@@ -194,15 +202,16 @@ pub fn start_room(
   // Register the room actor with the house mode actor for mode broadcasts
   process.send(house_mode, house_mode_actor.RegisterRoomActor(room_subject))
 
-  // Coerce room subject to type TrvActor expects
-  let room_for_trv: Subject(trv_actor.RoomMessage) =
-    coerce_subject(room_subject)
+  // Coerce room actor name to type TrvActor expects
+  // (RoomMessage and trv_actor.RoomMessage are structurally identical)
+  let room_name_for_trv: process.Name(trv_actor.RoomMessage) =
+    coerce_name(room_actor_name)
 
   // Start TrvActors under a factory supervisor for fault tolerance
   use trv_refs <- result.try(start_supervised_trv_actors(
     room_config.name,
     room_config.climate_entity_ids,
-    room_for_trv,
+    room_name_for_trv,
   ))
 
   Ok(RoomSupervisor(
@@ -217,7 +226,7 @@ pub fn start_room(
 fn start_trv_from_config(
   config: TrvActorConfig,
 ) -> Result(actor.Started(Subject(trv_actor.Message)), actor.StartError) {
-  trv_actor.start(config.entity_id, config.name, config.room_actor)
+  trv_actor.start(config.entity_id, config.name, config.room_actor_name)
 }
 
 /// Start TRV actors under a factory supervisor for fault tolerance.
@@ -225,7 +234,7 @@ fn start_trv_from_config(
 fn start_supervised_trv_actors(
   room_name: String,
   entity_ids: List(ClimateEntityId),
-  room_actor: Subject(trv_actor.RoomMessage),
+  room_actor_name: process.Name(trv_actor.RoomMessage),
 ) -> Result(List(ActorRef(trv_actor.Message)), StartError) {
   // Create names for all TRV actors upfront (names are stable across restarts)
   let configs =
@@ -233,7 +242,11 @@ fn start_supervised_trv_actors(
       let entity_id_str = entity_id.climate_entity_id_to_string(entity_id)
       let name =
         process.new_name("trv_actor_" <> room_name <> "_" <> entity_id_str)
-      TrvActorConfig(entity_id: entity_id, name: name, room_actor: room_actor)
+      TrvActorConfig(
+        entity_id: entity_id,
+        name: name,
+        room_actor_name: room_actor_name,
+      )
     })
 
   // Start factory supervisor for TRV actors
@@ -289,7 +302,7 @@ pub fn get_decision_actor(
 pub fn start(
   config config: HomeConfig,
   state_aggregator state_aggregator: Subject(state_aggregator_actor.Message),
-  ha_commands ha_commands: Subject(ha_command_actor.Message),
+  ha_command_name ha_command_name: process.Name(ha_command_actor.Message),
   house_mode house_mode: Subject(house_mode_actor.Message),
   heating_control heating_control: Option(
     Subject(room_actor.HeatingControlMessage),
@@ -301,7 +314,7 @@ pub fn start(
     start_room(
       room_config: room_config,
       state_aggregator: state_aggregator,
-      ha_commands: ha_commands,
+      ha_command_name: ha_command_name,
       house_mode: house_mode,
       heating_control: heating_control,
       initial_adjustments: initial_adjustments,

@@ -9,13 +9,71 @@ import deep_heating/mode
 import deep_heating/scheduling/schedule as deep_heating_schedule
 import deep_heating/temperature
 import gleam/dict
-import gleam/erlang/process
+import gleam/erlang/process.{type Name, type Subject}
+import gleam/int
 import gleam/option.{None, Some}
+import gleam/otp/actor
 import gleeunit/should
+
+// =============================================================================
+// FFI for unique integer generation
+// =============================================================================
+
+@external(erlang, "erlang", "unique_integer")
+fn unique_integer() -> Int
 
 // =============================================================================
 // Test Helpers
 // =============================================================================
+
+/// Create a mock RoomDecisionActor that uses actor.named() and forwards to a spy.
+/// Returns the actor name and spy Subject for receiving messages.
+fn make_mock_decision_actor(
+  test_id: String,
+) -> #(Name(room_actor.DecisionMessage), Subject(room_actor.DecisionMessage)) {
+  let spy = process.new_subject()
+  let name =
+    process.new_name(
+      "mock_decision_" <> test_id <> "_" <> int.to_string(unique_integer()),
+    )
+
+  // Start a mock actor that forwards messages to spy
+  let assert Ok(_started) =
+    actor.new(spy)
+    |> actor.named(name)
+    |> actor.on_message(fn(spy_subj, msg) {
+      process.send(spy_subj, msg)
+      actor.continue(spy_subj)
+    })
+    |> actor.start
+
+  #(name, spy)
+}
+
+/// Create a mock RoomActor that uses actor.named() and forwards to a spy.
+/// Returns the actor name and spy Subject for receiving messages.
+/// This is used by TrvActor tests which need a named RoomActor.
+fn make_mock_room_actor_for_trv(
+  test_id: String,
+) -> #(Name(trv_actor.RoomMessage), Subject(trv_actor.RoomMessage)) {
+  let spy = process.new_subject()
+  let name =
+    process.new_name(
+      "mock_room_for_trv_" <> test_id <> "_" <> int.to_string(unique_integer()),
+    )
+
+  // Start a mock actor that forwards messages to spy
+  let assert Ok(_started) =
+    actor.new(spy)
+    |> actor.named(name)
+    |> actor.on_message(fn(spy_subj, msg) {
+      process.send(spy_subj, msg)
+      actor.continue(spy_subj)
+    })
+    |> actor.start
+
+  #(name, spy)
+}
 
 /// Create an empty TRV registry for tests that don't need TRV routing
 fn empty_trv_registry() -> event_router_actor.TrvActorRegistry {
@@ -104,17 +162,17 @@ pub fn routes_trv_updated_to_correct_trv_actor_test() {
   // When a TrvUpdated event is received, it should be routed to the
   // correct TrvActor based on entity_id → subject mapping
 
-  // Create a mock room actor to receive notifications from TrvActor
-  let room_actor_spy: process.Subject(trv_actor.RoomMessage) =
-    process.new_subject()
+  // Create a mock named room actor to receive notifications from TrvActor
+  let #(room_actor_name, room_actor_spy) =
+    make_mock_room_actor_for_trv("trv_routing")
 
   // Create the entity_id we'll be updating
   let assert Ok(lounge_trv) = entity_id.climate_entity_id("climate.lounge_trv")
 
-  // Start TrvActor
+  // Start TrvActor - now takes a Name instead of Subject
   let trv_name = process.new_name("trv_actor_lounge")
   let assert Ok(trv_started) =
-    trv_actor.start(lounge_trv, trv_name, room_actor_spy)
+    trv_actor.start(lounge_trv, trv_name, room_actor_name)
 
   // Build registry with the TrvActor's subject
   let trv_registry =
@@ -247,10 +305,10 @@ pub fn routes_sensor_updated_to_correct_room_actor_test() {
   // When a SensorUpdated event is received, it should be routed to the
   // correct RoomActor based on sensor_id → room_actor mapping
 
-  // Create a spy to receive messages from RoomActor (for decision/aggregator)
-  let decision_spy: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let aggregator_spy: process.Subject(room_actor.AggregatorMessage) =
+  // Create a named mock decision actor and a spy for aggregator
+  let #(decision_name, _decision_spy) =
+    make_mock_decision_actor("sensor_routing")
+  let aggregator_spy: Subject(room_actor.AggregatorMessage) =
     process.new_subject()
 
   // Create the sensor_id we'll be updating
@@ -269,12 +327,12 @@ pub fn routes_sensor_updated_to_correct_room_actor_test() {
       sunday: [],
     )
 
-  // Start RoomActor
+  // Start RoomActor - uses decision_actor_name for named lookup
   let assert Ok(room_started) =
     room_actor.start(
       name: "lounge",
       schedule: schedule,
-      decision_actor: decision_spy,
+      decision_actor_name: decision_name,
       state_aggregator: aggregator_spy,
       heating_control: option.None,
     )
