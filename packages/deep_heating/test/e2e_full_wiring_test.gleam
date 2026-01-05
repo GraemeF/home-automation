@@ -114,22 +114,23 @@ pub fn full_system_wiring_responds_to_sleep_button_test() {
   let evening_time = fn() {
     house_mode_actor.local_datetime(2026, 1, 5, 22, 30, 0)
   }
-  let assert Ok(system) = start_deep_heating_with_time_provider(port, Some(evening_time))
+  let assert Ok(system) =
+    start_deep_heating_with_time_provider(port, Some(evening_time))
 
-  // 3. Initial poll
+  // 3. Initial poll to establish baseline state
   trigger_poll(system)
-  process.sleep(500)
+  process.sleep(200)
 
   // 4. Press the sleep button (update fake HA state)
   press_sleep_button(fake_ha)
 
   // 5. Trigger another poll to detect the button press
   trigger_poll(system)
-  process.sleep(500)
 
-  // 6. Verify house mode changed to sleeping
-  let house_mode = get_house_mode(system)
-  house_mode |> should.equal(mode.HouseModeSleeping)
+  // 6. Wait for house mode to change to sleeping (poll with timeout)
+  // Event propagation: poll → HTTP → parse → EventRouter → HouseModeActor
+  let assert Ok(Nil) =
+    wait_for_house_mode(system, mode.HouseModeSleeping, 2000)
 
   fake_ha_server.stop(fake_ha)
 }
@@ -360,6 +361,42 @@ fn press_sleep_button(server: fake_ha_server.Server) -> Nil {
 /// Get the current house mode from the system
 fn get_house_mode(system: supervisor.SupervisorWithRooms) -> mode.HouseMode {
   supervisor.get_current_house_mode(system)
+}
+
+/// Wait for house mode to reach expected state, with polling and timeout
+/// Returns Ok if expected mode is reached, Error if timeout expires
+fn wait_for_house_mode(
+  system: supervisor.SupervisorWithRooms,
+  expected: mode.HouseMode,
+  timeout_ms: Int,
+) -> Result(Nil, Nil) {
+  wait_for_house_mode_loop(system, expected, timeout_ms, 50)
+}
+
+fn wait_for_house_mode_loop(
+  system: supervisor.SupervisorWithRooms,
+  expected: mode.HouseMode,
+  remaining_ms: Int,
+  poll_interval_ms: Int,
+) -> Result(Nil, Nil) {
+  case remaining_ms <= 0 {
+    True -> Error(Nil)
+    False -> {
+      let current = get_house_mode(system)
+      case current == expected {
+        True -> Ok(Nil)
+        False -> {
+          process.sleep(poll_interval_ms)
+          wait_for_house_mode_loop(
+            system,
+            expected,
+            remaining_ms - poll_interval_ms,
+            poll_interval_ms,
+          )
+        }
+      }
+    }
+  }
 }
 
 /// Assert that a heating command was sent with the expected mode
