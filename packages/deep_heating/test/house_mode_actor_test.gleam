@@ -5,6 +5,28 @@ import gleam/erlang/process
 import gleeunit/should
 
 // =============================================================================
+// Test Helpers
+// =============================================================================
+
+/// Evening time (9pm) - button presses are accepted after 8pm
+fn evening_time() -> LocalDateTime {
+  make_datetime(2026, 1, 3, 21, 0, 0)
+}
+
+/// Start an actor with the clock at evening time (9pm).
+/// Button presses will be accepted since it's after 8pm.
+fn make_test_actor_at_evening() -> process.Subject(house_mode_actor.Message) {
+  let assert Ok(actor) =
+    house_mode_actor.start_with_time_provider(fn() { evening_time() })
+  actor
+}
+
+/// Create a room listener spy for testing broadcasts
+fn make_room_listener() -> process.Subject(room_actor.Message) {
+  process.new_subject()
+}
+
+// =============================================================================
 // Actor Startup Tests
 // =============================================================================
 
@@ -28,10 +50,7 @@ pub fn house_mode_actor_starts_in_auto_mode_test() {
 // =============================================================================
 
 pub fn house_mode_actor_transitions_to_sleeping_on_button_press_test() {
-  // Use time provider at 9pm so button press is accepted
-  let current_time = make_datetime(2026, 1, 3, 21, 0, 0)
-  let assert Ok(actor) =
-    house_mode_actor.start_with_time_provider(fn() { current_time })
+  let actor = make_test_actor_at_evening()
 
   // Press sleep button
   process.send(actor, house_mode_actor.SleepButtonPressed)
@@ -47,10 +66,7 @@ pub fn house_mode_actor_transitions_to_sleeping_on_button_press_test() {
 }
 
 pub fn house_mode_actor_transitions_to_auto_on_wakeup_test() {
-  // Use time provider at 9pm so button press is accepted
-  let current_time = make_datetime(2026, 1, 3, 21, 0, 0)
-  let assert Ok(actor) =
-    house_mode_actor.start_with_time_provider(fn() { current_time })
+  let actor = make_test_actor_at_evening()
 
   // Go to sleep first
   process.send(actor, house_mode_actor.SleepButtonPressed)
@@ -89,13 +105,8 @@ pub fn house_mode_actor_accepts_room_registration_test() {
 }
 
 pub fn house_mode_actor_broadcasts_sleeping_to_registered_rooms_test() {
-  // Use time provider at 9pm so button press is accepted
-  let current_time = make_datetime(2026, 1, 3, 21, 0, 0)
-  let assert Ok(actor) =
-    house_mode_actor.start_with_time_provider(fn() { current_time })
-
-  // Create a room listener
-  let room_listener: process.Subject(room_actor.Message) = process.new_subject()
+  let actor = make_test_actor_at_evening()
+  let room_listener = make_room_listener()
 
   // Register the room actor
   process.send(actor, house_mode_actor.RegisterRoomActor(room_listener))
@@ -115,13 +126,8 @@ pub fn house_mode_actor_broadcasts_sleeping_to_registered_rooms_test() {
 }
 
 pub fn house_mode_actor_broadcasts_auto_on_wakeup_test() {
-  // Use time provider at 9pm so button press is accepted
-  let current_time = make_datetime(2026, 1, 3, 21, 0, 0)
-  let assert Ok(actor) =
-    house_mode_actor.start_with_time_provider(fn() { current_time })
-
-  // Create a room listener
-  let room_listener: process.Subject(room_actor.Message) = process.new_subject()
+  let actor = make_test_actor_at_evening()
+  let room_listener = make_room_listener()
 
   // Register the room actor
   process.send(actor, house_mode_actor.RegisterRoomActor(room_listener))
@@ -146,14 +152,9 @@ pub fn house_mode_actor_broadcasts_auto_on_wakeup_test() {
 }
 
 pub fn house_mode_actor_broadcasts_to_multiple_rooms_test() {
-  // Use time provider at 9pm so button press is accepted
-  let current_time = make_datetime(2026, 1, 3, 21, 0, 0)
-  let assert Ok(actor) =
-    house_mode_actor.start_with_time_provider(fn() { current_time })
-
-  // Create two room listeners
-  let room1: process.Subject(room_actor.Message) = process.new_subject()
-  let room2: process.Subject(room_actor.Message) = process.new_subject()
+  let actor = make_test_actor_at_evening()
+  let room1 = make_room_listener()
+  let room2 = make_room_listener()
 
   // Register both
   process.send(actor, house_mode_actor.RegisterRoomActor(room1))
@@ -225,11 +226,7 @@ pub fn time_after_3am_is_auto_test() {
 
 pub fn button_after_8pm_same_day_is_sleeping_test() {
   // When button is pressed after 8pm (hour > 20) on the same day, mode is Sleeping
-  // Set time to 9pm (21:00)
-  let current_time = make_datetime(2026, 1, 3, 21, 0, 0)
-
-  let assert Ok(actor) =
-    house_mode_actor.start_with_time_provider(fn() { current_time })
+  let actor = make_test_actor_at_evening()
 
   // Press the sleep button
   process.send(actor, house_mode_actor.SleepButtonPressed)
@@ -274,9 +271,7 @@ pub fn button_yesterday_is_auto_test() {
   // logic by testing initial mode calculation with old button press data
 
   // Test 1: Button pressed at 9pm same day -> Sleeping
-  let jan_3_9pm = make_datetime(2026, 1, 3, 21, 0, 0)
-  let assert Ok(actor1) =
-    house_mode_actor.start_with_time_provider(fn() { jan_3_9pm })
+  let actor1 = make_test_actor_at_evening()
 
   process.send(actor1, house_mode_actor.SleepButtonPressed)
   process.sleep(10)

@@ -10,6 +10,43 @@ import gleeunit/should
 import simplifile
 
 // =============================================================================
+// Test Helpers
+// =============================================================================
+
+/// Create a basic room state with minimal fields set.
+/// Most tests just need a room with a name and adjustment.
+fn make_room_state(name: String) -> state.RoomState {
+  state.RoomState(
+    name: name,
+    temperature: option.None,
+    target_temperature: option.None,
+    radiators: [],
+    mode: option.None,
+    is_heating: option.None,
+    adjustment: 0.0,
+  )
+}
+
+/// Create a room state with a specific adjustment value
+fn make_room_state_with_adjustment(
+  name: String,
+  adjustment: Float,
+) -> state.RoomState {
+  state.RoomState(..make_room_state(name), adjustment: adjustment)
+}
+
+/// Create a room state with a temperature reading
+fn make_room_state_with_temp(name: String, temp: Float) -> state.RoomState {
+  state.RoomState(
+    ..make_room_state(name),
+    temperature: option.Some(state.TemperatureReading(
+      temperature: temperature.temperature(temp),
+      time: 12_345,
+    )),
+  )
+}
+
+// =============================================================================
 // Actor Startup Tests
 // =============================================================================
 
@@ -73,16 +110,7 @@ pub fn state_aggregator_handles_room_update_test() {
   let assert Ok(actor) = state_aggregator_actor.start_link()
 
   // Send a room update
-  let room_state =
-    state.RoomState(
-      name: "lounge",
-      temperature: option.None,
-      target_temperature: option.None,
-      radiators: [],
-      mode: option.None,
-      is_heating: option.None,
-      adjustment: 0.0,
-    )
+  let room_state = make_room_state("lounge")
   process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
 
   process.sleep(10)
@@ -100,33 +128,12 @@ pub fn state_aggregator_updates_existing_room_test() {
   let assert Ok(actor) = state_aggregator_actor.start_link()
 
   // Send initial room update
-  let room_state1 =
-    state.RoomState(
-      name: "lounge",
-      temperature: option.None,
-      target_temperature: option.None,
-      radiators: [],
-      mode: option.None,
-      is_heating: option.None,
-      adjustment: 0.0,
-    )
+  let room_state1 = make_room_state("lounge")
   process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state1))
   process.sleep(10)
 
   // Send updated room state with temperature
-  let room_state2 =
-    state.RoomState(
-      name: "lounge",
-      temperature: option.Some(state.TemperatureReading(
-        temperature: temperature.temperature(21.5),
-        time: 12_345,
-      )),
-      target_temperature: option.None,
-      radiators: [],
-      mode: option.None,
-      is_heating: option.None,
-      adjustment: 0.0,
-    )
+  let room_state2 = make_room_state_with_temp("lounge", 21.5)
   process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state2))
   process.sleep(10)
 
@@ -146,26 +153,8 @@ pub fn state_aggregator_updates_existing_room_test() {
 pub fn state_aggregator_tracks_multiple_rooms_test() {
   let assert Ok(actor) = state_aggregator_actor.start_link()
 
-  let room1 =
-    state.RoomState(
-      name: "lounge",
-      temperature: option.None,
-      target_temperature: option.None,
-      radiators: [],
-      mode: option.None,
-      is_heating: option.None,
-      adjustment: 0.0,
-    )
-  let room2 =
-    state.RoomState(
-      name: "bedroom",
-      temperature: option.None,
-      target_temperature: option.None,
-      radiators: [],
-      mode: option.None,
-      is_heating: option.None,
-      adjustment: 0.0,
-    )
+  let room1 = make_room_state("lounge")
+  let room2 = make_room_state("bedroom")
 
   process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room1))
   process.send(actor, state_aggregator_actor.RoomUpdated("bedroom", room2))
@@ -192,16 +181,7 @@ pub fn state_aggregator_broadcasts_to_subscribers_after_throttle_test() {
   process.sleep(10)
 
   // Send a room update
-  let room_state =
-    state.RoomState(
-      name: "lounge",
-      temperature: option.None,
-      target_temperature: option.None,
-      radiators: [],
-      mode: option.None,
-      is_heating: option.None,
-      adjustment: 0.0,
-    )
+  let room_state = make_room_state("lounge")
   process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
 
   // Wait for throttle period (100ms) plus buffer
@@ -222,26 +202,8 @@ pub fn state_aggregator_throttles_rapid_updates_test() {
   process.sleep(10)
 
   // Send multiple rapid updates
-  let room_state1 =
-    state.RoomState(
-      name: "lounge",
-      temperature: option.None,
-      target_temperature: option.None,
-      radiators: [],
-      mode: option.None,
-      is_heating: option.None,
-      adjustment: 0.0,
-    )
-  let room_state2 =
-    state.RoomState(
-      name: "bedroom",
-      temperature: option.None,
-      target_temperature: option.None,
-      radiators: [],
-      mode: option.None,
-      is_heating: option.None,
-      adjustment: 0.0,
-    )
+  let room_state1 = make_room_state("lounge")
+  let room_state2 = make_room_state("bedroom")
 
   // Send updates rapidly (within 100ms window)
   process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state1))
@@ -280,16 +242,7 @@ pub fn state_aggregator_does_not_broadcast_to_unsubscribed_test() {
   process.sleep(10)
 
   // Send a room update
-  let room_state =
-    state.RoomState(
-      name: "lounge",
-      temperature: option.None,
-      target_temperature: option.None,
-      radiators: [],
-      mode: option.None,
-      is_heating: option.None,
-      adjustment: 0.0,
-    )
+  let room_state = make_room_state("lounge")
   process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
 
   // Wait for throttle period
@@ -384,16 +337,7 @@ pub fn state_aggregator_persists_adjustments_when_path_configured_test() {
     state_aggregator_actor.start_link_with_persistence(test_path)
 
   // Send a room update with a non-zero adjustment
-  let room_state =
-    state.RoomState(
-      name: "lounge",
-      temperature: option.None,
-      target_temperature: option.None,
-      radiators: [],
-      mode: option.None,
-      is_heating: option.None,
-      adjustment: 1.5,
-    )
+  let room_state = make_room_state_with_adjustment("lounge", 1.5)
   process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
   process.sleep(50)
 
@@ -419,26 +363,8 @@ pub fn state_aggregator_persists_multiple_rooms_test() {
     state_aggregator_actor.start_link_with_persistence(test_path)
 
   // Send updates for multiple rooms with different adjustments
-  let lounge_state =
-    state.RoomState(
-      name: "lounge",
-      temperature: option.None,
-      target_temperature: option.None,
-      radiators: [],
-      mode: option.None,
-      is_heating: option.None,
-      adjustment: 1.5,
-    )
-  let bedroom_state =
-    state.RoomState(
-      name: "bedroom",
-      temperature: option.None,
-      target_temperature: option.None,
-      radiators: [],
-      mode: option.None,
-      is_heating: option.None,
-      adjustment: -0.5,
-    )
+  let lounge_state = make_room_state_with_adjustment("lounge", 1.5)
+  let bedroom_state = make_room_state_with_adjustment("bedroom", -0.5)
 
   process.send(
     actor,
@@ -473,16 +399,7 @@ pub fn state_aggregator_only_persists_on_adjustment_change_test() {
     state_aggregator_actor.start_link_with_persistence(test_path)
 
   // Send initial room update with no adjustment (0.0)
-  let room_state_initial =
-    state.RoomState(
-      name: "lounge",
-      temperature: option.None,
-      target_temperature: option.None,
-      radiators: [],
-      mode: option.None,
-      is_heating: option.None,
-      adjustment: 0.0,
-    )
+  let room_state_initial = make_room_state("lounge")
   process.send(
     actor,
     state_aggregator_actor.RoomUpdated("lounge", room_state_initial),
