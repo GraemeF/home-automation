@@ -1,0 +1,8 @@
+{
+  "name": "gleam-lsp",
+  "version": "0.1.0",
+  "description": "Gleam Language Server for Claude Code",
+  "author": { "name": "Graeme Foster" },
+  "license": "MIT",
+  "keywords": ["gleam", "lsp", "language-server", "erlang", "beam"]
+}

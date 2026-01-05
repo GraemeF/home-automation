@@ -1,0 +1,13 @@
+{
+  "name": "gleam-local",
+  "owner": {
+    "name": "Graeme Foster"
+  },
+  "plugins": [
+    {
+      "name": "gleam-lsp",
+      "source": "./gleam-lsp",
+      "description": "Gleam Language Server Protocol support"
+    }
+  ]
+}
