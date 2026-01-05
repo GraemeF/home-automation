@@ -103,7 +103,7 @@ pub type ServerToClient {
 
 ### TrvActor
 
-Holds the latest state from HA and notifies parent room.
+Holds the latest state from HA and notifies parent room via name lookup.
 
 ```gleam
 pub type TrvState {
@@ -116,38 +116,47 @@ pub type TrvState {
   )
 }
 
-pub fn trv_actor(
-  entity_id: TrvEntityId,
-  room_actor: Subject(RoomActorMsg),
-  ha_commands: Subject(HaCommand),
-) -> Result(Subject(TrvActorMsg), StartError) {
-  actor.start(TrvState(entity_id, None, None, Off, False), fn(msg, state) {
-    case msg {
-      Update(update) -> {
-        let new_state = TrvState(
-          entity_id: entity_id,
-          temperature: update.temperature,
-          target: update.target,
-          mode: update.mode,
-          is_heating: update.is_heating,
-        )
-        // Notify room actor of changes
-        case state.temperature != new_state.temperature {
-          True -> process.send(room_actor, TrvTemperatureChanged(entity_id, new_state.temperature))
-          False -> Nil
-        }
-        actor.continue(new_state)
+type ActorState {
+  ActorState(trv: TrvState, room_actor_name: Name(RoomMessage))
+}
+
+/// Start TrvActor with name registration for OTP supervision.
+/// Uses room_actor_name for name-based lookup (survives restarts).
+pub fn start(
+  entity_id: ClimateEntityId,
+  name: Name(Message),
+  room_actor_name: Name(RoomMessage),
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  let initial_trv = TrvState(entity_id, None, None, HvacOff, False)
+  let initial_state = ActorState(trv: initial_trv, room_actor_name: room_actor_name)
+
+  actor.new(initial_state)
+  |> actor.named(name)
+  |> actor.on_message(handle_message)
+  |> actor.start
+}
+
+fn send_to_room(name: Name(RoomMessage), msg: RoomMessage) -> Nil {
+  let room_actor = process.named_subject(name)
+  process.send(room_actor, msg)
+}
+
+fn handle_message(state: ActorState, message: Message) {
+  case message {
+    Update(update) -> {
+      let new_trv = TrvState(..state.trv, ...)
+      // Notify room via name lookup (survives RoomActor restarts)
+      case state.trv.temperature != new_trv.temperature {
+        True -> send_to_room(state.room_actor_name, TrvTemperatureChanged(...))
+        False -> Nil
       }
-      SetTarget(temp) -> {
-        process.send(ha_commands, SetTrvTarget(entity_id, temp))
-        actor.continue(state)
-      }
-      GetState(reply_to) -> {
-        process.send(reply_to, state)
-        actor.continue(state)
-      }
+      actor.continue(ActorState(..state, trv: new_trv))
     }
-  })
+    GetState(reply_to) -> {
+      process.send(reply_to, state.trv)
+      actor.continue(state)
+    }
+  }
 }
 ```
 
@@ -328,18 +337,89 @@ let assert Ok(child_subject) = process.receive(response_subject, 5000)
 3. The actor selects on that Subject
 4. External callers using `named_subject(name)` get a Subject pointing to the same selector
 
-**Actors using `actor.named()` (can use `named_subject`):**
+**All room actors use `actor.named()` and name-based lookups:**
 - TrvActor ✓
-- HeatingControlActor (named variant) ✓
-- StateAggregatorActor (named variant) ✓
-- RoomActor (named variant via `start_named`) ✓
-- RoomDecisionActor (named variant via `start_named`) ✓
+- RoomActor ✓
+- RoomDecisionActor ✓
+- TrvCommandAdapterActor ✓
+- HeatingControlAdapterActor ✓
+- BoilerCommandAdapterActor ✓
 
-**Actors NOT using `actor.named()` (must capture Subject at startup):**
+**Infrastructure actors also use `actor.named()`:**
+- HaCommandActor ✓
+- StateAggregatorActor ✓
+- HeatingControlActor ✓
+
+**Other actors (capture Subject at startup):**
 - EventRouterActor
 - HouseModeActor
-- HaCommandActor
 - HaPollerActor
+
+### Name-Based Lookups for Supervision Recovery
+
+When actors are supervised with restart strategies, a crashed actor gets a **new Subject** after restart. If other actors hold references to the old Subject, messages will be lost.
+
+**Solution: Store Names, lookup at message send time.**
+
+```gleam
+// WRONG: Storing Subject directly (breaks after restart)
+type ActorState {
+  ActorState(room_actor: Subject(RoomMessage))
+}
+
+fn notify_room(state: ActorState, msg: RoomMessage) {
+  process.send(state.room_actor, msg)  // Fails if room_actor restarted!
+}
+```
+
+```gleam
+// RIGHT: Store Name, lookup each time
+type ActorState {
+  ActorState(room_actor_name: Name(RoomMessage))
+}
+
+fn notify_room(state: ActorState, msg: RoomMessage) {
+  let subject = process.named_subject(state.room_actor_name)
+  process.send(subject, msg)  // Always gets current actor's Subject
+}
+```
+
+**Complete actor chain using name-based lookups:**
+```
+TrvActor → RoomActor (by name)
+    ↓ triggers
+RoomActor → RoomDecisionActor (by name)
+    ↓ computes setpoint
+RoomDecisionActor → TrvCommandAdapterActor (by name)
+    ↓ translates domain → HA
+TrvCommandAdapterActor → HaCommandActor (by name)
+    ↓ sends to Home Assistant
+HaCommandActor → Home Assistant API
+```
+
+**Restart test proving this works** (from `rooms_supervisor_test.gleam`):
+```gleam
+pub fn trv_actor_is_restarted_when_it_crashes_test() {
+  // ... start room with TrvActor ...
+
+  let original_pid = trv_ref.pid
+  let trv_name = trv_ref.name
+
+  // Verify it's alive
+  let trv_subject = process.named_subject(trv_name)
+  process.send(trv_subject, trv_actor.GetState(reply1))
+  let assert Ok(_) = process.receive(reply1, 1000)
+
+  // Kill it
+  process.kill(original_pid)
+  process.sleep(200)  // Wait for supervisor restart
+
+  // Query again via same name - restarted actor responds!
+  process.send(trv_subject, trv_actor.GetState(reply2))
+  let result = process.receive(reply2, 1000)
+  should.be_ok(result)  // Works because name lookup gets new Subject
+}
+```
 
 ### Adapter Actor Pattern
 
