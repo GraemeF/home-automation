@@ -24,8 +24,8 @@ const test_adjustments_path = "/tmp/deep_heating_test_adjustments.json"
 
 pub fn supervisor_starts_successfully_test() {
   // The top-level supervisor should start and return Ok with a Started record
-  let result = supervisor.start()
-  should.be_ok(result)
+  let assert Ok(started) = supervisor.start()
+  supervisor.shutdown(started.data)
 }
 
 pub fn supervisor_returns_valid_pid_test() {
@@ -33,6 +33,7 @@ pub fn supervisor_returns_valid_pid_test() {
   let assert Ok(started) = supervisor.start()
   // Verify the PID is alive
   process.is_alive(started.pid) |> should.be_true
+  supervisor.shutdown(started.data)
 }
 
 // Child supervisor tests
@@ -44,6 +45,7 @@ pub fn supervisor_has_house_mode_actor_test() {
   // Get the house mode actor from the supervisor
   let result = supervisor.get_house_mode_actor(started.data)
   should.be_ok(result)
+  supervisor.shutdown(started.data)
 }
 
 pub fn supervisor_has_state_aggregator_actor_test() {
@@ -53,6 +55,7 @@ pub fn supervisor_has_state_aggregator_actor_test() {
   // Get the state aggregator from the supervisor
   let result = supervisor.get_state_aggregator(started.data)
   should.be_ok(result)
+  supervisor.shutdown(started.data)
 }
 
 pub fn house_mode_actor_is_alive_test() {
@@ -60,6 +63,7 @@ pub fn house_mode_actor_is_alive_test() {
   let assert Ok(started) = supervisor.start()
   let assert Ok(house_mode) = supervisor.get_house_mode_actor(started.data)
   process.is_alive(house_mode.pid) |> should.be_true
+  supervisor.shutdown(started.data)
 }
 
 pub fn state_aggregator_actor_is_alive_test() {
@@ -67,6 +71,7 @@ pub fn state_aggregator_actor_is_alive_test() {
   let assert Ok(started) = supervisor.start()
   let assert Ok(aggregator) = supervisor.get_state_aggregator(started.data)
   process.is_alive(aggregator.pid) |> should.be_true
+  supervisor.shutdown(started.data)
 }
 
 // Restart behaviour tests
@@ -99,6 +104,7 @@ pub fn supervisor_restarts_crashed_house_mode_actor_test() {
 
   // The new PID should be different from the original
   should.not_equal(new_house_mode.pid, original_pid)
+  supervisor.shutdown(started.data)
 }
 
 pub fn supervisor_restarts_crashed_state_aggregator_test() {
@@ -121,6 +127,7 @@ pub fn supervisor_restarts_crashed_state_aggregator_test() {
   // Should be alive with a new PID
   process.is_alive(new_aggregator.pid) |> should.be_true
   should.not_equal(new_aggregator.pid, original_pid)
+  supervisor.shutdown(started.data)
 }
 
 // =============================================================================
@@ -154,6 +161,7 @@ pub fn supervisor_has_ha_poller_actor_test() {
   // Get the ha poller actor from the supervisor
   let result = supervisor.get_ha_poller(started.data)
   should.be_ok(result)
+  supervisor.shutdown(started.data)
 }
 
 pub fn ha_poller_actor_is_alive_test() {
@@ -170,6 +178,7 @@ pub fn ha_poller_actor_is_alive_test() {
 
   let assert Ok(ha_poller) = supervisor.get_ha_poller(started.data)
   process.is_alive(ha_poller.pid) |> should.be_true
+  supervisor.shutdown(started.data)
 }
 
 pub fn supervisor_restarts_crashed_ha_poller_actor_test() {
@@ -208,6 +217,7 @@ pub fn supervisor_restarts_crashed_ha_poller_actor_test() {
 
   // The new PID should be different from the original
   should.not_equal(new_ha_poller.pid, original_pid)
+  supervisor.shutdown(started.data)
 }
 
 // =============================================================================
@@ -229,6 +239,7 @@ pub fn supervisor_has_ha_command_actor_test() {
   // Get the ha command actor from the supervisor
   let result = supervisor.get_ha_command_actor(started.data)
   should.be_ok(result)
+  supervisor.shutdown(started.data)
 }
 
 pub fn ha_command_actor_is_alive_test() {
@@ -245,6 +256,7 @@ pub fn ha_command_actor_is_alive_test() {
 
   let assert Ok(ha_command) = supervisor.get_ha_command_actor(started.data)
   process.is_alive(ha_command.pid) |> should.be_true
+  supervisor.shutdown(started.data)
 }
 
 pub fn ha_command_actor_responds_to_messages_test() {
@@ -275,6 +287,7 @@ pub fn ha_command_actor_responds_to_messages_test() {
   // Just verify the actor didn't crash - still alive after message
   process.sleep(10)
   process.is_alive(ha_command.pid) |> should.be_true
+  supervisor.shutdown(started.data)
 }
 
 // =============================================================================

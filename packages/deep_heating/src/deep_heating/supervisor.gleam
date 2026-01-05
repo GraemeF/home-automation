@@ -219,6 +219,18 @@ pub fn pid(sup: Supervisor) -> Pid {
   sup.pid
 }
 
+/// Shutdown the supervisor and all its children.
+///
+/// Unlinks from the supervisor then sends a shutdown exit signal.
+/// All children under OTP supervision will be terminated gracefully.
+pub fn shutdown(sup: Supervisor) -> Nil {
+  // Unlink so the calling process doesn't receive the exit signal
+  process.unlink(sup.pid)
+  process.send_abnormal_exit(sup.pid, "shutdown")
+  // Give processes time to terminate and unregister names
+  process.sleep(50)
+}
+
 fn wrap_result(
   result: Result(actor.Started(supervisor.Supervisor), actor.StartError),
   house_mode_name: Name(house_mode_actor.Message),
