@@ -7,7 +7,7 @@
 //// - Turn boiler OFF when no rooms need heating
 //// - Emit domain BoilerCommand messages (decoupled from HA infrastructure)
 
-import deep_heating/actor/room_actor
+import deep_heating/rooms/room_actor
 import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/mode.{type HvacMode}
 import deep_heating/temperature.{type Temperature}

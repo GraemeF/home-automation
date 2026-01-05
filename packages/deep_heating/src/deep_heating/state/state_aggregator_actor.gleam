@@ -7,8 +7,8 @@
 //// - Broadcast state to WebSocket client subscribers
 //// - Persist room adjustments to disk when they change
 
-import deep_heating/actor/room_actor
-import deep_heating/room_adjustments
+import deep_heating/rooms/room_actor
+import deep_heating/rooms/room_adjustments
 import deep_heating/state.{type DeepHeatingState, type RoomState}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Name, type Subject}

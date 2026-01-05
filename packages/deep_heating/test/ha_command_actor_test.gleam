@@ -1,6 +1,6 @@
-import deep_heating/actor/ha_command_actor.{type ApiCall}
 import deep_heating/entity_id
-import deep_heating/home_assistant
+import deep_heating/home_assistant/client as home_assistant
+import deep_heating/home_assistant/ha_command_actor.{type ApiCall}
 import deep_heating/mode
 import deep_heating/temperature
 import gleam/erlang/process

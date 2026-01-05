@@ -1,5 +1,5 @@
 import deep_heating/entity_id
-import deep_heating/home_assistant.{HaClient}
+import deep_heating/home_assistant/client.{HaClient} as home_assistant
 import deep_heating/mode
 import deep_heating/temperature
 import envoy

@@ -9,16 +9,16 @@
 //// └── RoomsSupervisor (when started with home_config)
 //// ```
 
-import deep_heating/actor/event_router_actor
-import deep_heating/actor/ha_command_actor
-import deep_heating/actor/ha_poller_actor
-import deep_heating/actor/heating_control_actor
-import deep_heating/actor/house_mode_actor
-import deep_heating/actor/state_aggregator_actor
-import deep_heating/home_assistant.{type HaClient}
-import deep_heating/home_config.{type HomeConfig}
-import deep_heating/room_adjustments
-import deep_heating/rooms_supervisor.{type RoomsSupervisor}
+import deep_heating/event_router_actor
+import deep_heating/heating/heating_control_actor
+import deep_heating/house_mode/house_mode_actor
+import deep_heating/state/state_aggregator_actor
+import deep_heating/home_assistant/client.{type HaClient}
+import deep_heating/home_assistant/ha_command_actor
+import deep_heating/home_assistant/ha_poller_actor
+import deep_heating/config/home_config.{type HomeConfig}
+import deep_heating/rooms/room_adjustments
+import deep_heating/rooms/rooms_supervisor.{type RoomsSupervisor}
 import gleam/dict
 import gleam/erlang/process.{type Name, type Pid, type Subject}
 import gleam/list

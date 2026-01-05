@@ -1,6 +1,6 @@
-import deep_heating/actor/ha_poller_actor
 import deep_heating/entity_id
-import deep_heating/home_assistant
+import deep_heating/home_assistant/client as home_assistant
+import deep_heating/home_assistant/ha_poller_actor
 import deep_heating/temperature
 import gleam/erlang/process
 import gleam/list

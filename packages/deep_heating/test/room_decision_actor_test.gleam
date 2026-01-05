@@ -1,5 +1,5 @@
-import deep_heating/actor/room_actor
-import deep_heating/actor/room_decision_actor
+import deep_heating/rooms/room_actor
+import deep_heating/rooms/room_decision_actor
 import deep_heating/entity_id
 import deep_heating/mode
 import deep_heating/temperature

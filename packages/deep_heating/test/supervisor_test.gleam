@@ -1,12 +1,12 @@
-import deep_heating/actor/ha_command_actor
-import deep_heating/actor/ha_poller_actor
-import deep_heating/actor/room_actor
 import deep_heating/entity_id
-import deep_heating/home_assistant
-import deep_heating/home_config.{type HomeConfig, HomeConfig, RoomConfig}
+import deep_heating/home_assistant/client as home_assistant
+import deep_heating/home_assistant/ha_command_actor
+import deep_heating/home_assistant/ha_poller_actor
+import deep_heating/config/home_config.{type HomeConfig, HomeConfig, RoomConfig}
 import deep_heating/mode
-import deep_heating/rooms_supervisor
-import deep_heating/schedule
+import deep_heating/rooms/room_actor
+import deep_heating/rooms/rooms_supervisor
+import deep_heating/scheduling/schedule
 import deep_heating/supervisor
 import deep_heating/temperature
 import envoy

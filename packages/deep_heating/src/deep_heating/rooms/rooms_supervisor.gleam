@@ -15,15 +15,15 @@
 //// └── ...
 //// ```
 
-import deep_heating/actor/ha_command_actor
-import deep_heating/actor/house_mode_actor
-import deep_heating/actor/room_actor
-import deep_heating/actor/room_decision_actor
-import deep_heating/actor/state_aggregator_actor
-import deep_heating/actor/trv_actor
+import deep_heating/home_assistant/ha_command_actor
+import deep_heating/house_mode/house_mode_actor
+import deep_heating/state/state_aggregator_actor
 import deep_heating/entity_id.{type ClimateEntityId}
-import deep_heating/home_config.{type HomeConfig, type RoomConfig}
-import deep_heating/room_adjustments.{type RoomAdjustment}
+import deep_heating/config/home_config.{type HomeConfig, type RoomConfig}
+import deep_heating/rooms/room_actor
+import deep_heating/rooms/room_adjustments.{type RoomAdjustment}
+import deep_heating/rooms/room_decision_actor
+import deep_heating/rooms/trv_actor
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Pid, type Subject}
 import gleam/list

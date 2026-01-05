@@ -5,7 +5,7 @@
 //// - WebSocket endpoint for Lustre server component communication
 //// - Integration with StateAggregatorActor for real-time state updates
 
-import deep_heating/actor/state_aggregator_actor
+import deep_heating/state/state_aggregator_actor
 import deep_heating/state.{type DeepHeatingState}
 import deep_heating/ui/app
 import deep_heating/ui/msg.{type Msg, Connected, Disconnected, StateReceived}

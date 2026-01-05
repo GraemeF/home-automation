@@ -12,7 +12,7 @@ import deep_heating/mode.{
   type HouseMode, type HvacMode, type RoomMode, HouseModeAuto, HouseModeSleeping,
   HvacOff, RoomModeOff,
 }
-import deep_heating/schedule.{type TimeOfDay, type WeekSchedule, type Weekday}
+import deep_heating/scheduling/schedule.{type TimeOfDay, type WeekSchedule, type Weekday}
 import deep_heating/state
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}

@@ -8,9 +8,9 @@
 //// - Dispatch updates to appropriate actors
 //// - Filter to only managed TRVs (those with schedules)
 
-import deep_heating/actor/trv_actor.{type TrvUpdate, TrvUpdate}
+import deep_heating/rooms/trv_actor.{type TrvUpdate, TrvUpdate}
 import deep_heating/entity_id.{type ClimateEntityId, type SensorEntityId}
-import deep_heating/home_assistant.{type HaClient}
+import deep_heating/home_assistant/client.{type HaClient} as home_assistant
 import deep_heating/temperature.{type Temperature}
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/int

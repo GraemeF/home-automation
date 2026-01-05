@@ -1,4 +1,4 @@
-import deep_heating/schedule.{
+import deep_heating/scheduling/schedule.{
   Monday, Saturday, ScheduleEntry, Tuesday, WeekSchedule,
   get_scheduled_temperature, hour, minute, time_of_day, time_of_day_compare,
   time_of_day_from_string, time_of_day_to_minutes, time_of_day_to_string,

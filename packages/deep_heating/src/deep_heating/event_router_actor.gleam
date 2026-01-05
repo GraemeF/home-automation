@@ -7,11 +7,11 @@
 //// - Route SleepButtonPressed events to HouseModeActor
 //// - Ignore poll status events (PollCompleted, PollFailed, etc.)
 
-import deep_heating/actor/ha_poller_actor.{type PollerEvent}
-import deep_heating/actor/heating_control_actor
-import deep_heating/actor/house_mode_actor
-import deep_heating/actor/room_actor
-import deep_heating/actor/trv_actor
+import deep_heating/home_assistant/ha_poller_actor.{type PollerEvent}
+import deep_heating/heating/heating_control_actor
+import deep_heating/house_mode/house_mode_actor
+import deep_heating/rooms/room_actor
+import deep_heating/rooms/trv_actor
 import deep_heating/entity_id.{type ClimateEntityId, type SensorEntityId}
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}

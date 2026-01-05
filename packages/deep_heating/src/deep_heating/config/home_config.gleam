@@ -4,7 +4,7 @@
 import deep_heating/entity_id.{
   type ClimateEntityId, type GoodnightEntityId, type SensorEntityId,
 }
-import deep_heating/schedule.{
+import deep_heating/scheduling/schedule.{
   type DaySchedule, type WeekSchedule, ScheduleEntry, WeekSchedule,
 }
 import deep_heating/temperature

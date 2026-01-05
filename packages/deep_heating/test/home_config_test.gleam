@@ -1,6 +1,6 @@
+import deep_heating/config/home_config
 import deep_heating/entity_id
-import deep_heating/home_config
-import deep_heating/schedule
+import deep_heating/scheduling/schedule
 import deep_heating/temperature
 import envoy
 import gleam/option.{None, Some}

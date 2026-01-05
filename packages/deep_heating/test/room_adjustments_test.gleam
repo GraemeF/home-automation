@@ -1,6 +1,6 @@
 //// Tests for room_adjustments module - persistence of room temperature adjustments
 
-import deep_heating/room_adjustments
+import deep_heating/rooms/room_adjustments
 import envoy
 import gleeunit/should
 import simplifile

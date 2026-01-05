@@ -7,7 +7,7 @@
 //// - Handle errors gracefully (log but don't crash)
 
 import deep_heating/entity_id.{type ClimateEntityId}
-import deep_heating/home_assistant.{type HaClient}
+import deep_heating/home_assistant/client.{type HaClient} as home_assistant
 import deep_heating/mode.{type HvacMode}
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}

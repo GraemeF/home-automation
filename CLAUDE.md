@@ -104,39 +104,66 @@ The Gleam implementation follows a **Ports and Adapters** (Hexagonal) architectu
 - Infrastructure concerns (HTTP, WebSocket, file I/O, HA API) live in adapters
 - Domain logic should be testable without infrastructure
 
-### Directory Structure
+### Directory Structure (Vertical Slices)
+
+The codebase is organized into vertical slices grouped by capability. Slices don't import each other's actors, only each other's types. The supervisor does the wiring via Subject injection.
 
 ```
 packages/deep_heating/src/deep_heating/
-├── actor/                    # Actor implementations (adapters)
-│   ├── event_router_actor    # Routes HA events to correct handlers
-│   ├── ha_command_actor      # Infrastructure: sends commands to HA API
-│   ├── ha_poller_actor       # Infrastructure: polls HA API for state
-│   ├── heating_control_actor # Controls main heating system
-│   ├── house_mode_actor      # Domain: manages house-wide mode
-│   ├── room_actor            # Domain: aggregates room state
-│   ├── room_decision_actor   # Domain: computes TRV setpoints
-│   ├── state_aggregator_actor # Broadcasts state to UI clients
-│   └── trv_actor             # Domain: holds TRV state
-├── mode.gleam               # Domain types: HouseMode, RoomMode, HvacMode
-├── schedule.gleam           # Domain logic: schedules, time handling
-├── state.gleam              # Domain types: RoomState, DeepHeatingState
-├── temperature.gleam        # Domain type: Temperature with constraints
-├── entity_id.gleam          # Domain type: ClimateEntityId
-├── home_assistant.gleam     # Infrastructure: HA HTTP client
-├── server.gleam             # Infrastructure: WebSocket server
-├── supervisor.gleam         # OTP supervision tree
-└── rooms_supervisor.gleam   # Per-room supervision factory
+├── rooms/                    # Room management slice
+│   ├── room_actor.gleam      # Domain: aggregates room state
+│   ├── room_decision_actor.gleam # Domain: computes TRV setpoints
+│   ├── trv_actor.gleam       # Domain: holds TRV state
+│   ├── rooms_supervisor.gleam # Per-room supervision factory
+│   └── room_adjustments.gleam # Room temp adjustment persistence
+│
+├── home_assistant/           # HA integration slice (infrastructure)
+│   ├── client.gleam          # HTTP client for HA API
+│   ├── ha_poller_actor.gleam # Polls HA API for state
+│   └── ha_command_actor.gleam # Sends commands to HA API
+│
+├── house_mode/               # House mode slice
+│   └── house_mode_actor.gleam # Manages house-wide mode (Auto/Sleeping)
+│
+├── heating/                  # Heating control slice
+│   └── heating_control_actor.gleam # Controls main boiler
+│
+├── state/                    # UI state slice
+│   └── state_aggregator_actor.gleam # Broadcasts state to UI clients
+│
+├── config/                   # Configuration slice
+│   └── home_config.gleam     # Parses room/TRV configuration
+│
+├── scheduling/               # Scheduling slice
+│   └── schedule.gleam        # Schedule types and logic
+│
+├── ui/                       # Lustre UI components
+│   ├── app.gleam, view.gleam, update.gleam, model.gleam, msg.gleam
+│   └── components/           # Room cards, controls, badges
+│
+# Root level (orchestration & shared types):
+├── event_router_actor.gleam  # Routes HA events to correct handlers
+├── supervisor.gleam          # OTP supervision tree
+├── server.gleam              # WebSocket server infrastructure
+├── mode.gleam                # Shared: HouseMode, RoomMode, HvacMode
+├── state.gleam               # Shared: RoomState, DeepHeatingState
+├── temperature.gleam         # Shared: Temperature type
+└── entity_id.gleam           # Shared: ClimateEntityId, SensorEntityId
 ```
 
-### Layer Separation
+### Slice Boundaries
 
-| Layer | Files | Responsibility |
-|-------|-------|----------------|
-| **Domain Types** | `mode.gleam`, `state.gleam`, `temperature.gleam`, `schedule.gleam`, `entity_id.gleam` | Pure data types, no I/O |
-| **Domain Logic** | `room_actor`, `room_decision_actor`, `house_mode_actor`, `trv_actor` | Business rules, testable with mocked time |
-| **Infrastructure** | `home_assistant.gleam`, `ha_poller_actor`, `ha_command_actor`, `server.gleam` | HTTP, WebSocket, polling |
-| **Orchestration** | `supervisor.gleam`, `rooms_supervisor.gleam` | Process supervision |
+| Slice | Actors | Responsibility |
+|-------|--------|----------------|
+| **rooms/** | `room_actor`, `room_decision_actor`, `trv_actor` | Room temperature management, TRV control |
+| **home_assistant/** | `ha_poller_actor`, `ha_command_actor` | HA API integration (infrastructure) |
+| **house_mode/** | `house_mode_actor` | House-wide mode management |
+| **heating/** | `heating_control_actor` | Main boiler control |
+| **state/** | `state_aggregator_actor` | UI state broadcasting |
+| **config/** | - | Configuration parsing |
+| **scheduling/** | - | Schedule types and evaluation |
+
+**Shared types** (root level): `mode.gleam`, `state.gleam`, `temperature.gleam`, `entity_id.gleam` - used across multiple slices.
 
 ### Message Flow
 
@@ -178,25 +205,30 @@ fn compute_desired_trv_target(
 
 When adding new features to the Gleam codebase:
 
-1. **Define domain types first** in dedicated files (`mode.gleam`, `state.gleam`, etc.)
-   - Types should express domain concepts, not implementation details
-   - No infrastructure imports in domain type files
+1. **Respect slice boundaries**
+   - Slices don't import each other's actors, only types
+   - Add new actors to the appropriate existing slice
+   - Create a new slice only for genuinely new capabilities
 
-2. **Message types live with their actors** (acceptable compromise)
+2. **Shared types live at root level**
+   - Types used by multiple slices go in `mode.gleam`, `state.gleam`, etc.
+   - Slice-specific types stay within the slice
+
+3. **Message types live with their actors** (acceptable compromise)
    - Each actor defines its own `Message` type
    - Cross-actor communication uses explicit `Subject(OtherActor.Message)`
 
-3. **Domain actors should be testable without infrastructure**
+4. **Domain actors should be testable without infrastructure**
    - Inject time providers (`GetDateTime` function type)
    - Inject Subjects for dependencies rather than hardcoding
    - Use `skip_http` flags or similar for infrastructure actors
 
-4. **Infrastructure adapters isolate external systems**
-   - HTTP clients, WebSocket handlers, file I/O
+5. **Infrastructure adapters isolate external systems**
+   - The `home_assistant/` slice handles all HA API concerns
    - Should be swappable without changing domain logic
    - Use testability hooks (spy subjects, skip flags)
 
-5. **Pure functions for complex domain logic**
+6. **Pure functions for complex domain logic**
    - Extract into standalone functions (e.g., `compute_target_temperature`)
    - Can be tested independently of actors
 

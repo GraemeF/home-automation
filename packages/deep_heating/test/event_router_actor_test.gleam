@@ -1,12 +1,12 @@
-import deep_heating/actor/event_router_actor
-import deep_heating/actor/ha_poller_actor
-import deep_heating/actor/heating_control_actor
-import deep_heating/actor/house_mode_actor
-import deep_heating/actor/room_actor
-import deep_heating/actor/trv_actor
+import deep_heating/event_router_actor
+import deep_heating/home_assistant/ha_poller_actor
+import deep_heating/heating/heating_control_actor
+import deep_heating/house_mode/house_mode_actor
+import deep_heating/rooms/room_actor
+import deep_heating/rooms/trv_actor
 import deep_heating/entity_id
 import deep_heating/mode
-import deep_heating/schedule as deep_heating_schedule
+import deep_heating/scheduling/schedule as deep_heating_schedule
 import deep_heating/temperature
 import gleam/dict
 import gleam/erlang/process

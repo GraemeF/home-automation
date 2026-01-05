@@ -1,7 +1,7 @@
-import deep_heating/actor/room_actor
+import deep_heating/rooms/room_actor
 import deep_heating/entity_id
 import deep_heating/mode
-import deep_heating/schedule
+import deep_heating/scheduling/schedule
 import deep_heating/temperature
 import gleam/dict
 import gleam/erlang/process
