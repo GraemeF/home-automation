@@ -1,45 +1,49 @@
 # Deep Heating: Gleam Actor Architecture
 
+This document describes the actor-based architecture of Deep Heating, a Gleam application running on the BEAM (Erlang runtime). The architecture follows a **Ports and Adapters** (Hexagonal) pattern with OTP supervision for fault tolerance.
+
 ## Supervision Tree
 
 ```
 DeepHeatingSupervisor
-├── HomeAssistantSupervisor
-│   ├── HaPollerActor          (polls HA API every 5s)
-│   └── HaCommandActor         (sends setTemperature/setHvacMode)
+├── HaPollerActor            (polls HA API every 5s)
+├── HaCommandActor           (sends setTemperature/setHvacMode, debounced)
+├── EventRouterActor         (routes HA events to correct actors)
+├── HouseModeActor           (tracks Auto/Sleeping mode)
+├── HeatingControlActor      (aggregates room demand, controls boiler)
+├── BoilerCommandAdapterActor (domain → HA for boiler commands)
+├── StateAggregatorActor     (collects snapshots for UI)
 │
-├── HouseModeActor             (singleton - tracks Auto/Sleeping)
-│
-├── RoomsSupervisor
-│   ├── RoomSupervisor(lounge)
-│   │   ├── RoomActor(lounge)
-│   │   ├── TrvActor(lounge_trv)
-│   │   └── RoomDecisionActor(lounge)
-│   │
-│   ├── RoomSupervisor(bedroom)
-│   │   ├── RoomActor(bedroom)
-│   │   ├── TrvActor(bedroom_trv_1)
-│   │   ├── TrvActor(bedroom_trv_2)
-│   │   └── RoomDecisionActor(bedroom)
-│   │
-│   └── ... (one supervisor per room)
-│
-├── StateAggregatorActor       (collects snapshots for UI)
-│
-└── WebSocketSupervisor
-    ├── WebSocketListenerActor
-    ├── ClientActor(conn_1)
-    ├── ClientActor(conn_2)
-    └── ...
+└── RoomsSupervisor
+    ├── RoomSupervisor(lounge)
+    │   ├── RoomActor(lounge)              (aggregates room state)
+    │   ├── TrvActor(lounge_trv)           (holds TRV state)
+    │   ├── RoomDecisionActor(lounge)      (computes TRV targets)
+    │   └── TrvCommandAdapterActor(lounge) (domain → HA for TRV commands)
+    │
+    ├── RoomSupervisor(bedroom)
+    │   ├── RoomActor(bedroom)
+    │   ├── TrvActor(bedroom_trv_1)
+    │   ├── TrvActor(bedroom_trv_2)
+    │   ├── RoomDecisionActor(bedroom)
+    │   └── TrvCommandAdapterActor(bedroom)
+    │
+    └── ... (one supervisor per room)
 ```
+
+Key architectural decisions:
+- **Per-room supervision**: Each room has its own supervisor with restart strategy
+- **Adapter actors**: Domain commands (TrvCommand, BoilerCommand) are translated to HA commands by dedicated adapter actors
+- **Name-based lookups**: Actors find each other by OTP name registry, surviving supervisor restarts
 
 ## Message Types
 
+### TRV Layer
+
 ```gleam
-// From Home Assistant Poller
+// From Home Assistant Poller (infrastructure)
 pub type TrvUpdate {
   TrvUpdate(
-    entity_id: TrvEntityId,
     temperature: Option(Temperature),
     target: Option(Temperature),
     mode: HvacMode,
@@ -47,55 +51,88 @@ pub type TrvUpdate {
   )
 }
 
-pub type HeatingUpdate {
-  HeatingUpdate(is_heating: Bool)
-}
-
-pub type SleepButtonPressed
-
-// Internal Actor Messages
-pub type RoomActorMsg {
-  TrvTemperatureChanged(trv_id: TrvEntityId, temp: Temperature)
-  TrvTargetChanged(trv_id: TrvEntityId, target: Temperature)
-  TrvModeChanged(trv_id: TrvEntityId, mode: HvacMode)
-  ExternalTempChanged(temp: Temperature)
-  HouseModeChanged(mode: HouseMode)
-  AdjustmentChanged(delta: Int)
-  GetState(reply_to: Subject(RoomState))
-}
-
-pub type TrvActorMsg {
-  Update(TrvUpdate)
-  SetTarget(Temperature)
-  SetMode(HvacMode)
+// TrvActor messages
+pub type trv_actor.Message {
   GetState(reply_to: Subject(TrvState))
+  Update(TrvUpdate)
 }
 
-pub type RoomDecisionMsg {
-  RoomStateChanged(RoomState)
-  TrvStateChanged(trv_id: TrvEntityId, TrvState)
-  Evaluate
+// Domain command from RoomDecisionActor
+pub type TrvCommand {
+  TrvCommand(entity_id: ClimateEntityId, mode: HvacMode, target: Temperature)
+}
+```
+
+### Room Layer
+
+```gleam
+// RoomActor messages
+pub type room_actor.Message {
+  GetState(reply_to: Subject(RoomState))
+  TrvTemperatureChanged(entity_id: ClimateEntityId, temperature: Temperature)
+  TrvTargetChanged(entity_id: ClimateEntityId, target: Temperature)
+  TrvModeChanged(entity_id: ClimateEntityId, mode: HvacMode)
+  TrvIsHeatingChanged(entity_id: ClimateEntityId, is_heating: Bool)
+  HouseModeChanged(mode: HouseMode)
+  AdjustmentChanged(adjustment: Float)
+  ExternalTempChanged(temperature: Temperature)
+  ReComputeTarget  // Internal timer message
 }
 
-pub type HouseModeMsg {
+// RoomDecisionActor messages
+pub type room_decision_actor.Message {
+  RoomStateChanged(room_actor.RoomState)
+}
+```
+
+### House-Wide Layer
+
+```gleam
+// HouseModeActor messages
+pub type house_mode_actor.Message {
+  GetMode(reply_to: Subject(HouseMode))
   SleepButtonPressed
   WakeUp
-  GetMode(reply_to: Subject(HouseMode))
+  RegisterRoomActor(room_actor: Subject(room_actor.Message))
+  ReEvaluateMode  // Internal timer message
 }
 
-// Commands to Home Assistant
-pub type HaCommand {
-  SetTrvTarget(entity_id: TrvEntityId, target: Temperature)
-  SetTrvMode(entity_id: TrvEntityId, mode: HvacMode)
+// HeatingControlActor messages
+pub type heating_control_actor.Message {
+  GetState(reply_to: Subject(HeatingControlState))
+  RoomUpdated(name: String, room_state: room_actor.RoomState)
+  BoilerStatusChanged(is_heating: Bool)
 }
 
-// WebSocket Messages
-pub type ClientToServer {
-  AdjustRoom(room_name: String, delta: Int)
+// Domain command from HeatingControlActor
+pub type BoilerCommand {
+  BoilerCommand(entity_id: ClimateEntityId, mode: HvacMode, target: Temperature)
+}
+```
+
+### Infrastructure Layer
+
+```gleam
+// HaPollerActor events (to EventRouterActor)
+pub type PollerEvent {
+  TrvUpdated(entity_id: ClimateEntityId, update: TrvUpdate)
+  SensorUpdated(entity_id: SensorEntityId, temperature: Option(Temperature))
+  HeatingStatusChanged(is_heating: Bool)
+  SleepButtonPressed
+  PollingStarted
+  PollingStopped
+  PollCompleted(duration_ms: Int)
+  PollFailed(reason: HaError)
+  BackoffApplied(seconds: Int)
+  BackoffReset
 }
 
-pub type ServerToClient {
-  StateSnapshot(DeepHeatingState)
+// HaCommandActor messages
+pub type ha_command_actor.Message {
+  SetTrvAction(entity_id: ClimateEntityId, mode: HvacMode, target: Temperature)
+  SetHeatingAction(entity_id: ClimateEntityId, mode: HvacMode, target: Temperature)
+  TrvDebounceTimeout(entity_id: ClimateEntityId)   // Internal
+  HeatingDebounceTimeout                            // Internal
 }
 ```
 
@@ -103,12 +140,11 @@ pub type ServerToClient {
 
 ### TrvActor
 
-Holds the latest state from HA and notifies parent room via name lookup.
+Holds the latest state from HA and notifies parent RoomActor on changes.
 
 ```gleam
 pub type TrvState {
   TrvState(
-    entity_id: TrvEntityId,
     temperature: Option(Temperature),
     target: Option(Temperature),
     mode: HvacMode,
@@ -116,41 +152,21 @@ pub type TrvState {
   )
 }
 
-type ActorState {
-  ActorState(trv: TrvState, room_actor_name: Name(RoomMessage))
-}
-
-/// Start TrvActor with name registration for OTP supervision.
-/// Uses room_actor_name for name-based lookup (survives restarts).
-pub fn start(
-  entity_id: ClimateEntityId,
-  name: Name(Message),
-  room_actor_name: Name(RoomMessage),
-) -> Result(actor.Started(Subject(Message)), actor.StartError) {
-  let initial_trv = TrvState(entity_id, None, None, HvacOff, False)
-  let initial_state = ActorState(trv: initial_trv, room_actor_name: room_actor_name)
-
-  actor.new(initial_state)
-  |> actor.named(name)
-  |> actor.on_message(handle_message)
-  |> actor.start
-}
-
-fn send_to_room(name: Name(RoomMessage), msg: RoomMessage) -> Nil {
-  let room_actor = process.named_subject(name)
-  process.send(room_actor, msg)
-}
-
-fn handle_message(state: ActorState, message: Message) {
+// TrvActor notifies RoomActor via name lookup (survives restarts)
+fn handle_message(state: State, message: Message) -> actor.Next(State) {
   case message {
     Update(update) -> {
-      let new_trv = TrvState(..state.trv, ...)
-      // Notify room via name lookup (survives RoomActor restarts)
+      let new_trv = apply_update(state.trv, update)
+
+      // Notify room of any changes
       case state.trv.temperature != new_trv.temperature {
-        True -> send_to_room(state.room_actor_name, TrvTemperatureChanged(...))
+        True -> send_to_room(state.room_actor_name,
+          TrvTemperatureChanged(state.entity_id, update.temperature))
         False -> Nil
       }
-      actor.continue(ActorState(..state, trv: new_trv))
+      // ... similar for target, mode, is_heating
+
+      actor.continue(State(..state, trv: new_trv))
     }
     GetState(reply_to) -> {
       process.send(reply_to, state.trv)
@@ -167,47 +183,55 @@ Aggregates TRV states + external sensor + house mode + adjustments.
 ```gleam
 pub type RoomState {
   RoomState(
-    name: RoomName,
-    schedule: Schedule,
-    temperature: Option(Temperature),
-    target: Option(Temperature),
-    adjustment: Int,
+    name: String,
+    temperature: Option(Temperature),           // From external sensor
+    target_temperature: Option(Temperature),    // Computed from schedule + adjustment
     house_mode: HouseMode,
-    trv_states: Dict(TrvEntityId, TrvState),
+    room_mode: RoomMode,                        // Derived from TRVs + house mode
+    adjustment: Float,                          // User adjustment (+/- degrees)
+    trv_states: Dict(ClimateEntityId, TrvState),
   )
 }
 
-fn recompute_target(state: RoomState) -> RoomState {
-  let scheduled = get_scheduled_temp(state.schedule, now())
-  let target = case state.house_mode {
-    Sleeping -> min_room_temp
-    Off -> min_trv_temp
-    Auto -> clamp(scheduled + float(state.adjustment), min_room_temp, max_room_temp)
+/// Pure function: compute target from schedule, mode, and adjustment
+pub fn compute_target_temperature(
+  weekday: Weekday,
+  time: TimeOfDay,
+  schedule: WeekSchedule,
+  house_mode: HouseMode,
+  adjustment: Float,
+) -> Temperature {
+  case house_mode {
+    HouseModeSleeping -> temperature.min_room_target
+    HouseModeAuto -> {
+      let scheduled = schedule.get_temperature_for(schedule, weekday, time)
+      temperature.clamp_room_target(scheduled |> temperature.add(adjustment))
+    }
   }
-  RoomState(..state, target: Some(target))
 }
 ```
 
 ### RoomDecisionActor
 
-Decides what to tell the TRVs based on room state.
+Computes desired TRV targets using offset compensation algorithm.
 
 ```gleam
+/// Pure function: compute TRV target using offset compensation
+/// trvTarget = roomTarget + (trvTemp - roomTemp)
+/// Clamped to safe TRV command range (7-32°C)
 fn compute_desired_trv_target(
-  room: RoomState,
-  trv: TrvState,
   room_target: Temperature,
+  room_temp: Option(Temperature),
+  trv_temp: Option(Temperature),
 ) -> Temperature {
-  case room.temperature {
-    None -> room_target
-    Some(room_temp) -> {
-      let diff = room_target - room_temp
-      case diff {
-        d if d > 0.5 -> room_target + 2.0   // Room cold, push TRV up
-        d if d < -0.5 -> room_target - 1.0  // Room hot, back off
-        _ -> room_target                     // Room at target
-      }
+  case room_temp, trv_temp {
+    Some(room), Some(trv) -> {
+      let offset = temperature.subtract(trv, room)
+      room_target
+      |> temperature.add_float(offset)
+      |> temperature.clamp_trv_command_target
     }
+    _, _ -> room_target |> temperature.clamp_trv_command_target
   }
 }
 ```
@@ -218,79 +242,63 @@ fn compute_desired_trv_target(
 User presses "Goodnight" button in Home Assistant
     │
     ▼
-HaPollerActor detects event.goodnight fired
+HaPollerActor detects input_boolean.goodnight state change
     │
     ▼
-HaPollerActor sends SleepButtonPressed to HouseModeActor
+HaPollerActor emits PollerEvent.SleepButtonPressed
+    │
+    ▼
+EventRouterActor receives event, sends to HouseModeActor
     │
     ▼
 HouseModeActor updates state to Sleeping
-HouseModeActor broadcasts HouseModeChanged(Sleeping) to all RoomActors
+HouseModeActor broadcasts HouseModeChanged(Sleeping) to all registered RoomActors
     │
     ▼
 RoomActor(lounge) receives HouseModeChanged(Sleeping)
-RoomActor(lounge) recomputes target → 16°C (min)
-RoomActor(lounge) sends RoomStateChanged to RoomDecisionActor(lounge)
+RoomActor recomputes target → 16°C (min_room_target)
+RoomActor notifies RoomDecisionActor via name lookup
     │
     ▼
-RoomDecisionActor(lounge) evaluates: target changed from 20°C to 16°C
-RoomDecisionActor(lounge) sends SetTarget(16) to TrvActor(lounge_trv)
+RoomDecisionActor(lounge) receives RoomStateChanged
+RoomDecisionActor computes TRV target with offset compensation
+RoomDecisionActor sends TrvCommand to TrvCommandAdapterActor via name lookup
     │
     ▼
-TrvActor(lounge_trv) sends SetTrvTarget to HaCommandActor
+TrvCommandAdapterActor(lounge) receives TrvCommand (domain)
+TrvCommandAdapterActor converts to ha_command_actor.SetTrvAction (infrastructure)
+TrvCommandAdapterActor sends to HaCommandActor via name lookup
     │
     ▼
-HaCommandActor calls Home Assistant API: climate.set_temperature(lounge_trv, 16)
+HaCommandActor queues command with 5s debounce
+HaCommandActor calls HA API: climate.set_temperature(lounge_trv, target)
+                            climate.set_hvac_mode(lounge_trv, heat)
 ```
 
-## Comparison: RxJS vs Actors
+## Ports and Adapters Pattern
 
-### RxJS Version (current)
-```typescript
-export const roomTargetTemperatures$ = (
-  roomScheduledTargetTemperatures$,
-  roomModes$,
-  roomAdjustments$
-) =>
-  combineLatest([...]).pipe(
-    groupBy(...), mergeMap(...), shareReplayLatestDistinct(),
-    filter(Either.isRight), shareReplayLatestDistinctByKey(...)
-  );
-```
+The architecture cleanly separates domain logic from infrastructure:
 
-### Gleam Actor Version
-```gleam
-fn recompute_target(state: RoomState) -> RoomState {
-  let scheduled = get_scheduled_temp(state.schedule, now())
-  let target = case state.house_mode {
-    Sleeping -> min_room_temp
-    Off -> min_trv_temp
-    Auto -> clamp(scheduled + float(state.adjustment), min, max)
-  }
-  RoomState(..state, target: Some(target))
-}
-```
+### Domain Layer (Pure)
+- `RoomActor`: Room state aggregation, schedule evaluation
+- `RoomDecisionActor`: TRV target computation with offset compensation
+- `HeatingControlActor`: Boiler demand aggregation
+- `HouseModeActor`: Mode transitions based on time and user input
+- Domain commands: `TrvCommand`, `BoilerCommand`
 
-The actor version:
-- No subscription management
-- No `shareReplay` hacks
-- No `combineLatest` timing issues
-- State is explicit and inspectable
-- Testing is trivial (send message, check state)
+### Infrastructure Layer
+- `HaPollerActor`: Polls HA REST API, parses responses
+- `HaCommandActor`: Sends commands to HA REST API with debouncing
+- `EventRouterActor`: Routes poller events to correct actors via registries
 
-## What We'd Gain
+### Adapter Actors
+- `TrvCommandAdapterActor`: Converts `TrvCommand` → `SetTrvAction`
+- `BoilerCommandAdapterActor`: Converts `BoilerCommand` → `SetHeatingAction`
 
-1. **Debuggability**: Can query any actor's state at any time
-2. **Testability**: Pure functions + message passing = easy unit tests
-3. **Fault tolerance**: Supervisor restarts crashed actors
-4. **Observability**: OTP gives us process inspection for free
-5. **Simplicity**: Each actor does one thing
-
-## What We'd Lose
-
-1. **TypeScript ecosystem**: Effect, RxJS tooling, npm packages
-2. **SvelteKit**: Would need Lustre or keep frontend separate
-3. **Team familiarity**: Gleam/BEAM is different from JS/TS
+This separation means:
+- Domain actors are testable without HTTP
+- Infrastructure can be swapped (e.g., different HA API versions)
+- Adapters handle the impedance mismatch
 
 ## Gleam OTP Patterns and Gotchas
 
@@ -337,20 +345,17 @@ let assert Ok(child_subject) = process.receive(response_subject, 5000)
 3. The actor selects on that Subject
 4. External callers using `named_subject(name)` get a Subject pointing to the same selector
 
-**All room actors use `actor.named()` and name-based lookups:**
+**Actors using `actor.named()` for name-based lookups:**
 - TrvActor ✓
 - RoomActor ✓
 - RoomDecisionActor ✓
 - TrvCommandAdapterActor ✓
-- HeatingControlAdapterActor ✓
+- HeatingControlActor ✓
 - BoilerCommandAdapterActor ✓
-
-**Infrastructure actors also use `actor.named()`:**
 - HaCommandActor ✓
 - StateAggregatorActor ✓
-- HeatingControlActor ✓
 
-**Other actors (capture Subject at startup):**
+**Other actors (capture Subject at startup via injection):**
 - EventRouterActor
 - HouseModeActor
 - HaPollerActor
@@ -363,22 +368,22 @@ When actors are supervised with restart strategies, a crashed actor gets a **new
 
 ```gleam
 // WRONG: Storing Subject directly (breaks after restart)
-type ActorState {
-  ActorState(room_actor: Subject(RoomMessage))
+type State {
+  State(room_actor: Subject(RoomMessage))
 }
 
-fn notify_room(state: ActorState, msg: RoomMessage) {
+fn notify_room(state: State, msg: RoomMessage) {
   process.send(state.room_actor, msg)  // Fails if room_actor restarted!
 }
 ```
 
 ```gleam
 // RIGHT: Store Name, lookup each time
-type ActorState {
-  ActorState(room_actor_name: Name(RoomMessage))
+type State {
+  State(room_actor_name: Name(RoomMessage))
 }
 
-fn notify_room(state: ActorState, msg: RoomMessage) {
+fn notify_room(state: State, msg: RoomMessage) {
   let subject = process.named_subject(state.room_actor_name)
   process.send(subject, msg)  // Always gets current actor's Subject
 }
@@ -427,23 +432,25 @@ When you need an actor that receives one message type but converts to another (e
 
 ```gleam
 pub fn start(
-  ha_commands: Subject(ha_command_actor.Message),
+  name: Name(TrvCommand),
+  ha_command_actor_name: Name(ha_command_actor.Message),
 ) -> Result(actor.Started(Subject(TrvCommand)), actor.StartError) {
   actor.new_with_initialiser(5000, fn(_default_subject) {
     // Create Subject for the type we WANT to receive
     let trv_commands: Subject(TrvCommand) = process.new_subject()
-    let initial_state = State(ha_commands: ha_commands)
+    let initial_state = State(ha_command_actor_name: ha_command_actor_name)
 
     // Map incoming TrvCommand to our internal Message type
     let selector =
       process.new_selector()
-      |> process.select_map(trv_commands, fn(cmd) { TrvCommand(cmd) })
+      |> process.select_map(trv_commands, fn(cmd) { IncomingCommand(cmd) })
 
     actor.initialised(initial_state)
     |> actor.selecting(selector)
     |> actor.returning(trv_commands)  // Return the Subject callers should use
     |> Ok
   })
+  |> actor.named(name)
   |> actor.on_message(handle_message)
   |> actor.start
 }
@@ -451,5 +458,28 @@ pub fn start(
 
 This avoids raw `spawn_unlinked` + `receive_forever` which:
 - Can't be supervised
-- Don't handle OTP shutdown
+- Don't handle OTP shutdown gracefully
 - Cause test teardown issues
+
+### Timer Patterns
+
+For periodic re-evaluation (e.g., schedule-based target updates):
+
+```gleam
+fn start_recompute_timer() -> Nil {
+  // 60 second timer for schedule-based re-evaluation
+  process.send_after(process.new_subject(), 60_000, ReComputeTarget)
+  |> fn(_) { Nil }
+}
+
+fn handle_message(state: State, message: Message) -> actor.Next(State) {
+  case message {
+    ReComputeTarget -> {
+      let new_state = recompute_target(state)
+      start_recompute_timer()  // Reschedule
+      actor.continue(new_state)
+    }
+    // ...
+  }
+}
+```

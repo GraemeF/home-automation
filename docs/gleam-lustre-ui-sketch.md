@@ -1,5 +1,19 @@
 # Deep Heating: Lustre UI Sketch
 
+> **Note**: This document was a planning sketch created during the Gleam port. The UI is now implemented in `packages/deep_heating/src/deep_heating/ui/`. The actual implementation follows this sketch closely, with some refinements made during development.
+>
+> **Actual implementation files:**
+> - `ui/app.gleam` - Main application entry point
+> - `ui/model.gleam` - Model types (matches sketch)
+> - `ui/msg.gleam` - Message types
+> - `ui/update.gleam` - Update function
+> - `ui/view.gleam` - Main view composition
+> - `ui/components/` - Room cards, controls, heating badge, connection overlay
+
+---
+
+## Original Planning Document
+
 ## Project Structure
 
 ```
@@ -269,17 +283,17 @@ pub fn view(room: RoomState) -> Element(Msg) {
 - Pattern matching instead of ternaries
 - Type-safe by default
 
-## What We'd Gain
+## What We'd Gain / What We'd Lose
 
-1. **Single language** - Gleam everywhere (no TS/Svelte split)
-2. **Type safety** - No runtime type errors possible
-3. **Simpler mental model** - MVU is predictable
-4. **Server Components** - State lives on server, UI is just a view
-5. **No build complexity** - No Vite, no bundler config
-
-## What We'd Lose
-
-1. **Tailwind/DaisyUI ecosystem** - Would need to include CSS manually
-2. **Component libraries** - Fewer off-the-shelf components
-3. **Hot reloading** - Lustre's dev experience is improving but not as polished
-4. **Team familiarity** - Svelte is more widely known
+> **Note**: These trade-off sections were written before implementation. The Gleam port is now complete and we can confirm:
+>
+> **Confirmed gains:**
+> - Single language (Gleam everywhere) ✓
+> - Type safety (no runtime type errors) ✓
+> - Simpler mental model (MVU pattern) ✓
+> - No build complexity (just `gleam build`) ✓
+>
+> **Confirmed trade-offs:**
+> - Tailwind/DaisyUI bundled locally (works well)
+> - Hot reloading not as polished (acceptable)
+> - Fewer off-the-shelf components (we built what we needed)

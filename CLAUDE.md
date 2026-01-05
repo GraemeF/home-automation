@@ -127,7 +127,9 @@ packages/deep_heating/src/deep_heating/
 │   └── house_mode_actor.gleam # Manages house-wide mode (Auto/Sleeping)
 │
 ├── heating/                  # Heating control slice
-│   └── heating_control_actor.gleam # Controls main boiler
+│   ├── heating_control_actor.gleam # Domain: controls main boiler based on room demand
+│   ├── boiler_command_adapter_actor.gleam # Adapter: domain BoilerCommand → HA
+│   └── heating_control_adapter_actor.gleam # Adapter: receives HeatingControl commands
 │
 ├── state/                    # UI state slice
 │   └── state_aggregator_actor.gleam # Broadcasts state to UI clients
@@ -159,7 +161,7 @@ packages/deep_heating/src/deep_heating/
 | **rooms/** | `room_actor`, `room_decision_actor`, `trv_actor`, `trv_command_adapter_actor` | Room temperature management, TRV control |
 | **home_assistant/** | `ha_poller_actor`, `ha_command_actor` | HA API integration (infrastructure) |
 | **house_mode/** | `house_mode_actor` | House-wide mode management |
-| **heating/** | `heating_control_actor` | Main boiler control |
+| **heating/** | `heating_control_actor`, `boiler_command_adapter_actor`, `heating_control_adapter_actor` | Main boiler control |
 | **state/** | `state_aggregator_actor` | UI state broadcasting |
 | **config/** | - | Configuration parsing |
 | **scheduling/** | - | Schedule types and evaluation |
@@ -176,7 +178,8 @@ Home Assistant API
    PollerEvent
         ↓
    EventRouterActor
-        ├→ TrvActor → RoomActor → RoomDecisionActor → HaCommandActor → HA API
+        ├→ TrvActor → RoomActor → RoomDecisionActor → TrvCommandAdapterActor → HaCommandActor → HA API
+        ├→ HeatingControlActor → BoilerCommandAdapterActor → HaCommandActor → HA API
         └→ HouseModeActor → broadcasts to RoomActors
 ```
 
