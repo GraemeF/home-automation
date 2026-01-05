@@ -18,6 +18,7 @@ import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Subject}
 import gleam/float
+import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
@@ -99,6 +100,11 @@ pub type AggregatorMessage {
   RoomUpdated(name: String, state: state.RoomState)
 }
 
+/// Messages that RoomActor notifies to the heating control actor
+pub type HeatingControlMessage {
+  HeatingRoomUpdated(name: String, room_state: RoomState)
+}
+
 /// Function type for getting current date/time (for testability)
 pub type GetDateTime =
   fn() -> #(Weekday, TimeOfDay)
@@ -135,6 +141,8 @@ type ActorState {
     schedule: WeekSchedule,
     decision_actor: Subject(DecisionMessage),
     state_aggregator: Subject(AggregatorMessage),
+    /// Optional heating control actor for boiler demand updates
+    heating_control: Option(Subject(HeatingControlMessage)),
     /// Function to get current date/time
     get_time: GetDateTime,
     /// Timer interval in milliseconds (0 to disable)
@@ -151,12 +159,14 @@ pub fn start(
   schedule schedule: WeekSchedule,
   decision_actor decision_actor: Subject(DecisionMessage),
   state_aggregator state_aggregator: Subject(AggregatorMessage),
+  heating_control heating_control: Option(Subject(HeatingControlMessage)),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   start_with_adjustment(
     name: name,
     schedule: schedule,
     decision_actor: decision_actor,
     state_aggregator: state_aggregator,
+    heating_control: heating_control,
     initial_adjustment: 0.0,
   )
 }
@@ -168,6 +178,7 @@ pub fn start_with_adjustment(
   schedule schedule: WeekSchedule,
   decision_actor decision_actor: Subject(DecisionMessage),
   state_aggregator state_aggregator: Subject(AggregatorMessage),
+  heating_control heating_control: Option(Subject(HeatingControlMessage)),
   initial_adjustment initial_adjustment: Float,
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   start_with_timer_interval(
@@ -175,6 +186,7 @@ pub fn start_with_adjustment(
     schedule: schedule,
     decision_actor: decision_actor,
     state_aggregator: state_aggregator,
+    heating_control: heating_control,
     get_time: get_current_datetime,
     timer_interval_ms: default_timer_interval_ms,
     initial_adjustment: initial_adjustment,
@@ -188,6 +200,7 @@ pub fn start_with_timer_interval(
   schedule schedule: WeekSchedule,
   decision_actor decision_actor: Subject(DecisionMessage),
   state_aggregator state_aggregator: Subject(AggregatorMessage),
+  heating_control heating_control: Option(Subject(HeatingControlMessage)),
   get_time get_time: GetDateTime,
   timer_interval_ms timer_interval_ms: Int,
   initial_adjustment initial_adjustment: Float,
@@ -234,6 +247,7 @@ pub fn start_with_timer_interval(
         schedule: schedule,
         decision_actor: decision_actor,
         state_aggregator: state_aggregator,
+        heating_control: heating_control,
         get_time: get_time,
         timer_interval_ms: timer_interval_ms,
         self_subject: Some(self_subject),
@@ -437,6 +451,19 @@ fn notify_state_changed(actor_state: ActorState) -> Nil {
     actor_state.state_aggregator,
     RoomUpdated(actor_state.room.name, aggregator_state),
   )
+  // Notify heating control actor of room state change (for boiler demand calculation)
+  case actor_state.heating_control {
+    Some(heating_control) -> {
+      io.println("RoomActor: notify_state_changed sending to heating_control for " <> actor_state.room.name)
+      process.send(
+        heating_control,
+        HeatingRoomUpdated(actor_state.room.name, actor_state.room),
+      )
+    }
+    None -> {
+      io.println("RoomActor: notify_state_changed - no heating_control for " <> actor_state.room.name)
+    }
+  }
 }
 
 /// Convert internal RoomState to state.RoomState for the aggregator

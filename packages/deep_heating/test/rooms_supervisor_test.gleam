@@ -92,6 +92,7 @@ pub fn room_supervisor_starts_successfully_test() {
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
       house_mode: make_dummy_house_mode(),
+      heating_control: None,
       initial_adjustments: [],
     )
 
@@ -111,6 +112,7 @@ pub fn room_supervisor_starts_room_actor_test() {
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
       house_mode: make_dummy_house_mode(),
+      heating_control: None,
       initial_adjustments: [],
     )
 
@@ -143,6 +145,7 @@ pub fn room_supervisor_starts_room_with_initial_adjustment_test() {
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
       house_mode: make_dummy_house_mode(),
+      heating_control: None,
       initial_adjustments: initial_adjustments,
     )
 
@@ -173,6 +176,7 @@ pub fn room_supervisor_uses_zero_adjustment_for_unknown_room_test() {
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
       house_mode: make_dummy_house_mode(),
+      heating_control: None,
       initial_adjustments: initial_adjustments,
     )
 
@@ -198,6 +202,7 @@ pub fn room_supervisor_starts_trv_actors_test() {
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
       house_mode: make_dummy_house_mode(),
+      heating_control: None,
       initial_adjustments: [],
     )
 
@@ -230,6 +235,7 @@ pub fn room_supervisor_starts_decision_actor_test() {
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
       house_mode: make_dummy_house_mode(),
+      heating_control: None,
       initial_adjustments: [],
     )
 
@@ -251,6 +257,7 @@ pub fn room_supervisor_with_multiple_trvs_test() {
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
       house_mode: make_dummy_house_mode(),
+      heating_control: None,
       initial_adjustments: [],
     )
 
@@ -278,6 +285,7 @@ pub fn trv_update_reaches_room_actor_test() {
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
       house_mode: make_dummy_house_mode(),
+      heating_control: None,
       initial_adjustments: [],
     )
 
@@ -325,6 +333,7 @@ pub fn room_decision_sends_command_to_trv_test() {
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
       house_mode: make_dummy_house_mode(),
+      heating_control: None,
       initial_adjustments: [],
     )
 
@@ -396,6 +405,7 @@ pub fn rooms_supervisor_starts_all_rooms_test() {
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
       house_mode: make_dummy_house_mode(),
+      heating_control: None,
       initial_adjustments: [],
     )
 
@@ -419,6 +429,7 @@ pub fn room_supervisor_registers_room_actor_with_state_aggregator_test() {
       state_aggregator: state_agg,
       ha_commands: ha_commands,
       house_mode: make_dummy_house_mode(),
+      heating_control: None,
       initial_adjustments: [],
     )
 
@@ -461,6 +472,7 @@ pub fn trv_actor_is_restarted_when_it_crashes_test() {
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
       house_mode: make_dummy_house_mode(),
+      heating_control: None,
       initial_adjustments: [],
     )
 
@@ -505,6 +517,7 @@ pub fn room_supervisor_exposes_room_name_test() {
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
       house_mode: make_dummy_house_mode(),
+      heating_control: None,
       initial_adjustments: [],
     )
 
@@ -535,6 +548,7 @@ pub fn rooms_supervisor_can_get_room_by_name_test() {
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
       house_mode: make_dummy_house_mode(),
+      heating_control: None,
       initial_adjustments: [],
     )
 
@@ -579,6 +593,7 @@ pub fn room_supervisor_registers_room_actor_with_house_mode_actor_test() {
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
       house_mode: house_mode,
+      heating_control: None,
       initial_adjustments: [],
     )
 

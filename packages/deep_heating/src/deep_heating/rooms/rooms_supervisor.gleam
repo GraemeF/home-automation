@@ -26,8 +26,9 @@ import deep_heating/rooms/room_decision_actor
 import deep_heating/rooms/trv_actor
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Pid, type Subject}
+import gleam/io
 import gleam/list
-import gleam/option.{None, Some}
+import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
 import gleam/otp/factory_supervisor as factory
 import gleam/result
@@ -130,8 +131,14 @@ pub fn start_room(
   state_aggregator state_aggregator: Subject(state_aggregator_actor.Message),
   ha_commands ha_commands: Subject(ha_command_actor.Message),
   house_mode house_mode: Subject(house_mode_actor.Message),
+  heating_control heating_control: Option(Subject(room_actor.HeatingControlMessage)),
   initial_adjustments initial_adjustments: List(RoomAdjustment),
 ) -> Result(RoomSupervisor, StartError) {
+  // Debug: check heating_control value
+  case heating_control {
+    Some(_) -> io.println("rooms_supervisor.start_room " <> room_config.name <> ": heating_control is Some")
+    None -> io.println("rooms_supervisor.start_room " <> room_config.name <> ": heating_control is None")
+  }
   // Get schedule - rooms must have a schedule configured
   use room_schedule <- result.try(case room_config.schedule {
     Some(s) -> Ok(s)
@@ -168,6 +175,7 @@ pub fn start_room(
       schedule: room_schedule,
       decision_actor: decision_for_room,
       state_aggregator: aggregator_for_room,
+      heating_control: heating_control,
       initial_adjustment: initial_adjustment,
     )
     |> result.map_error(ActorStartError),
@@ -307,8 +315,14 @@ pub fn start(
   state_aggregator state_aggregator: Subject(state_aggregator_actor.Message),
   ha_commands ha_commands: Subject(ha_command_actor.Message),
   house_mode house_mode: Subject(house_mode_actor.Message),
+  heating_control heating_control: Option(Subject(room_actor.HeatingControlMessage)),
   initial_adjustments initial_adjustments: List(RoomAdjustment),
 ) -> Result(RoomsSupervisor, StartError) {
+  // Debug: check heating_control value
+  case heating_control {
+    Some(_) -> io.println("rooms_supervisor.start: heating_control is Some")
+    None -> io.println("rooms_supervisor.start: heating_control is None")
+  }
   config.rooms
   |> list.try_map(fn(room_config) {
     start_room(
@@ -316,6 +330,7 @@ pub fn start(
       state_aggregator: state_aggregator,
       ha_commands: ha_commands,
       house_mode: house_mode,
+      heating_control: heating_control,
       initial_adjustments: initial_adjustments,
     )
     |> result.map(fn(room_sup) { #(room_config.name, room_sup) })

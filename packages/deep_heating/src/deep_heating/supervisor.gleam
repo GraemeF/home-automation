@@ -12,15 +12,18 @@
 import deep_heating/event_router_actor
 import deep_heating/heating/heating_control_actor
 import deep_heating/house_mode/house_mode_actor
+import deep_heating/mode
 import deep_heating/state/state_aggregator_actor
 import deep_heating/home_assistant/client.{type HaClient}
 import deep_heating/home_assistant/ha_command_actor
 import deep_heating/home_assistant/ha_poller_actor
 import deep_heating/config/home_config.{type HomeConfig}
+import deep_heating/rooms/room_actor
 import deep_heating/rooms/room_adjustments
 import deep_heating/rooms/rooms_supervisor.{type RoomsSupervisor}
 import gleam/dict
 import gleam/erlang/process.{type Name, type Pid, type Subject}
+import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
@@ -57,6 +60,8 @@ pub type SupervisorConfigWithRooms {
     adjustments_path: String,
     /// Home configuration defining rooms, TRVs, and schedules
     home_config: HomeConfig,
+    /// Optional prefix for actor names (for test isolation)
+    name_prefix: Option(String),
   )
 }
 
@@ -64,9 +69,9 @@ pub type SupervisorConfigWithRooms {
 pub opaque type SupervisorWithRooms {
   SupervisorWithRooms(
     pid: Pid,
-    house_mode_name: Name(house_mode_actor.Message),
+    house_mode_subject: Subject(house_mode_actor.Message),
     state_aggregator_name: Name(state_aggregator_actor.Message),
-    ha_poller_name: Name(ha_poller_actor.Message),
+    ha_poller_subject: Subject(ha_poller_actor.Message),
     ha_command_name: Name(ha_command_actor.Message),
     heating_control_name: Name(heating_control_actor.Message),
     rooms_supervisor: RoomsSupervisor,
@@ -259,26 +264,27 @@ pub fn start_with_home_config(
   config: SupervisorConfigWithRooms,
 ) -> Result(actor.Started(SupervisorWithRooms), StartWithRoomsError) {
   // Create names for our actors so we can look them up later
-  let house_mode_name = process.new_name("deep_heating_house_mode")
-  let state_aggregator_name = process.new_name("deep_heating_state_aggregator")
-  let ha_poller_name = process.new_name("deep_heating_ha_poller")
-  let ha_command_name = process.new_name("deep_heating_ha_command")
-  let heating_control_name = process.new_name("deep_heating_heating_control")
+  // Use prefix if provided (for test isolation)
+  let prefix = case config.name_prefix {
+    Some(p) -> p <> "_"
+    None -> ""
+  }
+  let house_mode_name = process.new_name(prefix <> "deep_heating_house_mode")
+  let state_aggregator_name =
+    process.new_name(prefix <> "deep_heating_state_aggregator")
+  let ha_poller_name = process.new_name(prefix <> "deep_heating_ha_poller")
+  let ha_command_name = process.new_name(prefix <> "deep_heating_ha_command")
+  let heating_control_name =
+    process.new_name(prefix <> "deep_heating_heating_control")
 
   // Build and start the main supervision tree
-  // Note: HeatingControlActor is started manually after supervision
-  // to allow proper adapter wiring for domain/infrastructure decoupling
+  // Note: Most actors are started manually after supervision
+  // to capture their actual Subjects (named_subject doesn't work for Gleam actors)
   let supervisor_result =
     supervisor.new(supervisor.OneForOne)
-    |> supervisor.add(house_mode_actor.child_spec(house_mode_name))
     |> supervisor.add(state_aggregator_actor.child_spec(
       state_aggregator_name,
       config.adjustments_path,
-    ))
-    |> supervisor.add(ha_command_actor.child_spec(
-      ha_command_name,
-      config.ha_client,
-      default_ha_command_debounce_ms,
     ))
     |> supervisor.start
 
@@ -289,38 +295,33 @@ pub fn start_with_home_config(
       let state_aggregator_subject =
         process.named_subject(state_aggregator_name)
 
-      // Get HaCommandActor subject for TRV commands
-      let ha_commands = process.named_subject(ha_command_name)
+      // Start HouseModeActor manually to capture its actual Subject
+      case house_mode_actor.start(house_mode_name) {
+        Error(e) -> Error(SupervisorStartError(e))
+        Ok(house_mode_started) -> {
+          let house_mode_subject = house_mode_started.data
 
-      // Load initial adjustments from environment
-      let initial_adjustments =
-        room_adjustments.load_from_env()
-        |> result.unwrap([])
+          // Start HaCommandActor manually to capture its actual Subject
+          case
+            ha_command_actor.start_named(
+              ha_command_name,
+              config.ha_client,
+              default_ha_command_debounce_ms,
+            )
+          {
+            Error(e) -> Error(SupervisorStartError(e))
+            Ok(ha_command_started) -> {
+              let ha_commands = ha_command_started.data
 
-      // Get HouseModeActor subject for room registration
-      let house_mode_subject = process.named_subject(house_mode_name)
-
-      // Start rooms supervisor with the HomeConfig
-      case
-        rooms_supervisor.start(
-          config: config.home_config,
-          state_aggregator: state_aggregator_subject,
-          ha_commands: ha_commands,
-          house_mode: house_mode_subject,
-          initial_adjustments: initial_adjustments,
-        )
-      {
-        Error(e) -> Error(RoomsStartError(e))
-        Ok(rooms_sup) -> {
-          // Build registries from RoomsSupervisor
-          let trv_registry = build_trv_registry(rooms_sup, config.home_config)
-          let sensor_registry =
-            build_sensor_registry(rooms_sup, config.home_config)
+              // Load initial adjustments from environment
+              let initial_adjustments =
+                room_adjustments.load_from_env()
+                |> result.unwrap([])
 
           // Create adapter that converts domain BoilerCommand → ha_command_actor.Message
           let boiler_commands = create_boiler_command_adapter(ha_commands)
 
-          // Start HeatingControlActor with domain-only interface
+          // Start HeatingControlActor - rooms need its subject to send updates
           case
             heating_control_actor.start_named(
               heating_control_name,
@@ -330,43 +331,75 @@ pub fn start_with_home_config(
           {
             Error(e) -> Error(SupervisorStartError(e))
             Ok(heating_started) -> {
-              // Start EventRouterActor (reuses house_mode_subject from above)
-              let router_config =
-                event_router_actor.Config(
-                  house_mode_actor: house_mode_subject,
-                  trv_registry: trv_registry,
-                  sensor_registry: sensor_registry,
-                  heating_control_actor: option.Some(heating_started.data),
-                )
+              // Create adapter that converts room_actor.HeatingControlMessage → heating_control_actor.Message
+              let heating_control_for_rooms =
+                create_heating_control_adapter(heating_started.data)
 
-              case event_router_actor.start(router_config) {
-                Error(_) -> {
-                  // For now, treat router start failure as a supervisor error
-                  Error(SupervisorStartError(actor.InitTimeout))
-                }
-                Ok(event_router_subject) -> {
-                  // Start HaPollerActor with the EventRouter's subject as event_spy
-                  case
-                    ha_poller_actor.start_named(
-                      ha_poller_name,
-                      config.ha_client,
-                      config.poller_config,
-                      event_router_subject,
+              // Start rooms supervisor with the HomeConfig - now with heating_control wiring
+              case
+                rooms_supervisor.start(
+                  config: config.home_config,
+                  state_aggregator: state_aggregator_subject,
+                  ha_commands: ha_commands,
+                  house_mode: house_mode_subject,
+                  heating_control: Some(heating_control_for_rooms),
+                  initial_adjustments: initial_adjustments,
+                )
+              {
+                Error(e) -> Error(RoomsStartError(e))
+                Ok(rooms_sup) -> {
+                  // Build registries from RoomsSupervisor
+                  let trv_registry =
+                    build_trv_registry(rooms_sup, config.home_config)
+                  let sensor_registry =
+                    build_sensor_registry(rooms_sup, config.home_config)
+
+                  // Start EventRouterActor (reuses house_mode_subject from above)
+                  let router_config =
+                    event_router_actor.Config(
+                      house_mode_actor: house_mode_subject,
+                      trv_registry: trv_registry,
+                      sensor_registry: sensor_registry,
+                      heating_control_actor: option.Some(heating_started.data),
                     )
-                  {
-                    Error(e) -> Error(SupervisorStartError(e))
-                    Ok(_poller_started) -> {
-                      let sup =
-                        SupervisorWithRooms(
-                          pid: started.pid,
-                          house_mode_name: house_mode_name,
-                          state_aggregator_name: state_aggregator_name,
-                          ha_poller_name: ha_poller_name,
-                          ha_command_name: ha_command_name,
-                          heating_control_name: heating_control_name,
-                          rooms_supervisor: rooms_sup,
+
+                  case event_router_actor.start(router_config) {
+                    Error(_) -> {
+                      // For now, treat router start failure as a supervisor error
+                      Error(SupervisorStartError(actor.InitTimeout))
+                    }
+                    Ok(event_router_subject) -> {
+                      // Start HaPollerActor with the EventRouter's subject as event_spy
+                      io.println("supervisor: starting HaPollerActor")
+                      case
+                        ha_poller_actor.start_named(
+                          ha_poller_name,
+                          config.ha_client,
+                          config.poller_config,
+                          event_router_subject,
                         )
-                      Ok(actor.Started(pid: started.pid, data: sup))
+                      {
+                        Error(e) -> {
+                          io.println("supervisor: HaPollerActor failed to start")
+                          Error(SupervisorStartError(e))
+                        }
+                        Ok(poller_started) -> {
+                          io.println(
+                            "supervisor: HaPollerActor started successfully",
+                          )
+                          let sup =
+                            SupervisorWithRooms(
+                              pid: started.pid,
+                              house_mode_subject: house_mode_subject,
+                              state_aggregator_name: state_aggregator_name,
+                              ha_poller_subject: poller_started.data,
+                              ha_command_name: ha_command_name,
+                              heating_control_name: heating_control_name,
+                              rooms_supervisor: rooms_sup,
+                            )
+                          Ok(actor.Started(pid: started.pid, data: sup))
+                        }
+                      }
                     }
                   }
                 }
@@ -376,6 +409,8 @@ pub fn start_with_home_config(
         }
       }
     }
+  }
+  }
   }
 }
 
@@ -461,6 +496,28 @@ pub fn get_heating_control_actor(
   }
 }
 
+/// Get the HaPollerActor's subject for sending messages (e.g., PollNow)
+pub fn get_ha_poller_subject(
+  sup: SupervisorWithRooms,
+) -> Subject(ha_poller_actor.Message) {
+  sup.ha_poller_subject
+}
+
+/// Get the current house mode by querying the HouseModeActor
+pub fn get_current_house_mode(sup: SupervisorWithRooms) -> mode.HouseMode {
+  let reply = process.new_subject()
+  process.send(sup.house_mode_subject, house_mode_actor.GetMode(reply))
+  let assert Ok(current_mode) = process.receive(reply, 1000)
+  current_mode
+}
+
+/// Get the StateAggregatorActor's subject for subscribing to state updates
+pub fn get_state_aggregator_subject(
+  sup: SupervisorWithRooms,
+) -> Subject(state_aggregator_actor.Message) {
+  process.named_subject(sup.state_aggregator_name)
+}
+
 // =============================================================================
 // Domain Command Adapters
 // =============================================================================
@@ -470,15 +527,24 @@ pub fn get_heating_control_actor(
 fn create_boiler_command_adapter(
   ha_commands: Subject(ha_command_actor.Message),
 ) -> Subject(heating_control_actor.BoilerCommand) {
-  let boiler_commands: Subject(heating_control_actor.BoilerCommand) =
+  // Create a Subject to receive the adapter's Subject from the spawned process
+  let response_subject: Subject(Subject(heating_control_actor.BoilerCommand)) =
     process.new_subject()
 
-  // Spawn an unlinked process that forwards BoilerCommand → ha_command_actor.Message
+  // Spawn an unlinked process that creates its own Subject and sends it back
   let _ =
     process.spawn_unlinked(fn() {
+      // Create the Subject in THIS process so we can receive on it
+      let boiler_commands: Subject(heating_control_actor.BoilerCommand) =
+        process.new_subject()
+      // Send the Subject back to the parent
+      process.send(response_subject, boiler_commands)
+      // Now start forwarding
       forward_boiler_commands(boiler_commands, ha_commands)
     })
 
+  // Wait for the spawned process to send us its Subject
+  let assert Ok(boiler_commands) = process.receive(response_subject, 5000)
   boiler_commands
 }
 
@@ -488,12 +554,61 @@ fn forward_boiler_commands(
   ha_commands: Subject(ha_command_actor.Message),
 ) -> Nil {
   case process.receive_forever(boiler_commands) {
-    heating_control_actor.BoilerCommand(entity_id, mode, target) -> {
+    heating_control_actor.BoilerCommand(entity_id, hvac_mode, target) -> {
+      io.println("forward_boiler_commands: forwarding command to ha_command_actor")
       process.send(
         ha_commands,
-        ha_command_actor.SetHeatingAction(entity_id, mode, target),
+        ha_command_actor.SetHeatingAction(entity_id, hvac_mode, target),
       )
       forward_boiler_commands(boiler_commands, ha_commands)
+    }
+  }
+}
+
+/// Create an adapter that forwards room_actor.HeatingControlMessage to heating_control_actor.
+/// Returns a Subject(HeatingControlMessage) that can be passed to RoomActors.
+fn create_heating_control_adapter(
+  heating_control: Subject(heating_control_actor.Message),
+) -> Subject(room_actor.HeatingControlMessage) {
+  io.println("create_heating_control_adapter: creating adapter")
+
+  // Create a Subject to receive the adapter's Subject from the spawned process
+  let response_subject: Subject(Subject(room_actor.HeatingControlMessage)) =
+    process.new_subject()
+
+  // Spawn an unlinked process that creates its own Subject and sends it back
+  let _ =
+    process.spawn_unlinked(fn() {
+      io.println("create_heating_control_adapter: adapter process started")
+      // Create the Subject in THIS process so we can receive on it
+      let room_updates: Subject(room_actor.HeatingControlMessage) =
+        process.new_subject()
+      // Send the Subject back to the parent
+      process.send(response_subject, room_updates)
+      // Now start forwarding
+      forward_room_updates(room_updates, heating_control)
+    })
+
+  // Wait for the spawned process to send us its Subject
+  let assert Ok(room_updates) = process.receive(response_subject, 5000)
+  io.println("create_heating_control_adapter: adapter created, returning subject")
+  room_updates
+}
+
+/// Receive HeatingControlMessage from RoomActors and forward to HeatingControlActor
+fn forward_room_updates(
+  room_updates: Subject(room_actor.HeatingControlMessage),
+  heating_control: Subject(heating_control_actor.Message),
+) -> Nil {
+  io.println("forward_room_updates: waiting for message...")
+  case process.receive_forever(room_updates) {
+    room_actor.HeatingRoomUpdated(name, room_state) -> {
+      io.println("forward_room_updates: Forwarding " <> name <> " to HeatingControlActor")
+      process.send(
+        heating_control,
+        heating_control_actor.RoomUpdated(name, room_state),
+      )
+      forward_room_updates(room_updates, heating_control)
     }
   }
 }

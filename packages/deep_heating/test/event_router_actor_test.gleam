@@ -276,6 +276,7 @@ pub fn routes_sensor_updated_to_correct_room_actor_test() {
       schedule: schedule,
       decision_actor: decision_spy,
       state_aggregator: aggregator_spy,
+      heating_control: option.None,
     )
 
   // Build sensor registry with the RoomActor's subject

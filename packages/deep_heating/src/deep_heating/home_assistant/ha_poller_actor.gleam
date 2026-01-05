@@ -14,6 +14,7 @@ import deep_heating/home_assistant/client.{type HaClient} as home_assistant
 import deep_heating/temperature.{type Temperature}
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/int
+import gleam/io
 import gleam/list
 import gleam/option.{None, Some}
 import gleam/otp/actor
@@ -195,13 +196,33 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
       actor.continue(State(..state, is_polling: False))
     }
     PollNow -> {
+      // Debug: log PollNow
+      io.println("HaPollerActor: PollNow received")
       // Get JSON either from mock error, mock response, or real HA
       let json_result = case state.mock_error {
-        Some(err) -> Error(err)
+        Some(err) -> {
+          io.println("HaPollerActor: Using mock error")
+          Error(err)
+        }
         None ->
           case state.mock_response {
-            Some(json) -> Ok(json)
-            None -> home_assistant.get_states(state.ha_client)
+            Some(json) -> {
+              io.println("HaPollerActor: Using mock response")
+              Ok(json)
+            }
+            None -> {
+              io.println("HaPollerActor: Calling real HA API")
+              let result = home_assistant.get_states(state.ha_client)
+              case result {
+                Ok(_) -> io.println("HaPollerActor: HA API call succeeded")
+                Error(e) ->
+                  io.println(
+                    "HaPollerActor: HA API call failed: "
+                    <> home_assistant.error_to_string(e),
+                  )
+              }
+              result
+            }
           }
       }
 

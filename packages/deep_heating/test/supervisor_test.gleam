@@ -12,7 +12,7 @@ import deep_heating/temperature
 import envoy
 import gleam/erlang/process
 import gleam/list
-import gleam/option.{Some}
+import gleam/option.{None, Some}
 import gleam/set
 import gleeunit/should
 import simplifile
@@ -334,6 +334,7 @@ pub fn supervisor_starts_rooms_with_home_config_test() {
       poller_config: poller_config,
       adjustments_path: test_adjustments_path,
       home_config: home_config,
+      name_prefix: None,
     ))
 
   // Get the rooms supervisor from the main supervisor
@@ -356,6 +357,7 @@ pub fn supervisor_rooms_are_accessible_by_name_test() {
       poller_config: poller_config,
       adjustments_path: test_adjustments_path,
       home_config: home_config,
+      name_prefix: None,
     ))
 
   // Get the rooms supervisor
@@ -378,6 +380,7 @@ pub fn supervisor_room_actors_are_alive_test() {
       poller_config: poller_config,
       adjustments_path: test_adjustments_path,
       home_config: home_config,
+      name_prefix: None,
     ))
 
   // Get the rooms supervisor and lounge room
@@ -418,6 +421,7 @@ pub fn supervisor_loads_room_adjustments_from_env_test() {
       poller_config: poller_config,
       adjustments_path: test_path,
       home_config: home_config,
+      name_prefix: None,
     ))
 
   // Get the lounge room actor and query its state
@@ -452,6 +456,7 @@ pub fn supervisor_has_heating_control_actor_when_started_with_home_config_test()
       poller_config: poller_config,
       adjustments_path: test_adjustments_path,
       home_config: home_config,
+      name_prefix: None,
     ))
 
   // Get the heating control actor from the supervisor
@@ -471,6 +476,7 @@ pub fn heating_control_actor_is_alive_when_started_with_home_config_test() {
       poller_config: poller_config,
       adjustments_path: test_adjustments_path,
       home_config: home_config,
+      name_prefix: None,
     ))
 
   let assert Ok(heating_control) =

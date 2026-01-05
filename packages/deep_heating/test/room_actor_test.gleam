@@ -48,6 +48,7 @@ pub fn room_actor_starts_successfully_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
   should.be_ok(result)
 }
@@ -62,6 +63,7 @@ pub fn room_actor_is_alive_after_start_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   // The actor should be running
@@ -82,6 +84,7 @@ pub fn room_actor_returns_initial_state_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   // Query state
@@ -106,6 +109,7 @@ pub fn room_actor_starts_with_initial_adjustment_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
       initial_adjustment: 1.5,
     )
 
@@ -130,6 +134,7 @@ pub fn room_actor_applies_initial_adjustment_to_target_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
       initial_adjustment: 2.0,
     )
 
@@ -154,6 +159,7 @@ pub fn room_actor_clamps_initial_adjustment_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
       initial_adjustment: 5.0,
     )
 
@@ -181,6 +187,7 @@ pub fn room_actor_tracks_trv_temperature_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   // Create a TRV entity ID
@@ -217,6 +224,7 @@ pub fn room_actor_tracks_trv_target_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
@@ -246,6 +254,7 @@ pub fn room_actor_aggregates_multiple_trvs_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   let assert Ok(trv1) = entity_id.climate_entity_id("climate.bedroom_trv_1")
@@ -283,6 +292,7 @@ pub fn room_actor_notifies_decision_actor_on_trv_change_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
@@ -315,6 +325,7 @@ pub fn room_actor_handles_house_mode_change_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   // Send house mode change to Sleeping
@@ -345,6 +356,7 @@ pub fn room_actor_notifies_decision_actor_on_house_mode_change_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   // Send house mode change
@@ -377,6 +389,7 @@ pub fn room_actor_handles_adjustment_change_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   // Send adjustment change
@@ -402,6 +415,7 @@ pub fn room_actor_clamps_adjustment_to_max_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   // Try to set adjustment above max (3.0)
@@ -428,6 +442,7 @@ pub fn room_actor_clamps_adjustment_to_min_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   // Try to set adjustment below min (-3.0)
@@ -458,6 +473,7 @@ pub fn room_actor_tracks_external_temperature_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   // Send external temperature update
@@ -488,6 +504,7 @@ pub fn room_actor_tracks_trv_mode_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
@@ -516,6 +533,7 @@ pub fn room_actor_notifies_decision_actor_on_trv_mode_change_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
@@ -547,6 +565,7 @@ pub fn room_actor_tracks_trv_is_heating_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
@@ -575,6 +594,7 @@ pub fn room_actor_notifies_decision_actor_on_trv_is_heating_change_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
@@ -746,6 +766,7 @@ pub fn room_actor_computes_target_on_startup_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   // Query state
@@ -768,6 +789,7 @@ pub fn room_actor_recomputes_target_on_house_mode_change_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   // Get initial state (should be Auto mode)
@@ -813,6 +835,7 @@ pub fn room_actor_recomputes_target_on_adjustment_change_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   // Get initial state
@@ -851,6 +874,7 @@ pub fn room_actor_notifies_state_aggregator_on_trv_change_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
@@ -884,6 +908,7 @@ pub fn room_actor_initial_room_mode_is_auto_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   let reply_subject = process.new_subject()
@@ -905,6 +930,7 @@ pub fn room_actor_room_mode_is_off_when_any_trv_off_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
@@ -932,6 +958,7 @@ pub fn room_actor_room_mode_is_auto_when_all_trvs_heat_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   let assert Ok(trv1) = entity_id.climate_entity_id("climate.lounge_trv_1")
@@ -961,6 +988,7 @@ pub fn room_actor_room_mode_is_off_when_one_of_many_trvs_off_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   let assert Ok(trv1) = entity_id.climate_entity_id("climate.lounge_trv_1")
@@ -990,6 +1018,7 @@ pub fn room_actor_room_mode_is_sleeping_when_house_sleeping_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
@@ -1022,6 +1051,7 @@ pub fn room_actor_room_mode_off_overrides_sleeping_test() {
       schedule: make_test_schedule(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
     )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
@@ -1110,6 +1140,7 @@ pub fn timer_triggers_target_recomputation_test() {
       schedule: make_schedule_with_morning_change(),
       decision_actor: decision_actor,
       state_aggregator: state_aggregator,
+      heating_control: option.None,
       get_time: get_time,
       timer_interval_ms: 100,
       initial_adjustment: 0.0,
