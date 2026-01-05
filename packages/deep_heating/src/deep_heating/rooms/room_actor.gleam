@@ -18,7 +18,6 @@ import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Subject}
 import gleam/float
-import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
@@ -454,15 +453,12 @@ fn notify_state_changed(actor_state: ActorState) -> Nil {
   // Notify heating control actor of room state change (for boiler demand calculation)
   case actor_state.heating_control {
     Some(heating_control) -> {
-      io.println("RoomActor: notify_state_changed sending to heating_control for " <> actor_state.room.name)
       process.send(
         heating_control,
         HeatingRoomUpdated(actor_state.room.name, actor_state.room),
       )
     }
-    None -> {
-      io.println("RoomActor: notify_state_changed - no heating_control for " <> actor_state.room.name)
-    }
+    None -> Nil
   }
 }
 

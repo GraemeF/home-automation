@@ -13,8 +13,6 @@ import deep_heating/mode.{type HvacMode}
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Name, type Subject}
-import gleam/float
-import gleam/io
 import gleam/list
 import gleam/option
 import gleam/otp/actor
@@ -98,16 +96,6 @@ pub fn child_spec(
 fn handle_message(state: State, message: Message) -> actor.Next(State, Message) {
   case message {
     RoomUpdated(name, room_state) -> {
-      // Debug: log the room update
-      io.println(
-        "HeatingControlActor: RoomUpdated for "
-        <> name
-        <> " temp="
-        <> debug_option_temp(room_state.temperature)
-        <> " target="
-        <> debug_option_temp(room_state.target_temperature),
-      )
-
       // Update room state
       let new_room_states = dict.insert(state.room_states, name, room_state)
       let new_state = State(..state, room_states: new_room_states)
@@ -129,38 +117,19 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
 fn evaluate_and_send_command(state: State) -> State {
   let any_room_needs_heating = does_any_room_need_heating(state.room_states)
 
-  io.println(
-    "HeatingControlActor: evaluate - needs_heating="
-    <> bool_to_string(any_room_needs_heating)
-    <> " boiler_is_heating="
-    <> bool_to_string(state.boiler_is_heating),
-  )
-
   case any_room_needs_heating, state.boiler_is_heating {
     // Room needs heating, boiler is off → turn on
     True, False -> {
-      io.println("HeatingControlActor: sending HvacHeat command")
       send_boiler_command(state, mode.HvacHeat)
       State(..state, boiler_is_heating: True)
     }
     // No rooms need heating, boiler is on → turn off
     False, True -> {
-      io.println("HeatingControlActor: sending HvacOff command")
       send_boiler_command(state, mode.HvacOff)
       State(..state, boiler_is_heating: False)
     }
     // No change needed
-    _, _ -> {
-      io.println("HeatingControlActor: no change needed")
-      state
-    }
-  }
-}
-
-fn bool_to_string(b: Bool) -> String {
-  case b {
-    True -> "true"
-    False -> "false"
+    _, _ -> state
   }
 }
 
@@ -201,13 +170,5 @@ fn boiler_target_for_mode(hvac_mode: HvacMode) -> Temperature {
     mode.HvacHeat -> temperature.max_trv_command_target
     // When off, set minimum
     _ -> temperature.min_trv_command_target
-  }
-}
-
-/// Debug helper to convert Option(Temperature) to string
-fn debug_option_temp(temp: option.Option(Temperature)) -> String {
-  case temp {
-    option.Some(t) -> float.to_string(temperature.unwrap(t))
-    option.None -> "None"
   }
 }

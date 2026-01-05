@@ -335,6 +335,7 @@ pub fn supervisor_starts_rooms_with_home_config_test() {
       adjustments_path: test_adjustments_path,
       home_config: home_config,
       name_prefix: None,
+      time_provider: None,
     ))
 
   // Get the rooms supervisor from the main supervisor
@@ -358,6 +359,7 @@ pub fn supervisor_rooms_are_accessible_by_name_test() {
       adjustments_path: test_adjustments_path,
       home_config: home_config,
       name_prefix: None,
+      time_provider: None,
     ))
 
   // Get the rooms supervisor
@@ -381,6 +383,7 @@ pub fn supervisor_room_actors_are_alive_test() {
       adjustments_path: test_adjustments_path,
       home_config: home_config,
       name_prefix: None,
+      time_provider: None,
     ))
 
   // Get the rooms supervisor and lounge room
@@ -422,6 +425,7 @@ pub fn supervisor_loads_room_adjustments_from_env_test() {
       adjustments_path: test_path,
       home_config: home_config,
       name_prefix: None,
+      time_provider: None,
     ))
 
   // Get the lounge room actor and query its state
@@ -457,6 +461,7 @@ pub fn supervisor_has_heating_control_actor_when_started_with_home_config_test()
       adjustments_path: test_adjustments_path,
       home_config: home_config,
       name_prefix: None,
+      time_provider: None,
     ))
 
   // Get the heating control actor from the supervisor
@@ -477,6 +482,7 @@ pub fn heating_control_actor_is_alive_when_started_with_home_config_test() {
       adjustments_path: test_adjustments_path,
       home_config: home_config,
       name_prefix: None,
+      time_provider: None,
     ))
 
   let assert Ok(heating_control) =

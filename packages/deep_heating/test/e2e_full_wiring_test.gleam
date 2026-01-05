@@ -14,6 +14,7 @@ import deep_heating/config/home_config.{type HomeConfig, HomeConfig, RoomConfig}
 import deep_heating/entity_id
 import deep_heating/home_assistant/client.{HaClient}
 import deep_heating/home_assistant/ha_poller_actor
+import deep_heating/house_mode/house_mode_actor
 import deep_heating/mode
 import deep_heating/scheduling/schedule
 import deep_heating/state.{type DeepHeatingState}
@@ -22,9 +23,8 @@ import deep_heating/supervisor
 import deep_heating/temperature
 import fake_ha_server.{ClimateEntityState, SensorEntityState}
 import gleam/erlang/process
-import gleam/io
 import gleam/list
-import gleam/option.{None, Some}
+import gleam/option.{type Option, None, Some}
 import gleam/set
 import gleeunit/should
 
@@ -110,19 +110,22 @@ pub fn full_system_wiring_responds_to_sleep_button_test() {
   // Mist needs more time to fully bind to the port
   process.sleep(500)
 
-  // 2. Start Deep Heating supervisor
-  let assert Ok(system) = start_deep_heating(port)
+  // 2. Start Deep Heating supervisor with evening time (after 8pm for sleep button to work)
+  let evening_time = fn() {
+    house_mode_actor.local_datetime(2026, 1, 5, 22, 30, 0)
+  }
+  let assert Ok(system) = start_deep_heating_with_time_provider(port, Some(evening_time))
 
   // 3. Initial poll
   trigger_poll(system)
-  process.sleep(100)
+  process.sleep(500)
 
   // 4. Press the sleep button (update fake HA state)
   press_sleep_button(fake_ha)
 
   // 5. Trigger another poll to detect the button press
   trigger_poll(system)
-  process.sleep(100)
+  process.sleep(500)
 
   // 6. Verify house mode changed to sleeping
   let house_mode = get_house_mode(system)
@@ -307,6 +310,14 @@ fn start_fake_ha_with_warm_rooms(
 fn start_deep_heating(
   port: Int,
 ) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
+  start_deep_heating_with_time_provider(port, None)
+}
+
+/// Start the Deep Heating supervisor with an optional time provider (for testing time-based logic)
+fn start_deep_heating_with_time_provider(
+  port: Int,
+  time_provider: Option(house_mode_actor.TimeProvider),
+) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
   let ha_client = HaClient("http://127.0.0.1:" <> int_to_string(port), test_token)
 
   let home_config = make_test_home_config()
@@ -322,6 +333,7 @@ fn start_deep_heating(
       adjustments_path: test_adjustments_path,
       home_config: home_config,
       name_prefix: Some(name_prefix),
+      time_provider: time_provider,
     ))
   {
     Ok(started) -> Ok(started.data)
@@ -331,12 +343,8 @@ fn start_deep_heating(
 
 /// Trigger an immediate poll on the system
 fn trigger_poll(system: supervisor.SupervisorWithRooms) -> Nil {
-  io.println("e2e: trigger_poll called")
-  // Get the poller and send PollNow
   let poller_subject = supervisor.get_ha_poller_subject(system)
-  io.println("e2e: sending PollNow to poller")
   process.send(poller_subject, ha_poller_actor.PollNow)
-  io.println("e2e: PollNow sent")
 }
 
 /// Press the sleep button in fake HA

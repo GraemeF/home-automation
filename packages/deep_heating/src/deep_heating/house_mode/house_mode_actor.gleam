@@ -154,8 +154,16 @@ pub fn start_with_timer_interval(
 pub fn start(
   name: Name(Message),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  start_named_with_time_provider(name, now)
+}
+
+/// Start the HouseModeActor with a custom time provider and register with given name
+pub fn start_named_with_time_provider(
+  name: Name(Message),
+  get_now: TimeProvider,
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   // Evaluate initial mode based on current time
-  let current_time = now()
+  let current_time = get_now()
   let initial_mode = evaluate_mode(current_time, Error(Nil))
 
   actor.new_with_initialiser(1000, fn(self_subject) {
@@ -166,7 +174,7 @@ pub fn start(
       State(
         mode: initial_mode,
         room_actors: [],
-        get_now: now,
+        get_now: get_now,
         last_button_press: Error(Nil),
         self_subject: Ok(self_subject),
         timer_interval_ms: default_timer_interval_ms,

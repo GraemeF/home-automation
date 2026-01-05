@@ -23,7 +23,6 @@ import deep_heating/rooms/room_adjustments
 import deep_heating/rooms/rooms_supervisor.{type RoomsSupervisor}
 import gleam/dict
 import gleam/erlang/process.{type Name, type Pid, type Subject}
-import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
@@ -62,6 +61,8 @@ pub type SupervisorConfigWithRooms {
     home_config: HomeConfig,
     /// Optional prefix for actor names (for test isolation)
     name_prefix: Option(String),
+    /// Optional time provider for testing (defaults to real time)
+    time_provider: Option(house_mode_actor.TimeProvider),
   )
 }
 
@@ -296,7 +297,12 @@ pub fn start_with_home_config(
         process.named_subject(state_aggregator_name)
 
       // Start HouseModeActor manually to capture its actual Subject
-      case house_mode_actor.start(house_mode_name) {
+      // Use provided time_provider or default to real time
+      let time_provider = case config.time_provider {
+        Some(tp) -> tp
+        None -> house_mode_actor.now
+      }
+      case house_mode_actor.start_named_with_time_provider(house_mode_name, time_provider) {
         Error(e) -> Error(SupervisorStartError(e))
         Ok(house_mode_started) -> {
           let house_mode_subject = house_mode_started.data
@@ -370,7 +376,6 @@ pub fn start_with_home_config(
                     }
                     Ok(event_router_subject) -> {
                       // Start HaPollerActor with the EventRouter's subject as event_spy
-                      io.println("supervisor: starting HaPollerActor")
                       case
                         ha_poller_actor.start_named(
                           ha_poller_name,
@@ -379,14 +384,8 @@ pub fn start_with_home_config(
                           event_router_subject,
                         )
                       {
-                        Error(e) -> {
-                          io.println("supervisor: HaPollerActor failed to start")
-                          Error(SupervisorStartError(e))
-                        }
+                        Error(e) -> Error(SupervisorStartError(e))
                         Ok(poller_started) -> {
-                          io.println(
-                            "supervisor: HaPollerActor started successfully",
-                          )
                           let sup =
                             SupervisorWithRooms(
                               pid: started.pid,
@@ -555,7 +554,6 @@ fn forward_boiler_commands(
 ) -> Nil {
   case process.receive_forever(boiler_commands) {
     heating_control_actor.BoilerCommand(entity_id, hvac_mode, target) -> {
-      io.println("forward_boiler_commands: forwarding command to ha_command_actor")
       process.send(
         ha_commands,
         ha_command_actor.SetHeatingAction(entity_id, hvac_mode, target),
@@ -570,8 +568,6 @@ fn forward_boiler_commands(
 fn create_heating_control_adapter(
   heating_control: Subject(heating_control_actor.Message),
 ) -> Subject(room_actor.HeatingControlMessage) {
-  io.println("create_heating_control_adapter: creating adapter")
-
   // Create a Subject to receive the adapter's Subject from the spawned process
   let response_subject: Subject(Subject(room_actor.HeatingControlMessage)) =
     process.new_subject()
@@ -579,7 +575,6 @@ fn create_heating_control_adapter(
   // Spawn an unlinked process that creates its own Subject and sends it back
   let _ =
     process.spawn_unlinked(fn() {
-      io.println("create_heating_control_adapter: adapter process started")
       // Create the Subject in THIS process so we can receive on it
       let room_updates: Subject(room_actor.HeatingControlMessage) =
         process.new_subject()
@@ -591,7 +586,6 @@ fn create_heating_control_adapter(
 
   // Wait for the spawned process to send us its Subject
   let assert Ok(room_updates) = process.receive(response_subject, 5000)
-  io.println("create_heating_control_adapter: adapter created, returning subject")
   room_updates
 }
 
@@ -600,10 +594,8 @@ fn forward_room_updates(
   room_updates: Subject(room_actor.HeatingControlMessage),
   heating_control: Subject(heating_control_actor.Message),
 ) -> Nil {
-  io.println("forward_room_updates: waiting for message...")
   case process.receive_forever(room_updates) {
     room_actor.HeatingRoomUpdated(name, room_state) -> {
-      io.println("forward_room_updates: Forwarding " <> name <> " to HeatingControlActor")
       process.send(
         heating_control,
         heating_control_actor.RoomUpdated(name, room_state),

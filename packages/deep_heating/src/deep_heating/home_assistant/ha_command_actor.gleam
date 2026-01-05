@@ -12,7 +12,6 @@ import deep_heating/mode.{type HvacMode}
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Name, type Subject}
-import gleam/io
 import gleam/otp/actor
 import gleam/otp/supervision
 
@@ -221,12 +220,7 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
                 process.spawn_unlinked(fn() {
                   case home_assistant.set_temperature(ha_client, eid, target) {
                     Ok(_) -> Nil
-                    Error(err) -> {
-                      io.println(
-                        "TRV set_temperature failed: "
-                        <> home_assistant.error_to_string(err),
-                      )
-                    }
+                    Error(_) -> Nil
                   }
                 })
 
@@ -234,12 +228,7 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
                 process.spawn_unlinked(fn() {
                   case home_assistant.set_hvac_mode(ha_client, eid, hvac_mode) {
                     Ok(_) -> Nil
-                    Error(err) -> {
-                      io.println(
-                        "TRV set_hvac_mode failed: "
-                        <> home_assistant.error_to_string(err),
-                      )
-                    }
+                    Error(_) -> Nil
                   }
                 })
 
@@ -268,7 +257,6 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
     }
 
     SetHeatingAction(entity_id, hvac_mode, target) -> {
-      io.println("ha_command_actor: SetHeatingAction received")
       // Store the pending heating action (overwrites any previous)
       let new_pending =
         Ok(PendingHeatingAction(
@@ -279,13 +267,9 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
 
       // Start debounce timer if not already running
       let new_timer_active = case state.heating_timer_active {
-        True -> {
-          io.println("ha_command_actor: timer already active, updating pending")
-          True
-        }
+        True -> True
         False -> {
           // Start timer
-          io.println("ha_command_actor: starting debounce timer")
           process.send_after(
             state.self_subject,
             state.debounce_ms,
@@ -305,7 +289,6 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
     }
 
     HeatingDebounceTimeout -> {
-      io.println("ha_command_actor: HeatingDebounceTimeout fired!")
       // Timer fired - execute the pending heating action
       case state.pending_heating_action {
         Ok(PendingHeatingAction(entity_id, hvac_mode, target)) -> {
@@ -331,28 +314,15 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
                 process.spawn_unlinked(fn() {
                   case home_assistant.set_temperature(ha_client, eid, target) {
                     Ok(_) -> Nil
-                    Error(err) -> {
-                      io.println(
-                        "Heating set_temperature failed: "
-                        <> home_assistant.error_to_string(err),
-                      )
-                    }
+                    Error(_) -> Nil
                   }
                 })
 
               let _mode_pid =
                 process.spawn_unlinked(fn() {
-                  io.println("ha_command_actor: calling set_hvac_mode")
                   case home_assistant.set_hvac_mode(ha_client, eid, hvac_mode) {
-                    Ok(_) -> {
-                      io.println("ha_command_actor: set_hvac_mode succeeded")
-                    }
-                    Error(err) -> {
-                      io.println(
-                        "Heating set_hvac_mode failed: "
-                        <> home_assistant.error_to_string(err),
-                      )
-                    }
+                    Ok(_) -> Nil
+                    Error(_) -> Nil
                   }
                 })
 
