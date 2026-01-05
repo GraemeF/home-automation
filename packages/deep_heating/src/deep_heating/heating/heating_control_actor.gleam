@@ -20,10 +20,22 @@ import gleam/otp/supervision
 
 /// Messages handled by the HeatingControlActor
 pub type Message {
+  /// Get the current heating control state
+  GetState(reply_to: Subject(HeatingControlState))
   /// Room state was updated (from RoomActor)
   RoomUpdated(name: String, room_state: room_actor.RoomState)
   /// Boiler status changed (from HaPollerActor)
   BoilerStatusChanged(is_heating: Bool)
+}
+
+/// Public view of the heating control state for queries
+pub type HeatingControlState {
+  HeatingControlState(
+    /// Current boiler status
+    boiler_is_heating: Bool,
+    /// Current room states being tracked
+    room_states: Dict(String, room_actor.RoomState),
+  )
 }
 
 /// Domain command for boiler actions - decoupled from HA infrastructure
@@ -95,6 +107,15 @@ pub fn child_spec(
 
 fn handle_message(state: State, message: Message) -> actor.Next(State, Message) {
   case message {
+    GetState(reply_to) -> {
+      let public_state =
+        HeatingControlState(
+          boiler_is_heating: state.boiler_is_heating,
+          room_states: state.room_states,
+        )
+      process.send(reply_to, public_state)
+      actor.continue(state)
+    }
     RoomUpdated(name, room_state) -> {
       // Update room state
       let new_room_states = dict.insert(state.room_states, name, room_state)

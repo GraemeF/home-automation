@@ -1,11 +1,11 @@
+import deep_heating/entity_id
 import deep_heating/event_router_actor
-import deep_heating/home_assistant/ha_poller_actor
 import deep_heating/heating/heating_control_actor
+import deep_heating/home_assistant/ha_poller_actor
 import deep_heating/house_mode/house_mode_actor
+import deep_heating/mode
 import deep_heating/rooms/room_actor
 import deep_heating/rooms/trv_actor
-import deep_heating/entity_id
-import deep_heating/mode
 import deep_heating/scheduling/schedule as deep_heating_schedule
 import deep_heating/temperature
 import gleam/dict
@@ -472,10 +472,15 @@ pub fn routes_heating_status_changed_to_heating_control_actor_test() {
   // Give it a moment to process
   process.sleep(100)
 
-  // The HeatingControlActor should have received the BoilerStatusChanged message
-  // We can verify this by checking if the actor is still responsive
-  // (it would crash on an unexpected message type)
-  // For a more thorough test, we'd need to add a GetState message to HeatingControlActor
-  // But the key thing is that the routing happens without crashing
-  should.be_true(True)
+  // Query HeatingControlActor state to verify it received the message
+  let reply_subject = process.new_subject()
+  process.send(
+    heating_control_started.data,
+    heating_control_actor.GetState(reply_subject),
+  )
+
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+
+  // The boiler_is_heating should have been updated to True by the routed message
+  state.boiler_is_heating |> should.be_true
 }
