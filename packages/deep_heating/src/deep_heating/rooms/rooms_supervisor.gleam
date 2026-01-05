@@ -15,16 +15,16 @@
 //// └── ...
 //// ```
 
+import deep_heating/config/home_config.{type HomeConfig, type RoomConfig}
+import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/home_assistant/ha_command_actor
 import deep_heating/house_mode/house_mode_actor
-import deep_heating/state/state_aggregator_actor
-import deep_heating/entity_id.{type ClimateEntityId}
-import deep_heating/config/home_config.{type HomeConfig, type RoomConfig}
 import deep_heating/rooms/room_actor
 import deep_heating/rooms/room_adjustments.{type RoomAdjustment}
 import deep_heating/rooms/room_decision_actor
 import deep_heating/rooms/trv_actor
 import deep_heating/rooms/trv_command_adapter_actor
+import deep_heating/state/state_aggregator_actor
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Pid, type Subject}
 import gleam/list
@@ -98,7 +98,9 @@ pub fn start_room(
   state_aggregator state_aggregator: Subject(state_aggregator_actor.Message),
   ha_commands ha_commands: Subject(ha_command_actor.Message),
   house_mode house_mode: Subject(house_mode_actor.Message),
-  heating_control heating_control: Option(Subject(room_actor.HeatingControlMessage)),
+  heating_control heating_control: Option(
+    Subject(room_actor.HeatingControlMessage),
+  ),
   initial_adjustments initial_adjustments: List(RoomAdjustment),
 ) -> Result(RoomSupervisor, StartError) {
   // Get schedule - rooms must have a schedule configured
@@ -127,8 +129,12 @@ pub fn start_room(
 
   // Start the RoomDecisionActor FIRST so we can get its actual Subject
   // (Must start before RoomActor so RoomActor can send to it)
+  // Uses start_named for OTP supervision support
   use decision_started <- result.try(
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    room_decision_actor.start_named(
+      name: decision_actor_name,
+      trv_commands: trv_commands,
+    )
     |> result.map_error(ActorStartError),
   )
 
@@ -155,13 +161,17 @@ pub fn start_room(
   let room_actor_name = process.new_name("room_actor_" <> room_config.name)
 
   // Start the RoomActor with the DecisionActor's actual Subject
+  // Uses start_named for OTP supervision support
   use room_started <- result.try(
-    room_actor.start_with_adjustment(
-      name: room_config.name,
+    room_actor.start_named(
+      actor_name: room_actor_name,
+      room_name: room_config.name,
       schedule: room_schedule,
       decision_actor: decision_for_room,
       state_aggregator: aggregator_for_room,
       heating_control: heating_control,
+      get_time: room_actor.get_current_datetime,
+      timer_interval_ms: room_actor.default_timer_interval_ms,
       initial_adjustment: initial_adjustment,
     )
     |> result.map_error(ActorStartError),
@@ -281,7 +291,9 @@ pub fn start(
   state_aggregator state_aggregator: Subject(state_aggregator_actor.Message),
   ha_commands ha_commands: Subject(ha_command_actor.Message),
   house_mode house_mode: Subject(house_mode_actor.Message),
-  heating_control heating_control: Option(Subject(room_actor.HeatingControlMessage)),
+  heating_control heating_control: Option(
+    Subject(room_actor.HeatingControlMessage),
+  ),
   initial_adjustments initial_adjustments: List(RoomAdjustment),
 ) -> Result(RoomsSupervisor, StartError) {
   config.rooms

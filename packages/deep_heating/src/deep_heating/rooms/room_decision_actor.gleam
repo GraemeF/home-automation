@@ -6,12 +6,12 @@
 //// - Send TrvCommand (domain commands) to the configured output subject
 //// - Implement the "smart" heating logic (compensation)
 
-import deep_heating/rooms/room_actor
 import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/mode.{type HvacMode}
+import deep_heating/rooms/room_actor
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
-import gleam/erlang/process.{type Subject}
+import gleam/erlang/process.{type Name, type Subject}
 import gleam/option
 import gleam/otp/actor
 
@@ -44,6 +44,22 @@ pub fn start_with_trv_commands(
     State(trv_commands: trv_commands, last_sent_targets: dict.new())
 
   actor.new(initial_state)
+  |> actor.on_message(handle_message)
+  |> actor.start
+}
+
+/// Start a named RoomDecisionActor with a domain TrvCommand output subject.
+/// The actor registers with the given name, allowing it to be addressed
+/// via `named_subject(name)` even after restarts under supervision.
+pub fn start_named(
+  name name: Name(Message),
+  trv_commands trv_commands: Subject(TrvCommand),
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  let initial_state =
+    State(trv_commands: trv_commands, last_sent_targets: dict.new())
+
+  actor.new(initial_state)
+  |> actor.named(name)
   |> actor.on_message(handle_message)
   |> actor.start
 }

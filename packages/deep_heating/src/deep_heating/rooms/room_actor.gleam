@@ -12,11 +12,13 @@ import deep_heating/mode.{
   type HouseMode, type HvacMode, type RoomMode, HouseModeAuto, HouseModeSleeping,
   HvacOff, RoomModeOff,
 }
-import deep_heating/scheduling/schedule.{type TimeOfDay, type WeekSchedule, type Weekday}
+import deep_heating/scheduling/schedule.{
+  type TimeOfDay, type WeekSchedule, type Weekday,
+}
 import deep_heating/state
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
-import gleam/erlang/process.{type Subject}
+import gleam/erlang/process.{type Name, type Subject}
 import gleam/float
 import gleam/list
 import gleam/option.{type Option, None, Some}
@@ -48,7 +50,7 @@ fn int_to_weekday(day_int: Int) -> Weekday {
 }
 
 /// Get current time and weekday from system
-fn get_current_datetime() -> #(Weekday, TimeOfDay) {
+pub fn get_current_datetime() -> #(Weekday, TimeOfDay) {
   let #(#(year, month, day), #(hour, minute, _second)) = erlang_local_time()
   let weekday = int_to_weekday(erlang_day_of_the_week(year, month, day))
   let assert Ok(time) = schedule.time_of_day(hour, minute)
@@ -204,6 +206,58 @@ pub fn start_with_timer_interval(
   timer_interval_ms timer_interval_ms: Int,
   initial_adjustment initial_adjustment: Float,
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  start_internal(
+    room_name: name,
+    actor_name: None,
+    schedule: schedule,
+    decision_actor: decision_actor,
+    state_aggregator: state_aggregator,
+    heating_control: heating_control,
+    get_time: get_time,
+    timer_interval_ms: timer_interval_ms,
+    initial_adjustment: initial_adjustment,
+  )
+}
+
+/// Start a named RoomActor with custom time provider and timer interval.
+/// The actor registers with the given name, allowing it to be addressed
+/// via `named_subject(name)` even after restarts under supervision.
+pub fn start_named(
+  actor_name actor_name: Name(Message),
+  room_name room_name: String,
+  schedule schedule: WeekSchedule,
+  decision_actor decision_actor: Subject(DecisionMessage),
+  state_aggregator state_aggregator: Subject(AggregatorMessage),
+  heating_control heating_control: Option(Subject(HeatingControlMessage)),
+  get_time get_time: GetDateTime,
+  timer_interval_ms timer_interval_ms: Int,
+  initial_adjustment initial_adjustment: Float,
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  start_internal(
+    room_name: room_name,
+    actor_name: Some(actor_name),
+    schedule: schedule,
+    decision_actor: decision_actor,
+    state_aggregator: state_aggregator,
+    heating_control: heating_control,
+    get_time: get_time,
+    timer_interval_ms: timer_interval_ms,
+    initial_adjustment: initial_adjustment,
+  )
+}
+
+/// Internal start function that handles both named and unnamed variants
+fn start_internal(
+  room_name room_name: String,
+  actor_name actor_name: Option(Name(Message)),
+  schedule schedule: WeekSchedule,
+  decision_actor decision_actor: Subject(DecisionMessage),
+  state_aggregator state_aggregator: Subject(AggregatorMessage),
+  heating_control heating_control: Option(Subject(HeatingControlMessage)),
+  get_time get_time: GetDateTime,
+  timer_interval_ms timer_interval_ms: Int,
+  initial_adjustment initial_adjustment: Float,
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   // Clamp initial adjustment to valid range
   let clamped_adjustment = clamp_adjustment(initial_adjustment)
 
@@ -221,7 +275,7 @@ pub fn start_with_timer_interval(
   let initial_trv_states = dict.new()
   let initial_room =
     RoomState(
-      name: name,
+      name: room_name,
       temperature: None,
       target_temperature: initial_target,
       house_mode: HouseModeAuto,
@@ -230,32 +284,41 @@ pub fn start_with_timer_interval(
       trv_states: initial_trv_states,
     )
 
-  actor.new_with_initialiser(1000, fn(self_subject) {
-    // Schedule initial timer if interval > 0
-    case timer_interval_ms > 0 {
-      True -> {
-        process.send_after(self_subject, timer_interval_ms, ReComputeTarget)
-        Nil
+  let builder =
+    actor.new_with_initialiser(1000, fn(self_subject) {
+      // Schedule initial timer if interval > 0
+      case timer_interval_ms > 0 {
+        True -> {
+          process.send_after(self_subject, timer_interval_ms, ReComputeTarget)
+          Nil
+        }
+        False -> Nil
       }
-      False -> Nil
-    }
 
-    let initial_state =
-      ActorState(
-        room: initial_room,
-        schedule: schedule,
-        decision_actor: decision_actor,
-        state_aggregator: state_aggregator,
-        heating_control: heating_control,
-        get_time: get_time,
-        timer_interval_ms: timer_interval_ms,
-        self_subject: Some(self_subject),
-      )
+      let initial_state =
+        ActorState(
+          room: initial_room,
+          schedule: schedule,
+          decision_actor: decision_actor,
+          state_aggregator: state_aggregator,
+          heating_control: heating_control,
+          get_time: get_time,
+          timer_interval_ms: timer_interval_ms,
+          self_subject: Some(self_subject),
+        )
 
-    actor.initialised(initial_state)
-    |> actor.returning(self_subject)
-    |> Ok
-  })
+      actor.initialised(initial_state)
+      |> actor.returning(self_subject)
+      |> Ok
+    })
+
+  // Apply naming if provided
+  let named_builder = case actor_name {
+    Some(name) -> actor.named(builder, name)
+    None -> builder
+  }
+
+  named_builder
   |> actor.on_message(handle_message)
   |> actor.start
 }
