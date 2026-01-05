@@ -82,18 +82,31 @@ type TrvActorConfig {
 
 /// Create an adapter that forwards domain TrvCommand to infrastructure ha_command_actor.
 /// Returns a Subject(TrvCommand) that can be passed to RoomDecisionActor.
+///
+/// Note: The child process must create its own Subject to receive on it.
+/// If the parent creates the Subject, messages go to the parent's mailbox,
+/// not the child's - this was a bug that caused message forwarding to fail.
 fn create_trv_command_adapter(
   ha_commands: Subject(ha_command_actor.Message),
 ) -> Subject(room_decision_actor.TrvCommand) {
-  let trv_commands: Subject(room_decision_actor.TrvCommand) =
+  // Create a Subject to receive the adapter's Subject back from the spawned process
+  let response_subject: Subject(Subject(room_decision_actor.TrvCommand)) =
     process.new_subject()
 
-  // Spawn an unlinked process that forwards TrvCommand → ha_command_actor.Message
+  // Spawn an unlinked process that creates its own Subject and sends it back
   let _ =
     process.spawn_unlinked(fn() {
+      // Create the Subject in THIS process so we can receive on it
+      let trv_commands: Subject(room_decision_actor.TrvCommand) =
+        process.new_subject()
+      // Send the Subject back to the parent
+      process.send(response_subject, trv_commands)
+      // Now start forwarding
       forward_trv_commands(trv_commands, ha_commands)
     })
 
+  // Wait for the spawned process to send us its Subject
+  let assert Ok(trv_commands) = process.receive(response_subject, 5000)
   trv_commands
 }
 
@@ -146,12 +159,32 @@ pub fn start_room(
   let initial_adjustment =
     room_adjustments.get_adjustment(initial_adjustments, room_config.name)
 
-  // First, create a subject for decision actor messages.
-  // We'll use this when starting the room actor, then start the decision actor.
-  let decision_subject: Subject(room_decision_actor.Message) =
-    process.new_subject()
+  // Create a name for the decision actor
+  let decision_actor_name =
+    process.new_name("decision_actor_" <> room_config.name)
+
+  // Create an adapter that forwards domain TrvCommand to infrastructure ha_command_actor
+  let trv_commands = create_trv_command_adapter(ha_commands)
+
+  // Start the RoomDecisionActor FIRST so we can get its actual Subject
+  // (Must start before RoomActor so RoomActor can send to it)
+  use decision_started <- result.try(
+    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    |> result.map_error(ActorStartError),
+  )
+
+  // Get the DecisionActor's actual Subject (created by actor.start internally)
+  let decision_subject = decision_started.data
+
+  let decision_ref =
+    ActorRef(
+      pid: decision_started.pid,
+      subject: decision_subject,
+      name: decision_actor_name,
+    )
 
   // Coerce the decision subject to the type RoomActor expects
+  // (DecisionMessage and room_decision_actor.Message are structurally identical)
   let decision_for_room: Subject(room_actor.DecisionMessage) =
     coerce_subject(decision_subject)
 
@@ -162,7 +195,7 @@ pub fn start_room(
   // Create a name for the room actor
   let room_actor_name = process.new_name("room_actor_" <> room_config.name)
 
-  // Start the RoomActor with initial adjustment
+  // Start the RoomActor with the DecisionActor's actual Subject
   use room_started <- result.try(
     room_actor.start_with_adjustment(
       name: room_config.name,
@@ -202,26 +235,6 @@ pub fn start_room(
     room_config.climate_entity_ids,
     room_for_trv,
   ))
-
-  // Create a name for the decision actor
-  let decision_actor_name =
-    process.new_name("decision_actor_" <> room_config.name)
-
-  // Create an adapter that forwards domain TrvCommand to infrastructure ha_command_actor
-  let trv_commands = create_trv_command_adapter(ha_commands)
-
-  // Start the RoomDecisionActor with domain-only interface
-  use decision_started <- result.try(
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
-    |> result.map_error(ActorStartError),
-  )
-
-  let decision_ref =
-    ActorRef(
-      pid: decision_started.pid,
-      subject: decision_started.data,
-      name: decision_actor_name,
-    )
 
   Ok(RoomSupervisor(
     room_name: room_config.name,

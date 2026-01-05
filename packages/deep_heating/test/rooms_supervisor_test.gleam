@@ -564,6 +564,75 @@ pub fn rooms_supervisor_can_get_room_by_name_test() {
 }
 
 // =============================================================================
+// TRV Command Adapter Tests - Verify message forwarding works
+// =============================================================================
+
+pub fn trv_command_adapter_forwards_commands_to_ha_test() {
+  // This test verifies that when RoomDecisionActor sends a TrvCommand,
+  // it gets forwarded to the HaCommandActor via the adapter.
+  // This is a regression test for a Subject ownership bug where the adapter
+  // created the Subject in the parent process but tried to receive in a child.
+  let state_aggregator: process.Subject(state_aggregator_actor.Message) =
+    process.new_subject()
+  let ha_commands: process.Subject(ha_command_actor.Message) =
+    process.new_subject()
+  let room_config = make_single_room_config()
+
+  let assert Ok(room_sup) =
+    rooms_supervisor.start_room(
+      room_config: room_config,
+      state_aggregator: state_aggregator,
+      ha_commands: ha_commands,
+      house_mode: make_dummy_house_mode(),
+      heating_control: None,
+      initial_adjustments: [],
+    )
+
+  // Get actors
+  let assert [trv_ref] = rooms_supervisor.get_trv_actors(room_sup)
+  let assert Ok(room_actor_ref) = rooms_supervisor.get_room_actor(room_sup)
+
+  // Set up the TRV with heat mode and a temperature
+  let temp = temperature.temperature(19.0)
+  let update =
+    trv_actor.TrvUpdate(
+      temperature: Some(temp),
+      target: Some(temperature.temperature(20.0)),
+      mode: mode.HvacHeat,
+      is_heating: False,
+    )
+  process.send(trv_ref.subject, trv_actor.Update(update))
+
+  // Send external temp to room actor (needed for offset calculation)
+  process.send(
+    room_actor_ref.subject,
+    room_actor.ExternalTempChanged(temperature.temperature(18.0)),
+  )
+
+  // Give time for messages to propagate through the actor chain
+  process.sleep(200)
+
+  // The adapter MUST forward the command to ha_commands
+  // If the Subject ownership bug exists, this will timeout
+  case process.receive(ha_commands, 1000) {
+    Ok(ha_command_actor.SetTrvAction(eid, _mode, _target)) -> {
+      // Success - command was forwarded correctly
+      entity_id.climate_entity_id_to_string(eid)
+      |> should.equal("climate.lounge_trv")
+    }
+    Ok(_other) -> {
+      // Wrong message type
+      should.fail()
+    }
+    Error(Nil) -> {
+      // Timeout - this means the adapter didn't forward the message!
+      // This is the bug we're testing for
+      should.fail()
+    }
+  }
+}
+
+// =============================================================================
 // HouseModeActor Registration Tests
 // =============================================================================
 
