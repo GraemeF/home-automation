@@ -3,65 +3,59 @@
 //// This actor acts as a bridge between the domain layer (RoomActors sending
 //// HeatingControlMessage) and the HeatingControlActor.
 ////
-//// Unlike a raw process with receive_forever, this actor:
-//// - Is supervisable (can be restarted if it crashes)
-//// - Handles OTP system messages (shutdown, tracing)
-//// - Can be gracefully stopped
+//// Uses `actor.named()` so it can be found via `named_subject()` after OTP supervisor
+//// restarts. The message type is `HeatingControlMessage` directly (not wrapped), which
+//// allows standard naming to work.
+////
+//// The actor looks up HeatingControlActor by name on each message, ensuring it always
+//// has a fresh reference even after restarts.
 
 import deep_heating/heating/heating_control_actor
-import deep_heating/rooms/room_actor
-import gleam/erlang/process.{type Subject}
+import deep_heating/rooms/room_actor.{
+  type HeatingControlMessage, HeatingRoomUpdated,
+}
+import gleam/erlang/process.{type Name, type Subject}
 import gleam/otp/actor
 
-/// Internal message type - we receive HeatingControlMessage directly
-type Message {
-  HeatingControlMessage(room_actor.HeatingControlMessage)
-}
-
-/// Internal actor state
+/// State - stores HeatingControlActor's name for lookup
 type State {
-  State(heating_control: Subject(heating_control_actor.Message))
+  State(heating_control_name: Name(heating_control_actor.Message))
 }
 
-/// Start the adapter actor.
-/// Returns a Subject(HeatingControlMessage) that can be passed to RoomActors.
+/// Start the adapter actor with a name, looking up HeatingControlActor by name.
 ///
-/// The actor creates its own Subject for receiving HeatingControlMessage and
-/// uses a custom selector to handle them, converting them to HeatingControlActor messages.
-pub fn start(
-  heating_control: Subject(heating_control_actor.Message),
-) -> Result(
-  actor.Started(Subject(room_actor.HeatingControlMessage)),
-  actor.StartError,
-) {
-  actor.new_with_initialiser(5000, fn(_default_subject) {
-    // Create a Subject for HeatingControlMessage
-    let room_updates: Subject(room_actor.HeatingControlMessage) =
-      process.new_subject()
-    let initial_state = State(heating_control: heating_control)
-
-    // Create a selector that maps HeatingControlMessage -> Message
-    let selector =
-      process.new_selector()
-      |> process.select_map(room_updates, HeatingControlMessage)
-
-    actor.initialised(initial_state)
-    |> actor.selecting(selector)
-    |> actor.returning(room_updates)
-    |> Ok
-  })
+/// - Uses `actor.named()` so the adapter can be found via `named_subject()`
+/// - Stores the HeatingControlActor's name, not its Subject
+/// - Looks up the HeatingControlActor on each message (survives restarts)
+///
+/// With RestForOne supervision, if HeatingControlActor restarts, this adapter
+/// also restarts and gets a fresh name lookup.
+pub fn start_named(
+  name name: Name(HeatingControlMessage),
+  heating_control_name heating_control_name: Name(heating_control_actor.Message),
+) -> Result(actor.Started(Subject(HeatingControlMessage)), actor.StartError) {
+  actor.new(State(heating_control_name: heating_control_name))
+  |> actor.named(name)
   |> actor.on_message(handle_message)
   |> actor.start
 }
 
-fn handle_message(state: State, message: Message) -> actor.Next(State, Message) {
-  case message {
-    HeatingControlMessage(room_actor.HeatingRoomUpdated(name, room_state)) -> {
+fn handle_message(
+  state: State,
+  msg: HeatingControlMessage,
+) -> actor.Next(State, HeatingControlMessage) {
+  case msg {
+    HeatingRoomUpdated(name, room_state) -> {
+      // Look up HeatingControlActor by name (fresh reference on each call)
+      let heating_subject: Subject(heating_control_actor.Message) =
+        process.named_subject(state.heating_control_name)
+
       // Forward room update to HeatingControlActor
       process.send(
-        state.heating_control,
+        heating_subject,
         heating_control_actor.RoomUpdated(name, room_state),
       )
+
       actor.continue(state)
     }
   }

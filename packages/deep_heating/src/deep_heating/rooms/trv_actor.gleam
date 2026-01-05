@@ -78,7 +78,8 @@ pub fn start(
       mode: HvacOff,
       is_heating: False,
     )
-  let initial_state = ActorState(trv: initial_trv, room_actor_name: room_actor_name)
+  let initial_state =
+    ActorState(trv: initial_trv, room_actor_name: room_actor_name)
 
   actor.new(initial_state)
   |> actor.named(name)

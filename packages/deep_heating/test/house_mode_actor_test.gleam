@@ -1,6 +1,6 @@
 import deep_heating/house_mode/house_mode_actor.{type LocalDateTime}
-import deep_heating/rooms/room_actor
 import deep_heating/mode
+import deep_heating/rooms/room_actor
 import gleam/erlang/process
 import gleeunit/should
 

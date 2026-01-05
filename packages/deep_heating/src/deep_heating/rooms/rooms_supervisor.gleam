@@ -124,8 +124,7 @@ pub fn start_room(
   // Create names for actors
   let decision_actor_name =
     process.new_name("decision_actor_" <> room_config.name)
-  let trv_adapter_name =
-    process.new_name("trv_adapter_" <> room_config.name)
+  let trv_adapter_name = process.new_name("trv_adapter_" <> room_config.name)
 
   // Start the TRV command adapter actor - uses named pattern for OTP supervision
   use _adapter_started <- result.try(

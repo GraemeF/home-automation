@@ -1,16 +1,69 @@
-import deep_heating/rooms/room_actor
 import deep_heating/entity_id
 import deep_heating/mode
+import deep_heating/rooms/room_actor
 import deep_heating/scheduling/schedule
 import deep_heating/temperature
 import gleam/dict
-import gleam/erlang/process
+import gleam/erlang/process.{type Name, type Subject}
+import gleam/int
 import gleam/option
+import gleam/otp/actor
 import gleeunit/should
+
+// =============================================================================
+// FFI for unique integer generation
+// =============================================================================
+
+@external(erlang, "erlang", "unique_integer")
+fn unique_integer() -> Int
 
 // =============================================================================
 // Test Helpers
 // =============================================================================
+
+/// Create a mock RoomDecisionActor that uses actor.named() and forwards to a spy.
+/// Returns the actor name and spy Subject for receiving messages.
+fn make_mock_decision_actor(
+  test_id: String,
+) -> #(Name(room_actor.DecisionMessage), Subject(room_actor.DecisionMessage)) {
+  let spy = process.new_subject()
+  let name =
+    process.new_name(
+      "mock_decision_" <> test_id <> "_" <> int.to_string(unique_integer()),
+    )
+
+  // Start a mock actor that forwards messages to spy
+  let assert Ok(_started) =
+    actor.new(spy)
+    |> actor.named(name)
+    |> actor.on_message(fn(spy_subj, msg) {
+      process.send(spy_subj, msg)
+      actor.continue(spy_subj)
+    })
+    |> actor.start
+
+  #(name, spy)
+}
+
+/// Test context containing all the infrastructure needed to test RoomActor
+type TestContext {
+  TestContext(
+    decision_name: Name(room_actor.DecisionMessage),
+    decision_spy: Subject(room_actor.DecisionMessage),
+    aggregator_spy: Subject(room_actor.AggregatorMessage),
+  )
+}
+
+/// Create a test context with mock decision actor and aggregator spy
+fn make_test_context(test_id: String) -> TestContext {
+  let #(decision_name, decision_spy) = make_mock_decision_actor(test_id)
+  let aggregator_spy = process.new_subject()
+  TestContext(
+    decision_name: decision_name,
+    decision_spy: decision_spy,
+    aggregator_spy: aggregator_spy,
+  )
+}
 
 fn make_test_schedule() -> schedule.WeekSchedule {
   // Simple schedule: 20°C all day every day
@@ -38,7 +91,7 @@ fn make_test_schedule() -> schedule.WeekSchedule {
 
 pub fn room_actor_starts_successfully_test() {
   // Create dependencies
-  let decision_actor = process.new_subject()
+  let #(decision_name, _spy) = make_mock_decision_actor("starts_successfully")
   let state_aggregator = process.new_subject()
 
   // Room actor should start successfully
@@ -46,7 +99,7 @@ pub fn room_actor_starts_successfully_test() {
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
+      decision_actor_name: decision_name,
       state_aggregator: state_aggregator,
       heating_control: option.None,
     )
@@ -54,14 +107,14 @@ pub fn room_actor_starts_successfully_test() {
 }
 
 pub fn room_actor_is_alive_after_start_test() {
-  let decision_actor = process.new_subject()
+  let #(decision_name, _spy) = make_mock_decision_actor("is_alive")
   let state_aggregator = process.new_subject()
 
   let assert Ok(started) =
     room_actor.start(
       name: "bedroom",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
+      decision_actor_name: decision_name,
       state_aggregator: state_aggregator,
       heating_control: option.None,
     )
@@ -75,15 +128,14 @@ pub fn room_actor_is_alive_after_start_test() {
 // =============================================================================
 
 pub fn room_actor_returns_initial_state_test() {
-  let decision_actor = process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("initial_state")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -100,15 +152,14 @@ pub fn room_actor_returns_initial_state_test() {
 }
 
 pub fn room_actor_starts_with_initial_adjustment_test() {
-  let decision_actor = process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("with_adjustment")
 
   let assert Ok(started) =
     room_actor.start_with_adjustment(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
       initial_adjustment: 1.5,
     )
@@ -124,16 +175,15 @@ pub fn room_actor_starts_with_initial_adjustment_test() {
 }
 
 pub fn room_actor_applies_initial_adjustment_to_target_test() {
-  let decision_actor = process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("adjustment_to_target")
 
   // Schedule has 20°C, adjustment of +2.0 should result in 22°C target
   let assert Ok(started) =
     room_actor.start_with_adjustment(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
       initial_adjustment: 2.0,
     )
@@ -149,16 +199,15 @@ pub fn room_actor_applies_initial_adjustment_to_target_test() {
 }
 
 pub fn room_actor_clamps_initial_adjustment_test() {
-  let decision_actor = process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("clamps_adjustment")
 
   // Initial adjustment exceeds max (3.0), should be clamped
   let assert Ok(started) =
     room_actor.start_with_adjustment(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
       initial_adjustment: 5.0,
     )
@@ -177,16 +226,14 @@ pub fn room_actor_clamps_initial_adjustment_test() {
 // =============================================================================
 
 pub fn room_actor_tracks_trv_temperature_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("tracks_trv_temp")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -214,16 +261,14 @@ pub fn room_actor_tracks_trv_temperature_test() {
 }
 
 pub fn room_actor_tracks_trv_target_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("tracks_trv_target")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -244,16 +289,14 @@ pub fn room_actor_tracks_trv_target_test() {
 }
 
 pub fn room_actor_aggregates_multiple_trvs_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("aggregates_multiple_trvs")
 
   let assert Ok(started) =
     room_actor.start(
       name: "bedroom",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -282,16 +325,14 @@ pub fn room_actor_aggregates_multiple_trvs_test() {
 }
 
 pub fn room_actor_notifies_decision_actor_on_trv_change_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("notifies_decision_on_trv_change")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -302,7 +343,7 @@ pub fn room_actor_notifies_decision_actor_on_trv_change_test() {
   process.send(started.data, room_actor.TrvTemperatureChanged(trv_id, temp))
 
   // Decision actor should receive notification
-  let assert Ok(msg) = process.receive(decision_actor, 1000)
+  let assert Ok(msg) = process.receive(ctx.decision_spy, 1000)
   case msg {
     room_actor.RoomStateChanged(state) -> {
       state.name |> should.equal("lounge")
@@ -315,16 +356,14 @@ pub fn room_actor_notifies_decision_actor_on_trv_change_test() {
 // =============================================================================
 
 pub fn room_actor_handles_house_mode_change_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("handles_house_mode_change")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -346,16 +385,14 @@ pub fn room_actor_handles_house_mode_change_test() {
 }
 
 pub fn room_actor_notifies_decision_actor_on_house_mode_change_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("notifies_decision_on_house_mode")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -366,7 +403,7 @@ pub fn room_actor_notifies_decision_actor_on_house_mode_change_test() {
   )
 
   // Decision actor should receive notification
-  let assert Ok(msg) = process.receive(decision_actor, 1000)
+  let assert Ok(msg) = process.receive(ctx.decision_spy, 1000)
   case msg {
     room_actor.RoomStateChanged(state) -> {
       state.house_mode |> should.equal(mode.HouseModeSleeping)
@@ -379,16 +416,14 @@ pub fn room_actor_notifies_decision_actor_on_house_mode_change_test() {
 // =============================================================================
 
 pub fn room_actor_handles_adjustment_change_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("handles_adjustment_change")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -405,16 +440,14 @@ pub fn room_actor_handles_adjustment_change_test() {
 }
 
 pub fn room_actor_clamps_adjustment_to_max_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("clamps_adjustment_max")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -432,16 +465,14 @@ pub fn room_actor_clamps_adjustment_to_max_test() {
 }
 
 pub fn room_actor_clamps_adjustment_to_min_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("clamps_adjustment_min")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -463,16 +494,14 @@ pub fn room_actor_clamps_adjustment_to_min_test() {
 // =============================================================================
 
 pub fn room_actor_tracks_external_temperature_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("tracks_external_temp")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -494,16 +523,14 @@ pub fn room_actor_tracks_external_temperature_test() {
 // =============================================================================
 
 pub fn room_actor_tracks_trv_mode_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("tracks_trv_mode")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -523,16 +550,14 @@ pub fn room_actor_tracks_trv_mode_test() {
 }
 
 pub fn room_actor_notifies_decision_actor_on_trv_mode_change_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("notifies_on_trv_mode")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -542,7 +567,7 @@ pub fn room_actor_notifies_decision_actor_on_trv_mode_change_test() {
   process.send(started.data, room_actor.TrvModeChanged(trv_id, mode.HvacHeat))
 
   // Decision actor should receive notification
-  let assert Ok(msg) = process.receive(decision_actor, 1000)
+  let assert Ok(msg) = process.receive(ctx.decision_spy, 1000)
   case msg {
     room_actor.RoomStateChanged(state) -> {
       state.name |> should.equal("lounge")
@@ -555,16 +580,14 @@ pub fn room_actor_notifies_decision_actor_on_trv_mode_change_test() {
 // =============================================================================
 
 pub fn room_actor_tracks_trv_is_heating_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("tracks_trv_is_heating")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -584,16 +607,14 @@ pub fn room_actor_tracks_trv_is_heating_test() {
 }
 
 pub fn room_actor_notifies_decision_actor_on_trv_is_heating_change_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("notifies_on_trv_is_heating")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -603,7 +624,7 @@ pub fn room_actor_notifies_decision_actor_on_trv_is_heating_change_test() {
   process.send(started.data, room_actor.TrvIsHeatingChanged(trv_id, True))
 
   // Decision actor should receive notification
-  let assert Ok(msg) = process.receive(decision_actor, 1000)
+  let assert Ok(msg) = process.receive(ctx.decision_spy, 1000)
   case msg {
     room_actor.RoomStateChanged(state) -> {
       state.name |> should.equal("lounge")
@@ -756,16 +777,14 @@ pub fn compute_target_temp_returns_min_in_sleeping_mode_test() {
 // =============================================================================
 
 pub fn room_actor_computes_target_on_startup_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("computes_target_startup")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -779,16 +798,14 @@ pub fn room_actor_computes_target_on_startup_test() {
 }
 
 pub fn room_actor_recomputes_target_on_house_mode_change_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("recomputes_target_house_mode")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -825,16 +842,14 @@ pub fn room_actor_recomputes_target_on_house_mode_change_test() {
 }
 
 pub fn room_actor_recomputes_target_on_adjustment_change_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("recomputes_target_adjustment")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -863,17 +878,14 @@ pub fn room_actor_recomputes_target_on_adjustment_change_test() {
 // =============================================================================
 
 pub fn room_actor_notifies_state_aggregator_on_trv_change_test() {
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator: process.Subject(room_actor.AggregatorMessage) =
-    process.new_subject()
+  let ctx = make_test_context("notifies_state_aggregator")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -884,7 +896,7 @@ pub fn room_actor_notifies_state_aggregator_on_trv_change_test() {
   process.send(started.data, room_actor.TrvTemperatureChanged(trv_id, temp))
 
   // State aggregator should receive notification
-  let assert Ok(msg) = process.receive(state_aggregator, 1000)
+  let assert Ok(msg) = process.receive(ctx.aggregator_spy, 1000)
   case msg {
     room_actor.RoomUpdated(name, state) -> {
       name |> should.equal("lounge")
@@ -899,15 +911,14 @@ pub fn room_actor_notifies_state_aggregator_on_trv_change_test() {
 
 pub fn room_actor_initial_room_mode_is_auto_test() {
   // When house_mode is Auto and no TRVs, room_mode should be Auto
-  let decision_actor = process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("initial_room_mode_auto")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -920,16 +931,14 @@ pub fn room_actor_initial_room_mode_is_auto_test() {
 
 pub fn room_actor_room_mode_is_off_when_any_trv_off_test() {
   // If any TRV has HvacOff mode, room_mode should be RoomModeOff
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("room_mode_off_trv_off")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -948,16 +957,14 @@ pub fn room_actor_room_mode_is_off_when_any_trv_off_test() {
 
 pub fn room_actor_room_mode_is_auto_when_all_trvs_heat_test() {
   // If all TRVs are in heat mode and house_mode is Auto, room_mode is Auto
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("room_mode_auto_all_heat")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -978,16 +985,14 @@ pub fn room_actor_room_mode_is_auto_when_all_trvs_heat_test() {
 
 pub fn room_actor_room_mode_is_off_when_one_of_many_trvs_off_test() {
   // If even one TRV is off, room_mode should be Off
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("room_mode_off_one_trv_off")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -1008,16 +1013,14 @@ pub fn room_actor_room_mode_is_off_when_one_of_many_trvs_off_test() {
 
 pub fn room_actor_room_mode_is_sleeping_when_house_sleeping_test() {
   // If house_mode is Sleeping and no TRV is off, room_mode is Sleeping
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("room_mode_sleeping")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -1041,16 +1044,14 @@ pub fn room_actor_room_mode_is_sleeping_when_house_sleeping_test() {
 
 pub fn room_actor_room_mode_off_overrides_sleeping_test() {
   // TRV off should override house sleeping mode
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("room_mode_off_overrides_sleeping")
 
   let assert Ok(started) =
     room_actor.start(
       name: "lounge",
       schedule: make_test_schedule(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
 
@@ -1129,17 +1130,15 @@ pub fn timer_triggers_target_recomputation_test() {
     }
   }
 
-  let decision_actor: process.Subject(room_actor.DecisionMessage) =
-    process.new_subject()
-  let state_aggregator = process.new_subject()
+  let ctx = make_test_context("timer_recomputation")
 
   // Start actor with short timer interval (100ms for testing)
   let assert Ok(started) =
     room_actor.start_with_timer_interval(
       name: "lounge",
       schedule: make_schedule_with_morning_change(),
-      decision_actor: decision_actor,
-      state_aggregator: state_aggregator,
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
       get_time: get_time,
       timer_interval_ms: 100,

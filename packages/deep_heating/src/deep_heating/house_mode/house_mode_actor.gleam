@@ -9,8 +9,8 @@
 ////   - After 3am: Auto (unless button pressed after 8pm same day)
 ////   - Button pressed after 8pm: Sleeping (until 3am next day)
 
-import deep_heating/rooms/room_actor
 import deep_heating/mode.{type HouseMode, HouseModeAuto, HouseModeSleeping}
+import deep_heating/rooms/room_actor
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/list
 import gleam/otp/actor

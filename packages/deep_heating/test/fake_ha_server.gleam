@@ -9,7 +9,6 @@
 
 import deep_heating/entity_id.{type ClimateEntityId, type SensorEntityId}
 import deep_heating/mode.{type HvacMode}
-import gleam/io
 import deep_heating/temperature.{type Temperature}
 import gleam/bit_array
 import gleam/bytes_tree
@@ -20,6 +19,7 @@ import gleam/float
 import gleam/http
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
+import gleam/io
 import gleam/json
 import gleam/list
 import gleam/option.{type Option, None, Some}
@@ -445,12 +445,18 @@ fn handle_set_hvac_mode(
       case parse_set_hvac_mode_body(req_with_body.body) {
         Ok(#(entity_id, hvac_mode)) -> {
           // Record the call
-          io.println("fake_ha_server: recording set_hvac_mode call for " <> entity_id.climate_entity_id_to_string(entity_id))
+          io.println(
+            "fake_ha_server: recording set_hvac_mode call for "
+            <> entity_id.climate_entity_id_to_string(entity_id),
+          )
           process.send(state_actor, RecordSetHvacModeCall(entity_id, hvac_mode))
           ok_response()
         }
         Error(_) -> {
-          io.println("fake_ha_server: failed to parse set_hvac_mode body: " <> bit_array_to_string(req_with_body.body))
+          io.println(
+            "fake_ha_server: failed to parse set_hvac_mode body: "
+            <> bit_array_to_string(req_with_body.body),
+          )
           bad_request_response()
         }
       }

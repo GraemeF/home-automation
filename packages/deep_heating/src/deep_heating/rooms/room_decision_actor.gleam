@@ -29,34 +29,37 @@ pub type TrvCommand {
 /// Internal actor state
 type State {
   State(
-    trv_commands: Subject(TrvCommand),
+    /// Name of the TrvCommandAdapterActor - looked up via named_subject() on each send
+    trv_adapter_name: Name(TrvCommand),
     /// Track last sent target per TRV to avoid duplicate commands
     last_sent_targets: Dict(ClimateEntityId, Temperature),
   )
 }
 
-/// Start the RoomDecisionActor with a domain TrvCommand output subject.
-/// This is the preferred way to start the actor - it stays decoupled from HA.
-pub fn start_with_trv_commands(
-  trv_commands trv_commands: Subject(TrvCommand),
+/// Start the RoomDecisionActor with a TrvCommandAdapterActor name.
+/// The adapter is looked up by name on each command send, making the actor
+/// robust to adapter restarts under OTP supervision.
+pub fn start_with_trv_adapter_name(
+  trv_adapter_name trv_adapter_name: Name(TrvCommand),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   let initial_state =
-    State(trv_commands: trv_commands, last_sent_targets: dict.new())
+    State(trv_adapter_name: trv_adapter_name, last_sent_targets: dict.new())
 
   actor.new(initial_state)
   |> actor.on_message(handle_message)
   |> actor.start
 }
 
-/// Start a named RoomDecisionActor with a domain TrvCommand output subject.
+/// Start a named RoomDecisionActor with a TrvCommandAdapterActor name.
 /// The actor registers with the given name, allowing it to be addressed
 /// via `named_subject(name)` even after restarts under supervision.
+/// The adapter is looked up by name on each command send.
 pub fn start_named(
   name name: Name(Message),
-  trv_commands trv_commands: Subject(TrvCommand),
+  trv_adapter_name trv_adapter_name: Name(TrvCommand),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   let initial_state =
-    State(trv_commands: trv_commands, last_sent_targets: dict.new())
+    State(trv_adapter_name: trv_adapter_name, last_sent_targets: dict.new())
 
   actor.new(initial_state)
   |> actor.named(name)
@@ -109,8 +112,11 @@ fn evaluate_and_send_commands(
                 True -> {
                   // Target changed or first time, send command
                   // Always set mode to HvacHeat (converts auto→heat)
+                  // Look up the TrvCommandAdapterActor by name (survives restarts)
+                  let trv_commands: Subject(TrvCommand) =
+                    process.named_subject(current_state.trv_adapter_name)
                   process.send(
-                    current_state.trv_commands,
+                    trv_commands,
                     TrvCommand(entity_id, mode.HvacHeat, desired_target),
                   )
                   // Update last sent target

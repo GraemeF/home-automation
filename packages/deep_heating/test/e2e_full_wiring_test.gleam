@@ -129,8 +129,7 @@ pub fn full_system_wiring_responds_to_sleep_button_test() {
 
   // 6. Wait for house mode to change to sleeping (poll with timeout)
   // Event propagation: poll → HTTP → parse → EventRouter → HouseModeActor
-  let assert Ok(Nil) =
-    wait_for_house_mode(system, mode.HouseModeSleeping, 2000)
+  let assert Ok(Nil) = wait_for_house_mode(system, mode.HouseModeSleeping, 2000)
 
   fake_ha_server.stop(fake_ha)
 }
@@ -151,7 +150,10 @@ pub fn full_system_wiring_broadcasts_state_to_ui_subscribers_test() {
   // 3. Subscribe a test subject to the StateAggregatorActor (simulates UI client)
   let ui_subscriber: process.Subject(DeepHeatingState) = process.new_subject()
   let state_aggregator = supervisor.get_state_aggregator_subject(system)
-  process.send(state_aggregator, state_aggregator_actor.Subscribe(ui_subscriber))
+  process.send(
+    state_aggregator,
+    state_aggregator_actor.Subscribe(ui_subscriber),
+  )
 
   // 4. Trigger a poll to get HA state
   trigger_poll(system)
@@ -319,7 +321,8 @@ fn start_deep_heating_with_time_provider(
   port: Int,
   time_provider: Option(house_mode_actor.TimeProvider),
 ) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
-  let ha_client = HaClient("http://127.0.0.1:" <> int_to_string(port), test_token)
+  let ha_client =
+    HaClient("http://127.0.0.1:" <> int_to_string(port), test_token)
 
   let home_config = make_test_home_config()
   let poller_config = make_poller_config(home_config)

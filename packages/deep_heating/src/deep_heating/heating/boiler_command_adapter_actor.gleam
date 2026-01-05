@@ -3,70 +3,58 @@
 //// This actor acts as a bridge between the domain layer (HeatingControlActor sending
 //// BoilerCommand) and the infrastructure layer (HaCommandActor sending SetHeatingAction).
 ////
-//// Unlike a raw process with receive_forever, this actor:
-//// - Is supervisable (can be restarted if it crashes)
-//// - Handles OTP system messages (shutdown, tracing)
-//// - Can be gracefully stopped
+//// Uses `actor.named()` so it can be found via `named_subject()` after OTP supervisor
+//// restarts. The message type is `BoilerCommand` directly (not wrapped), which allows
+//// standard naming to work.
+////
+//// The actor looks up HaCommandActor by name on each message, ensuring it always
+//// has a fresh reference even after restarts.
 
-import deep_heating/heating/heating_control_actor
+import deep_heating/heating/heating_control_actor.{
+  type BoilerCommand, BoilerCommand,
+}
 import deep_heating/home_assistant/ha_command_actor
-import gleam/erlang/process.{type Subject}
+import gleam/erlang/process.{type Name, type Subject}
 import gleam/otp/actor
 
-/// Internal message type - we receive BoilerCommand directly
-type Message {
-  BoilerCommand(heating_control_actor.BoilerCommand)
-}
-
-/// Internal actor state
+/// State - stores HA command actor's name for lookup
 type State {
-  State(ha_commands: Subject(ha_command_actor.Message))
+  State(ha_command_name: Name(ha_command_actor.Message))
 }
 
-/// Start the adapter actor.
-/// Returns a Subject(BoilerCommand) that can be passed to HeatingControlActor.
+/// Start the adapter actor with a name, looking up HaCommandActor by name.
 ///
-/// The actor creates its own Subject for receiving BoilerCommand messages and
-/// uses a custom selector to handle them, converting them to HA commands.
-pub fn start(
-  ha_commands: Subject(ha_command_actor.Message),
-) -> Result(
-  actor.Started(Subject(heating_control_actor.BoilerCommand)),
-  actor.StartError,
-) {
-  actor.new_with_initialiser(5000, fn(_default_subject) {
-    // Create a Subject for BoilerCommand messages
-    let boiler_commands: Subject(heating_control_actor.BoilerCommand) =
-      process.new_subject()
-    let initial_state = State(ha_commands: ha_commands)
-
-    // Create a selector that maps BoilerCommand -> Message
-    let selector =
-      process.new_selector()
-      |> process.select_map(boiler_commands, BoilerCommand)
-
-    actor.initialised(initial_state)
-    |> actor.selecting(selector)
-    |> actor.returning(boiler_commands)
-    |> Ok
-  })
+/// - Uses `actor.named()` so the adapter can be found via `named_subject()`
+/// - Stores the HA command actor's name, not its Subject
+/// - Looks up the HA command actor on each message (survives restarts)
+///
+/// With RestForOne supervision, if HaCommandActor restarts, this adapter
+/// also restarts and gets a fresh name lookup.
+pub fn start_named(
+  name name: Name(BoilerCommand),
+  ha_command_name ha_command_name: Name(ha_command_actor.Message),
+) -> Result(actor.Started(Subject(BoilerCommand)), actor.StartError) {
+  actor.new(State(ha_command_name: ha_command_name))
+  |> actor.named(name)
   |> actor.on_message(handle_message)
   |> actor.start
 }
 
-fn handle_message(state: State, message: Message) -> actor.Next(State, Message) {
-  case message {
-    BoilerCommand(heating_control_actor.BoilerCommand(
-      entity_id,
-      hvac_mode,
-      target,
-    )) -> {
-      // Convert domain command to infrastructure command
-      process.send(
-        state.ha_commands,
-        ha_command_actor.SetHeatingAction(entity_id, hvac_mode, target),
-      )
-      actor.continue(state)
-    }
-  }
+fn handle_message(
+  state: State,
+  cmd: BoilerCommand,
+) -> actor.Next(State, BoilerCommand) {
+  let BoilerCommand(entity_id, hvac_mode, target) = cmd
+
+  // Look up HA command actor by name (fresh reference on each call)
+  let ha_subject: Subject(ha_command_actor.Message) =
+    process.named_subject(state.ha_command_name)
+
+  // Convert domain command to infrastructure command
+  process.send(
+    ha_subject,
+    ha_command_actor.SetHeatingAction(entity_id, hvac_mode, target),
+  )
+
+  actor.continue(state)
 }

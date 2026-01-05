@@ -1,10 +1,10 @@
-import deep_heating/state/state_aggregator_actor
+import deep_heating/config/home_config
 import deep_heating/entity_id
 import deep_heating/home_assistant/client as home_assistant
 import deep_heating/home_assistant/ha_poller_actor
-import deep_heating/config/home_config
 import deep_heating/rooms/room_adjustments
 import deep_heating/server
+import deep_heating/state/state_aggregator_actor
 import deep_heating/supervisor
 import gleam/erlang/process
 import gleam/int

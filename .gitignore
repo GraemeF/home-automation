@@ -33,6 +33,9 @@ Thumbs.db
 # Mise local config (for local env vars)
 mise.local.toml
 
+# Claude Code local config
+CLAUDE.local.md
+
 # Nix
 result
 

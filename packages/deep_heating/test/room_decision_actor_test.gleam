@@ -1,17 +1,53 @@
-import deep_heating/rooms/room_actor
-import deep_heating/rooms/room_decision_actor
 import deep_heating/entity_id
 import deep_heating/mode
+import deep_heating/rooms/room_actor
+import deep_heating/rooms/room_decision_actor
 import deep_heating/temperature
 import gleam/dict
-import gleam/erlang/process
+import gleam/erlang/process.{type Name, type Subject}
+import gleam/int
 import gleam/list
 import gleam/option
+import gleam/otp/actor
 import gleeunit/should
+
+// =============================================================================
+// FFI for unique integer generation
+// =============================================================================
+
+@external(erlang, "erlang", "unique_integer")
+fn unique_integer() -> Int
 
 // =============================================================================
 // Test Helpers
 // =============================================================================
+
+/// Create a mock TrvCommandAdapter that uses actor.named() and forwards to a spy.
+/// Returns the adapter name and spy Subject for receiving commands.
+fn make_mock_trv_adapter(
+  test_id: String,
+) -> #(
+  Name(room_decision_actor.TrvCommand),
+  Subject(room_decision_actor.TrvCommand),
+) {
+  let spy = process.new_subject()
+  let name =
+    process.new_name(
+      "mock_trv_adapter_" <> test_id <> "_" <> int.to_string(unique_integer()),
+    )
+
+  // Start a mock actor that forwards messages to spy
+  let assert Ok(_started) =
+    actor.new(spy)
+    |> actor.named(name)
+    |> actor.on_message(fn(spy_subj, cmd) {
+      process.send(spy_subj, cmd)
+      actor.continue(spy_subj)
+    })
+    |> actor.start
+
+  #(name, spy)
+}
 
 fn make_room_state_with_trv(
   room_temp room_temp: temperature.Temperature,
@@ -42,12 +78,14 @@ fn make_room_state_with_trv(
 // =============================================================================
 
 pub fn room_decision_actor_starts_successfully_test() {
-  // Create a subject to receive TRV commands
-  let trv_commands = process.new_subject()
+  // Create a named mock TRV adapter
+  let #(trv_adapter_name, _spy) = make_mock_trv_adapter("starts_successfully")
 
   // Decision actor should start successfully
   let result =
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
   should.be_ok(result)
 }
 
@@ -58,11 +96,12 @@ pub fn room_decision_actor_starts_successfully_test() {
 pub fn sends_room_target_when_room_at_temperature_test() {
   // When room is at target temperature (within 0.5°C tolerance),
   // TRV should be set to the room target directly (no compensation)
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
-    process.new_subject()
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("room_at_temp")
 
   let assert Ok(started) =
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -79,7 +118,7 @@ pub fn sends_room_target_when_room_at_temperature_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should receive command to set TRV target
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(spy, 1000)
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -90,11 +129,12 @@ pub fn sends_room_target_when_room_at_temperature_test() {
 pub fn pushes_trv_target_higher_when_room_is_cold_test() {
   // When room is cold, offset formula pushes TRV higher to compensate
   // Formula: trvTarget = roomTarget + trvTemp - roomTemp
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
-    process.new_subject()
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("room_is_cold")
 
   let assert Ok(started) =
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -110,7 +150,7 @@ pub fn pushes_trv_target_higher_when_room_is_cold_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(spy, 1000)
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -122,11 +162,12 @@ pub fn pushes_trv_target_higher_when_room_is_cold_test() {
 pub fn backs_off_trv_when_room_is_hot_test() {
   // When room is hot, offset formula backs off TRV
   // Formula: trvTarget = roomTarget + trvTemp - roomTemp
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
-    process.new_subject()
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("room_is_hot")
 
   let assert Ok(started) =
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -142,7 +183,7 @@ pub fn backs_off_trv_when_room_is_hot_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(spy, 1000)
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -154,11 +195,12 @@ pub fn backs_off_trv_when_room_is_hot_test() {
 pub fn uses_room_target_when_no_external_sensor_test() {
   // When there's no external temperature sensor, use the room target directly
   // (no compensation possible without knowing actual room temp)
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
-    process.new_subject()
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("no_external_sensor")
 
   let assert Ok(started) =
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -184,7 +226,7 @@ pub fn uses_room_target_when_no_external_sensor_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(spy, 1000)
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -195,11 +237,12 @@ pub fn uses_room_target_when_no_external_sensor_test() {
 
 pub fn only_sends_command_when_target_differs_test() {
   // Should not send duplicate commands when computed target hasn't changed
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
-    process.new_subject()
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("target_differs")
 
   let assert Ok(started) =
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -213,7 +256,7 @@ pub fn only_sends_command_when_target_differs_test() {
 
   // First update - should send command
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
-  let assert Ok(_cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(_cmd) = process.receive(spy, 1000)
 
   // Second update with same state - should NOT send command
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
@@ -222,17 +265,18 @@ pub fn only_sends_command_when_target_differs_test() {
   process.sleep(50)
 
   // Should NOT receive a second command (timeout expected)
-  let result = process.receive(trv_commands, 100)
+  let result = process.receive(spy, 100)
   result |> should.be_error
 }
 
 pub fn handles_multiple_trvs_in_room_test() {
   // When a room has multiple TRVs, all should receive SetTarget commands
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
-    process.new_subject()
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("multiple_trvs")
 
   let assert Ok(started) =
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
 
   let assert Ok(trv1) = entity_id.climate_entity_id("climate.bedroom_trv_1")
   let assert Ok(trv2) = entity_id.climate_entity_id("climate.bedroom_trv_2")
@@ -266,8 +310,8 @@ pub fn handles_multiple_trvs_in_room_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should receive two commands - one for each TRV
-  let assert Ok(cmd1) = process.receive(trv_commands, 1000)
-  let assert Ok(cmd2) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd1) = process.receive(spy, 1000)
+  let assert Ok(cmd2) = process.receive(spy, 1000)
 
   // Collect the entity IDs that received commands
   let room_decision_actor.TrvCommand(id1, _, _) = cmd1
@@ -286,11 +330,12 @@ pub fn handles_multiple_trvs_in_room_test() {
 pub fn handles_trv_with_missing_temperature_test() {
   // When a TRV has no temperature reading, the system should still work.
   // Uses room target directly (fallback: treat TRV temp as unknown)
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
-    process.new_subject()
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("missing_temp")
 
   let assert Ok(started) =
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -317,7 +362,7 @@ pub fn handles_trv_with_missing_temperature_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should still receive a command (system degrades gracefully)
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(spy, 1000)
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -328,11 +373,12 @@ pub fn handles_trv_with_missing_temperature_test() {
 
 pub fn handles_trv_with_missing_target_test() {
   // When a TRV has no current target, the system should still compute and send one
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
-    process.new_subject()
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("missing_target")
 
   let assert Ok(started) =
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -358,7 +404,7 @@ pub fn handles_trv_with_missing_target_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should still send a command to set the target
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(spy, 1000)
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, _target) = cmd
   entity_id |> should.equal(trv_id)
@@ -369,11 +415,12 @@ pub fn handles_trv_with_missing_target_test() {
 pub fn handles_completely_unknown_trv_test() {
   // When a TRV has no data at all (both temp and target None),
   // the system should still send a command
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
-    process.new_subject()
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("unknown_trv")
 
   let assert Ok(started) =
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -399,7 +446,7 @@ pub fn handles_completely_unknown_trv_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should still receive a command
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(spy, 1000)
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -419,11 +466,12 @@ pub fn offset_formula_accounts_for_trv_temperature_test() {
   // Example: TRV reads 4°C higher than external sensor
   // - Room target: 20°C, Room temp: 18°C, TRV temp: 22°C
   // - Formula: 20 + 22 - 18 = 24°C
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
-    process.new_subject()
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("offset_formula")
 
   let assert Ok(started) =
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -437,7 +485,7 @@ pub fn offset_formula_accounts_for_trv_temperature_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(spy, 1000)
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -458,11 +506,12 @@ pub fn clamps_trv_target_to_minimum_7c_test() {
   // Example: Room is already warm, target is low
   // - Room target: 10°C, Room temp: 15°C, TRV temp: 10°C
   // - Formula: 10 + 10 - 15 = 5°C → should be clamped to 7°C
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
-    process.new_subject()
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("clamp_min")
 
   let assert Ok(started) =
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -476,7 +525,7 @@ pub fn clamps_trv_target_to_minimum_7c_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(spy, 1000)
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -493,11 +542,12 @@ pub fn clamps_trv_target_to_maximum_32c_test() {
   // Example: Cold room with hot TRV reading
   // - Room target: 25°C, Room temp: 15°C, TRV temp: 25°C
   // - Formula: 25 + 25 - 15 = 35°C → should be clamped to 32°C
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
-    process.new_subject()
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("clamp_max")
 
   let assert Ok(started) =
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -511,7 +561,7 @@ pub fn clamps_trv_target_to_maximum_32c_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(spy, 1000)
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -528,11 +578,12 @@ pub fn clamps_trv_target_to_maximum_32c_test() {
 pub fn skips_trv_when_mode_is_off_test() {
   // When a TRV is in HvacOff mode, we should NOT send any commands to it.
   // The user has explicitly turned it off; we must respect that.
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
-    process.new_subject()
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("mode_off")
 
   let assert Ok(started) =
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -562,7 +613,7 @@ pub fn skips_trv_when_mode_is_off_test() {
   process.sleep(50)
 
   // Should NOT receive any command (TRV is off)
-  let result = process.receive(trv_commands, 100)
+  let result = process.receive(spy, 100)
   result |> should.be_error
 }
 
@@ -574,11 +625,12 @@ pub fn sends_mode_change_when_trv_in_auto_mode_test() {
   // When TRV is in HvacAuto mode, we must change it to HvacHeat mode.
   // This matches TypeScript behavior: determineAction returns mode: 'heat'
   // when current mode is 'auto'.
-  let trv_commands: process.Subject(room_decision_actor.TrvCommand) =
-    process.new_subject()
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("auto_mode")
 
   let assert Ok(started) =
-    room_decision_actor.start_with_trv_commands(trv_commands: trv_commands)
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -604,7 +656,7 @@ pub fn sends_mode_change_when_trv_in_auto_mode_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should receive command with mode set to Heat
-  let assert Ok(cmd) = process.receive(trv_commands, 1000)
+  let assert Ok(cmd) = process.receive(spy, 1000)
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)

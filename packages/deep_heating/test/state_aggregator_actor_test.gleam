@@ -1,7 +1,7 @@
-import deep_heating/state/state_aggregator_actor
 import deep_heating/rooms/room_actor
 import deep_heating/rooms/room_adjustments
 import deep_heating/state
+import deep_heating/state/state_aggregator_actor
 import deep_heating/temperature
 import gleam/erlang/process
 import gleam/list

@@ -140,7 +140,8 @@ type ActorState {
   ActorState(
     room: RoomState,
     schedule: WeekSchedule,
-    decision_actor: Subject(DecisionMessage),
+    /// Name of the RoomDecisionActor - looked up via named_subject() on each notification
+    decision_actor_name: Name(DecisionMessage),
     state_aggregator: Subject(AggregatorMessage),
     /// Optional heating control actor for boiler demand updates
     heating_control: Option(Subject(HeatingControlMessage)),
@@ -158,14 +159,14 @@ type ActorState {
 pub fn start(
   name name: String,
   schedule schedule: WeekSchedule,
-  decision_actor decision_actor: Subject(DecisionMessage),
+  decision_actor_name decision_actor_name: Name(DecisionMessage),
   state_aggregator state_aggregator: Subject(AggregatorMessage),
   heating_control heating_control: Option(Subject(HeatingControlMessage)),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   start_with_adjustment(
     name: name,
     schedule: schedule,
-    decision_actor: decision_actor,
+    decision_actor_name: decision_actor_name,
     state_aggregator: state_aggregator,
     heating_control: heating_control,
     initial_adjustment: 0.0,
@@ -177,7 +178,7 @@ pub fn start(
 pub fn start_with_adjustment(
   name name: String,
   schedule schedule: WeekSchedule,
-  decision_actor decision_actor: Subject(DecisionMessage),
+  decision_actor_name decision_actor_name: Name(DecisionMessage),
   state_aggregator state_aggregator: Subject(AggregatorMessage),
   heating_control heating_control: Option(Subject(HeatingControlMessage)),
   initial_adjustment initial_adjustment: Float,
@@ -185,7 +186,7 @@ pub fn start_with_adjustment(
   start_with_timer_interval(
     name: name,
     schedule: schedule,
-    decision_actor: decision_actor,
+    decision_actor_name: decision_actor_name,
     state_aggregator: state_aggregator,
     heating_control: heating_control,
     get_time: get_current_datetime,
@@ -199,7 +200,7 @@ pub fn start_with_adjustment(
 pub fn start_with_timer_interval(
   name name: String,
   schedule schedule: WeekSchedule,
-  decision_actor decision_actor: Subject(DecisionMessage),
+  decision_actor_name decision_actor_name: Name(DecisionMessage),
   state_aggregator state_aggregator: Subject(AggregatorMessage),
   heating_control heating_control: Option(Subject(HeatingControlMessage)),
   get_time get_time: GetDateTime,
@@ -210,7 +211,7 @@ pub fn start_with_timer_interval(
     room_name: name,
     actor_name: None,
     schedule: schedule,
-    decision_actor: decision_actor,
+    decision_actor_name: decision_actor_name,
     state_aggregator: state_aggregator,
     heating_control: heating_control,
     get_time: get_time,
@@ -226,7 +227,7 @@ pub fn start_named(
   actor_name actor_name: Name(Message),
   room_name room_name: String,
   schedule schedule: WeekSchedule,
-  decision_actor decision_actor: Subject(DecisionMessage),
+  decision_actor_name decision_actor_name: Name(DecisionMessage),
   state_aggregator state_aggregator: Subject(AggregatorMessage),
   heating_control heating_control: Option(Subject(HeatingControlMessage)),
   get_time get_time: GetDateTime,
@@ -237,7 +238,7 @@ pub fn start_named(
     room_name: room_name,
     actor_name: Some(actor_name),
     schedule: schedule,
-    decision_actor: decision_actor,
+    decision_actor_name: decision_actor_name,
     state_aggregator: state_aggregator,
     heating_control: heating_control,
     get_time: get_time,
@@ -251,7 +252,7 @@ fn start_internal(
   room_name room_name: String,
   actor_name actor_name: Option(Name(Message)),
   schedule schedule: WeekSchedule,
-  decision_actor decision_actor: Subject(DecisionMessage),
+  decision_actor_name decision_actor_name: Name(DecisionMessage),
   state_aggregator state_aggregator: Subject(AggregatorMessage),
   heating_control heating_control: Option(Subject(HeatingControlMessage)),
   get_time get_time: GetDateTime,
@@ -299,7 +300,7 @@ fn start_internal(
         ActorState(
           room: initial_room,
           schedule: schedule,
-          decision_actor: decision_actor,
+          decision_actor_name: decision_actor_name,
           state_aggregator: state_aggregator,
           heating_control: heating_control,
           get_time: get_time,
@@ -506,7 +507,10 @@ fn update_trv_is_heating(
 }
 
 fn notify_state_changed(actor_state: ActorState) -> Nil {
-  process.send(actor_state.decision_actor, RoomStateChanged(actor_state.room))
+  // Look up RoomDecisionActor by name (survives restarts under OTP supervision)
+  let decision_actor: Subject(DecisionMessage) =
+    process.named_subject(actor_state.decision_actor_name)
+  process.send(decision_actor, RoomStateChanged(actor_state.room))
   // Convert internal RoomState to state.RoomState for the aggregator
   let aggregator_state = to_aggregator_state(actor_state.room)
   process.send(

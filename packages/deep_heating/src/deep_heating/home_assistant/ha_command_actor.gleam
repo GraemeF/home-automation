@@ -117,7 +117,8 @@ pub fn start_with_options(
   |> actor.start
 }
 
-/// Start the HaCommandActor and register it with the given name
+/// Start the HaCommandActor and register it with the given name.
+/// Uses actor.named() so the actor can be found via named_subject() after restarts.
 pub fn start_named(
   name: Name(Message),
   ha_client: HaClient,
@@ -126,13 +127,44 @@ pub fn start_named(
   // Create an internal spy - events are not observed in production
   let api_spy: Subject(ApiCall) = process.new_subject()
 
-  start_with_options(
+  start_named_with_options(
+    name: name,
     ha_client: ha_client,
     api_spy: api_spy,
     debounce_ms: debounce_ms,
     skip_http: False,
   )
-  |> register_with_name(name)
+}
+
+/// Start the HaCommandActor with a name and options (for testing).
+/// Uses actor.named() so the actor can be found via named_subject() after restarts.
+pub fn start_named_with_options(
+  name name: Name(Message),
+  ha_client ha_client: HaClient,
+  api_spy api_spy: Subject(ApiCall),
+  debounce_ms debounce_ms: Int,
+  skip_http skip_http: Bool,
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  actor.new_with_initialiser(1000, fn(self_subject) {
+    let initial_state =
+      State(
+        ha_client: ha_client,
+        api_spy: api_spy,
+        debounce_ms: debounce_ms,
+        self_subject: self_subject,
+        pending_trv_actions: dict.new(),
+        pending_heating_action: Error(Nil),
+        active_trv_timers: dict.new(),
+        heating_timer_active: False,
+        skip_http: skip_http,
+      )
+    actor.initialised(initial_state)
+    |> actor.returning(self_subject)
+    |> Ok
+  })
+  |> actor.named(name)
+  |> actor.on_message(handle_message)
+  |> actor.start
 }
 
 /// Create a child specification for supervision
@@ -142,19 +174,6 @@ pub fn child_spec(
   debounce_ms: Int,
 ) -> supervision.ChildSpecification(Subject(Message)) {
   supervision.worker(fn() { start_named(name, ha_client, debounce_ms) })
-}
-
-fn register_with_name(
-  result: Result(actor.Started(Subject(Message)), actor.StartError),
-  name: Name(Message),
-) -> Result(actor.Started(Subject(Message)), actor.StartError) {
-  case result {
-    Ok(started) -> {
-      let _ = process.register(started.pid, name)
-      Ok(started)
-    }
-    Error(e) -> Error(e)
-  }
 }
 
 fn handle_message(state: State, message: Message) -> actor.Next(State, Message) {

@@ -1,6 +1,6 @@
-import deep_heating/rooms/trv_actor
 import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/mode
+import deep_heating/rooms/trv_actor
 import deep_heating/temperature
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/int

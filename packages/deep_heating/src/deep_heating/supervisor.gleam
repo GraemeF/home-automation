@@ -290,6 +290,10 @@ pub fn start_with_home_config(
   let ha_command_name = process.new_name(prefix <> "deep_heating_ha_command")
   let heating_control_name =
     process.new_name(prefix <> "deep_heating_heating_control")
+  let heating_control_adapter_name =
+    process.new_name(prefix <> "deep_heating_heating_control_adapter")
+  let boiler_adapter_name =
+    process.new_name(prefix <> "deep_heating_boiler_adapter")
 
   // Build and start the main supervision tree
   // Note: Most actors are started manually after supervision
@@ -334,16 +338,19 @@ pub fn start_with_home_config(
             )
           {
             Error(e) -> Error(SupervisorStartError(e))
-            Ok(ha_command_started) -> {
-              let ha_commands = ha_command_started.data
-
+            Ok(_ha_command_started) -> {
               // Load initial adjustments from environment
               let initial_adjustments =
                 room_adjustments.load_from_env()
                 |> result.unwrap([])
 
               // Start adapter actor that converts domain BoilerCommand → ha_command_actor.Message
-              case boiler_command_adapter_actor.start(ha_commands) {
+              case
+                boiler_command_adapter_actor.start_named(
+                  name: boiler_adapter_name,
+                  ha_command_name: ha_command_name,
+                )
+              {
                 Error(e) -> Error(SupervisorStartError(e))
                 Ok(boiler_adapter_started) -> {
                   let boiler_commands = boiler_adapter_started.data
@@ -359,9 +366,11 @@ pub fn start_with_home_config(
                     Error(e) -> Error(SupervisorStartError(e))
                     Ok(heating_started) -> {
                       // Start adapter actor that converts room_actor.HeatingControlMessage → heating_control_actor.Message
+                      // Uses name-based lookup for heating_control_actor to survive restarts
                       case
-                        heating_control_adapter_actor.start(
-                          heating_started.data,
+                        heating_control_adapter_actor.start_named(
+                          name: heating_control_adapter_name,
+                          heating_control_name: heating_control_name,
                         )
                       {
                         Error(e) -> Error(SupervisorStartError(e))
@@ -374,7 +383,7 @@ pub fn start_with_home_config(
                             rooms_supervisor.start(
                               config: config.home_config,
                               state_aggregator: state_aggregator_subject,
-                              ha_commands: ha_commands,
+                              ha_command_name: ha_command_name,
                               house_mode: house_mode_subject,
                               heating_control: Some(heating_control_for_rooms),
                               initial_adjustments: initial_adjustments,
