@@ -332,14 +332,14 @@ let assert Ok(child_subject) = process.receive(response_subject, 5000)
 - TrvActor ✓
 - HeatingControlActor (named variant) ✓
 - StateAggregatorActor (named variant) ✓
+- RoomActor (named variant via `start_named`) ✓
+- RoomDecisionActor (named variant via `start_named`) ✓
 
 **Actors NOT using `actor.named()` (must capture Subject at startup):**
 - EventRouterActor
 - HouseModeActor
 - HaCommandActor
 - HaPollerActor
-- RoomActor
-- RoomDecisionActor
 
 ### Adapter Actor Pattern
 
