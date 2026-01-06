@@ -45,6 +45,9 @@ result
 # Misc
 *.local.json
 
+# Local home config
+/home/
+
 # Logs
 npm-debug.log
 yarn-error.log
