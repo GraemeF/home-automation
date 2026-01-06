@@ -17,6 +17,7 @@ import deep_heating/scheduling/schedule.{
 }
 import deep_heating/state
 import deep_heating/temperature.{type Temperature}
+import deep_heating/timer.{type SendAfter, type TimerHandle}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/float
@@ -151,6 +152,10 @@ type ActorState {
     timer_interval_ms: Int,
     /// Self subject for scheduling timer messages
     self_subject: Option(Subject(Message)),
+    /// Injectable timer function (for testability)
+    send_after: SendAfter(Message),
+    /// Handle to the current timer (for cancellation on shutdown)
+    timer_handle: Result(TimerHandle, Nil),
   )
 }
 
@@ -207,6 +212,32 @@ pub fn start_with_timer_interval(
   timer_interval_ms timer_interval_ms: Int,
   initial_adjustment initial_adjustment: Float,
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  start_with_options(
+    name: name,
+    schedule: schedule,
+    decision_actor_name: decision_actor_name,
+    state_aggregator: state_aggregator,
+    heating_control: heating_control,
+    get_time: get_time,
+    timer_interval_ms: timer_interval_ms,
+    initial_adjustment: initial_adjustment,
+    send_after: timer.real_send_after,
+  )
+}
+
+/// Start the RoomActor with all options (for testing).
+/// Allows injection of send_after for deterministic timer testing.
+pub fn start_with_options(
+  name name: String,
+  schedule schedule: WeekSchedule,
+  decision_actor_name decision_actor_name: Name(DecisionMessage),
+  state_aggregator state_aggregator: Subject(AggregatorMessage),
+  heating_control heating_control: Option(Subject(HeatingControlMessage)),
+  get_time get_time: GetDateTime,
+  timer_interval_ms timer_interval_ms: Int,
+  initial_adjustment initial_adjustment: Float,
+  send_after send_after: SendAfter(Message),
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   start_internal(
     room_name: name,
     actor_name: None,
@@ -217,12 +248,14 @@ pub fn start_with_timer_interval(
     get_time: get_time,
     timer_interval_ms: timer_interval_ms,
     initial_adjustment: initial_adjustment,
+    send_after: send_after,
   )
 }
 
 /// Start a named RoomActor with custom time provider and timer interval.
 /// The actor registers with the given name, allowing it to be addressed
 /// via `named_subject(name)` even after restarts under supervision.
+/// Uses real_send_after for production timer behavior.
 pub fn start_named(
   actor_name actor_name: Name(Message),
   room_name room_name: String,
@@ -234,6 +267,34 @@ pub fn start_named(
   timer_interval_ms timer_interval_ms: Int,
   initial_adjustment initial_adjustment: Float,
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  start_named_with_options(
+    actor_name: actor_name,
+    room_name: room_name,
+    schedule: schedule,
+    decision_actor_name: decision_actor_name,
+    state_aggregator: state_aggregator,
+    heating_control: heating_control,
+    get_time: get_time,
+    timer_interval_ms: timer_interval_ms,
+    initial_adjustment: initial_adjustment,
+    send_after: timer.real_send_after,
+  )
+}
+
+/// Start a named RoomActor with all options (for testing).
+/// Allows injection of send_after for deterministic timer testing.
+pub fn start_named_with_options(
+  actor_name actor_name: Name(Message),
+  room_name room_name: String,
+  schedule schedule: WeekSchedule,
+  decision_actor_name decision_actor_name: Name(DecisionMessage),
+  state_aggregator state_aggregator: Subject(AggregatorMessage),
+  heating_control heating_control: Option(Subject(HeatingControlMessage)),
+  get_time get_time: GetDateTime,
+  timer_interval_ms timer_interval_ms: Int,
+  initial_adjustment initial_adjustment: Float,
+  send_after send_after: SendAfter(Message),
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   start_internal(
     room_name: room_name,
     actor_name: Some(actor_name),
@@ -244,6 +305,7 @@ pub fn start_named(
     get_time: get_time,
     timer_interval_ms: timer_interval_ms,
     initial_adjustment: initial_adjustment,
+    send_after: send_after,
   )
 }
 
@@ -258,6 +320,7 @@ fn start_internal(
   get_time get_time: GetDateTime,
   timer_interval_ms timer_interval_ms: Int,
   initial_adjustment initial_adjustment: Float,
+  send_after send_after: SendAfter(Message),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   // Clamp initial adjustment to valid range
   let clamped_adjustment = clamp_adjustment(initial_adjustment)
@@ -287,13 +350,14 @@ fn start_internal(
 
   let builder =
     actor.new_with_initialiser(1000, fn(self_subject) {
-      // Schedule initial timer if interval > 0
-      case timer_interval_ms > 0 {
+      // Schedule initial timer if interval > 0 and capture handle
+      let initial_timer_handle = case timer_interval_ms > 0 {
         True -> {
-          process.send_after(self_subject, timer_interval_ms, ReComputeTarget)
-          Nil
+          let handle =
+            send_after(self_subject, timer_interval_ms, ReComputeTarget)
+          Ok(handle)
         }
-        False -> Nil
+        False -> Error(Nil)
       }
 
       let initial_state =
@@ -306,6 +370,8 @@ fn start_internal(
           get_time: get_time,
           timer_interval_ms: timer_interval_ms,
           self_subject: Some(self_subject),
+          send_after: send_after,
+          timer_handle: initial_timer_handle,
         )
 
       actor.initialised(initial_state)
@@ -382,9 +448,9 @@ fn handle_message(
       // Timer fired - recompute target temperature from schedule
       let new_state = recompute_room_target(state)
       notify_state_changed(new_state)
-      // Reschedule the timer for the next evaluation
-      reschedule_timer(new_state)
-      actor.continue(new_state)
+      // Reschedule the timer for the next evaluation and store handle
+      let new_timer_handle = reschedule_timer(new_state)
+      actor.continue(ActorState(..new_state, timer_handle: new_timer_handle))
     }
   }
 }
@@ -582,14 +648,16 @@ fn recompute_room_target(state: ActorState) -> ActorState {
   ActorState(..state, room: new_room)
 }
 
-/// Reschedule the timer for the next evaluation cycle
-fn reschedule_timer(state: ActorState) -> Nil {
+/// Reschedule the timer for the next evaluation cycle.
+/// Returns the new timer handle (or Error(Nil) if no timer scheduled).
+fn reschedule_timer(state: ActorState) -> Result(TimerHandle, Nil) {
   case state.self_subject, state.timer_interval_ms > 0 {
     Some(self), True -> {
-      process.send_after(self, state.timer_interval_ms, ReComputeTarget)
-      Nil
+      let handle =
+        state.send_after(self, state.timer_interval_ms, ReComputeTarget)
+      Ok(handle)
     }
-    _, _ -> Nil
+    _, _ -> Error(Nil)
   }
 }
 

@@ -364,7 +364,8 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
 fn reschedule_timer(state: State) -> Result(TimerHandle, Nil) {
   case state.self_subject, state.timer_interval_ms > 0 {
     Ok(self), True -> {
-      let handle = state.send_after(self, state.timer_interval_ms, ReEvaluateMode)
+      let handle =
+        state.send_after(self, state.timer_interval_ms, ReEvaluateMode)
       Ok(handle)
     }
     _, _ -> Error(Nil)

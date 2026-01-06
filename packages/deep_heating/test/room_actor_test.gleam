@@ -3,6 +3,7 @@ import deep_heating/mode
 import deep_heating/rooms/room_actor
 import deep_heating/scheduling/schedule
 import deep_heating/temperature
+import deep_heating/timer
 import gleam/dict
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/int
@@ -1164,6 +1165,112 @@ pub fn timer_triggers_target_recomputation_test() {
 
   // Clean up
   delete_counter(counter)
+}
+
+// =============================================================================
+// Injectable Timer Tests (spy_send_after)
+// =============================================================================
+
+pub fn room_actor_schedules_timer_on_startup_test() {
+  // Verify that the actor schedules a timer on startup with the correct interval.
+  // Uses spy_send_after to capture timer requests without actually scheduling.
+
+  let timer_spy: Subject(timer.TimerRequest(room_actor.Message)) =
+    process.new_subject()
+  let ctx = make_test_context("schedules_timer")
+
+  let assert Ok(_started) =
+    room_actor.start_with_options(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
+      heating_control: option.None,
+      get_time: room_actor.get_current_datetime,
+      timer_interval_ms: 60_000,
+      initial_adjustment: 0.0,
+      send_after: timer.spy_send_after(timer_spy),
+    )
+
+  // Timer spy should receive a timer request
+  let assert Ok(timer_request) = process.receive(timer_spy, 1000)
+
+  // Verify the timer was scheduled with correct interval
+  timer_request.delay_ms |> should.equal(60_000)
+
+  // Verify the message is ReComputeTarget
+  case timer_request.msg {
+    room_actor.ReComputeTarget -> should.be_ok(Ok(Nil))
+    _ -> should.fail()
+  }
+}
+
+pub fn room_actor_no_timer_when_interval_zero_test() {
+  // Verify that no timer is scheduled when timer_interval_ms is 0.
+
+  let timer_spy: Subject(timer.TimerRequest(room_actor.Message)) =
+    process.new_subject()
+  let ctx = make_test_context("no_timer")
+
+  let assert Ok(_started) =
+    room_actor.start_with_options(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
+      heating_control: option.None,
+      get_time: room_actor.get_current_datetime,
+      timer_interval_ms: 0,
+      initial_adjustment: 0.0,
+      send_after: timer.spy_send_after(timer_spy),
+    )
+
+  // Timer spy should NOT receive any timer request
+  let result = process.receive(timer_spy, 100)
+  result |> should.be_error
+}
+
+pub fn room_actor_reschedules_timer_after_firing_test() {
+  // Verify that the timer is rescheduled after ReComputeTarget fires.
+  // Uses instant_send_after so the initial timer fires immediately,
+  // then spy_send_after for subsequent timers wouldn't work directly.
+  // Instead, we manually send ReComputeTarget and check the spy.
+
+  let timer_spy: Subject(timer.TimerRequest(room_actor.Message)) =
+    process.new_subject()
+  let ctx = make_test_context("reschedules_timer")
+
+  // Start with spy timer (timer_interval_ms > 0)
+  let assert Ok(started) =
+    room_actor.start_with_options(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
+      heating_control: option.None,
+      get_time: room_actor.get_current_datetime,
+      timer_interval_ms: 60_000,
+      initial_adjustment: 0.0,
+      send_after: timer.spy_send_after(timer_spy),
+    )
+
+  // Consume the initial timer request from startup
+  let assert Ok(_initial_request) = process.receive(timer_spy, 1000)
+
+  // Manually send ReComputeTarget to trigger reschedule
+  process.send(started.data, room_actor.ReComputeTarget)
+
+  // The actor should schedule a new timer
+  let assert Ok(reschedule_request) = process.receive(timer_spy, 1000)
+
+  // Verify the rescheduled timer has correct interval
+  reschedule_request.delay_ms |> should.equal(60_000)
+
+  // Verify the message is ReComputeTarget
+  case reschedule_request.msg {
+    room_actor.ReComputeTarget -> should.be_ok(Ok(Nil))
+    _ -> should.fail()
+  }
 }
 
 // =============================================================================
