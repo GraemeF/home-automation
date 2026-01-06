@@ -477,3 +477,62 @@ pub fn state_aggregator_with_instant_send_after_broadcasts_immediately_test() {
   let assert Ok(received_state) = process.receive(subscriber, 100)
   list.length(received_state.rooms) |> should.equal(1)
 }
+
+// =============================================================================
+// Named Actor with Injectable Timer Tests
+// =============================================================================
+
+pub fn state_aggregator_start_with_options_creates_named_actor_test() {
+  // Create a unique name for this test
+  let name = process.new_name("test_aggregator_named_with_options")
+
+  // Start with a name AND injectable send_after
+  let assert Ok(started) =
+    state_aggregator_actor.start_with_options(
+      name: name,
+      adjustments_path: "/tmp/test_named_with_options.json",
+      send_after: timer.instant_send_after,
+    )
+
+  // Verify the actor is registered with the name
+  let assert Ok(_pid) = process.named(name)
+
+  // Verify we got a Subject back
+  let reply_subject = process.new_subject()
+  process.send(started.data, state_aggregator_actor.GetState(reply_subject))
+  let assert Ok(state) = process.receive(reply_subject, 1000)
+  list.length(state.rooms) |> should.equal(0)
+}
+
+pub fn state_aggregator_start_with_options_uses_injected_timer_test() {
+  // Create a unique name for this test
+  let name = process.new_name("test_aggregator_timer_injection")
+
+  // Start with instant_send_after
+  let assert Ok(started) =
+    state_aggregator_actor.start_with_options(
+      name: name,
+      adjustments_path: "/tmp/test_timer_injection.json",
+      send_after: timer.instant_send_after,
+    )
+
+  // Subscribe
+  let subscriber: process.Subject(state.DeepHeatingState) =
+    process.new_subject()
+  process.send(started.data, state_aggregator_actor.Subscribe(subscriber))
+  process.sleep(10)
+
+  // Send a room update
+  let room_state = make_room_state("lounge")
+  process.send(
+    started.data,
+    state_aggregator_actor.RoomUpdated("lounge", room_state),
+  )
+
+  // With instant_send_after, broadcast happens immediately (no 150ms wait)
+  process.sleep(10)
+
+  // Subscriber should receive the broadcast
+  let assert Ok(received_state) = process.receive(subscriber, 100)
+  list.length(received_state.rooms) |> should.equal(1)
+}

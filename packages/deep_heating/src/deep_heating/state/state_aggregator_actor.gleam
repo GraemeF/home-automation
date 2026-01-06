@@ -102,6 +102,20 @@ pub fn start(
   name: Name(Message),
   adjustments_path: String,
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  start_with_options(
+    name: name,
+    adjustments_path: adjustments_path,
+    send_after: timer.real_send_after,
+  )
+}
+
+/// Start the StateAggregatorActor with a name and all options (for testing)
+/// Allows injection of send_after for deterministic timer testing
+pub fn start_with_options(
+  name name: Name(Message),
+  adjustments_path adjustments_path: String,
+  send_after send_after: SendAfter(Message),
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   actor.new_with_initialiser(1000, fn(self_subject) {
     actor.initialised(State(
       current: state.empty_deep_heating_state(),
@@ -111,7 +125,7 @@ pub fn start(
       room_actors: dict.new(),
       adjustments_path: adjustments_path,
       previous_adjustments: dict.new(),
-      send_after: timer.real_send_after,
+      send_after: send_after,
     ))
     |> actor.returning(self_subject)
     |> Ok
@@ -126,7 +140,22 @@ pub fn child_spec(
   name: Name(Message),
   adjustments_path: String,
 ) -> supervision.ChildSpecification(Subject(Message)) {
-  supervision.worker(fn() { start(name, adjustments_path) })
+  child_spec_with_options(name, adjustments_path, timer.real_send_after)
+}
+
+/// Create a child specification for supervision with injectable timer
+pub fn child_spec_with_options(
+  name: Name(Message),
+  adjustments_path: String,
+  send_after: SendAfter(Message),
+) -> supervision.ChildSpecification(Subject(Message)) {
+  supervision.worker(fn() {
+    start_with_options(
+      name: name,
+      adjustments_path: adjustments_path,
+      send_after: send_after,
+    )
+  })
 }
 
 fn handle_message(

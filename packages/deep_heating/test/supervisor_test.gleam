@@ -349,6 +349,7 @@ pub fn supervisor_starts_rooms_with_home_config_test() {
       home_config: home_config,
       name_prefix: None,
       time_provider: None,
+      use_instant_timers: False,
     ))
 
   // Get the rooms supervisor from the main supervisor
@@ -373,6 +374,7 @@ pub fn supervisor_rooms_are_accessible_by_name_test() {
       home_config: home_config,
       name_prefix: None,
       time_provider: None,
+      use_instant_timers: False,
     ))
 
   // Get the rooms supervisor
@@ -397,6 +399,7 @@ pub fn supervisor_room_actors_are_alive_test() {
       home_config: home_config,
       name_prefix: None,
       time_provider: None,
+      use_instant_timers: False,
     ))
 
   // Get the rooms supervisor and lounge room
@@ -439,6 +442,7 @@ pub fn supervisor_loads_room_adjustments_from_env_test() {
       home_config: home_config,
       name_prefix: None,
       time_provider: None,
+      use_instant_timers: False,
     ))
 
   // Get the lounge room actor and query its state
@@ -475,6 +479,7 @@ pub fn supervisor_has_heating_control_actor_when_started_with_home_config_test()
       home_config: home_config,
       name_prefix: None,
       time_provider: None,
+      use_instant_timers: False,
     ))
 
   // Get the heating control actor from the supervisor
@@ -496,9 +501,37 @@ pub fn heating_control_actor_is_alive_when_started_with_home_config_test() {
       home_config: home_config,
       name_prefix: None,
       time_provider: None,
+      use_instant_timers: False,
     ))
 
   let assert Ok(heating_control) =
     supervisor.get_heating_control_actor(started.data)
   process.is_alive(heating_control.pid) |> should.be_true
+}
+
+// =============================================================================
+// Instant timer injection tests
+// =============================================================================
+
+pub fn supervisor_accepts_use_instant_timers_config_test() {
+  // The supervisor should start successfully with use_instant_timers: True
+  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
+  let home_config = make_test_home_config()
+  let poller_config = create_test_poller_config()
+
+  let assert Ok(started) =
+    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
+      ha_client: ha_client,
+      poller_config: poller_config,
+      adjustments_path: test_adjustments_path,
+      home_config: home_config,
+      name_prefix: Some("instant_timer_test"),
+      time_provider: None,
+      use_instant_timers: True,
+    ))
+
+  // Verify all actors are alive
+  let assert Ok(rooms_sup) = supervisor.get_rooms_supervisor(started.data)
+  let room_supervisors = rooms_supervisor.get_room_supervisors(rooms_sup)
+  list.length(room_supervisors) |> should.equal(1)
 }

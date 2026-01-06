@@ -22,6 +22,7 @@ import deep_heating/mode
 import deep_heating/rooms/room_adjustments
 import deep_heating/rooms/rooms_supervisor.{type RoomsSupervisor}
 import deep_heating/state/state_aggregator_actor
+import deep_heating/timer
 import gleam/dict
 import gleam/erlang/process.{type Name, type Pid, type Subject}
 import gleam/list
@@ -64,6 +65,8 @@ pub type SupervisorConfigWithRooms {
     name_prefix: Option(String),
     /// Optional time provider for testing (defaults to real time)
     time_provider: Option(house_mode_actor.TimeProvider),
+    /// Use instant timers for faster tests (default: False)
+    use_instant_timers: Bool,
   )
 }
 
@@ -300,9 +303,10 @@ pub fn start_with_home_config(
   // to capture their actual Subjects (named_subject doesn't work for Gleam actors)
   let supervisor_result =
     supervisor.new(supervisor.OneForOne)
-    |> supervisor.add(state_aggregator_actor.child_spec(
+    |> supervisor.add(state_aggregator_actor.child_spec_with_options(
       state_aggregator_name,
       config.adjustments_path,
+      select_state_aggregator_timer(config.use_instant_timers),
     ))
     |> supervisor.start
 
@@ -320,9 +324,11 @@ pub fn start_with_home_config(
         None -> house_mode_actor.now
       }
       case
-        house_mode_actor.start_named_with_time_provider(
-          house_mode_name,
-          time_provider,
+        house_mode_actor.start_named_with_options(
+          name: house_mode_name,
+          get_now: time_provider,
+          timer_interval_ms: house_mode_actor.default_timer_interval_ms,
+          send_after: select_house_mode_timer(config.use_instant_timers),
         )
       {
         Error(e) -> Error(SupervisorStartError(e))
@@ -331,10 +337,13 @@ pub fn start_with_home_config(
 
           // Start HaCommandActor manually to capture its actual Subject
           case
-            ha_command_actor.start_named(
-              ha_command_name,
-              config.ha_client,
-              default_ha_command_debounce_ms,
+            ha_command_actor.start_named_with_options(
+              name: ha_command_name,
+              ha_client: config.ha_client,
+              api_spy: process.new_subject(),
+              debounce_ms: default_ha_command_debounce_ms,
+              skip_http: False,
+              send_after: select_ha_command_timer(config.use_instant_timers),
             )
           {
             Error(e) -> Error(SupervisorStartError(e))
@@ -422,11 +431,14 @@ pub fn start_with_home_config(
                                 Ok(event_router_subject) -> {
                                   // Start HaPollerActor with the EventRouter's subject as event_spy
                                   case
-                                    ha_poller_actor.start_named(
-                                      ha_poller_name,
-                                      config.ha_client,
-                                      config.poller_config,
-                                      event_router_subject,
+                                    ha_poller_actor.start_named_with_send_after(
+                                      name: ha_poller_name,
+                                      ha_client: config.ha_client,
+                                      config: config.poller_config,
+                                      event_spy: event_router_subject,
+                                      send_after: select_ha_poller_timer(
+                                        config.use_instant_timers,
+                                      ),
                                     )
                                   {
                                     Error(e) -> Error(SupervisorStartError(e))
@@ -567,4 +579,48 @@ pub fn get_state_aggregator_subject(
   sup: SupervisorWithRooms,
 ) -> Subject(state_aggregator_actor.Message) {
   process.named_subject(sup.state_aggregator_name)
+}
+
+// =============================================================================
+// Timer selection helpers
+// =============================================================================
+
+/// Select the appropriate timer implementation for StateAggregatorActor
+fn select_state_aggregator_timer(
+  use_instant: Bool,
+) -> timer.SendAfter(state_aggregator_actor.Message) {
+  case use_instant {
+    True -> timer.instant_send_after
+    False -> timer.real_send_after
+  }
+}
+
+/// Select the appropriate timer implementation for HouseModeActor
+fn select_house_mode_timer(
+  use_instant: Bool,
+) -> timer.SendAfter(house_mode_actor.Message) {
+  case use_instant {
+    True -> timer.instant_send_after
+    False -> timer.real_send_after
+  }
+}
+
+/// Select the appropriate timer implementation for HaCommandActor
+fn select_ha_command_timer(
+  use_instant: Bool,
+) -> timer.SendAfter(ha_command_actor.Message) {
+  case use_instant {
+    True -> timer.instant_send_after
+    False -> timer.real_send_after
+  }
+}
+
+/// Select the appropriate timer implementation for HaPollerActor
+fn select_ha_poller_timer(
+  use_instant: Bool,
+) -> timer.SendAfter(ha_poller_actor.Message) {
+  case use_instant {
+    True -> timer.instant_send_after
+    False -> timer.real_send_after
+  }
 }

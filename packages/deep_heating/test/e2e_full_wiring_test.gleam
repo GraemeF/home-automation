@@ -61,8 +61,9 @@ pub fn full_system_wiring_turns_on_heating_when_cold_test() {
   // 3. Trigger a poll to get initial state
   trigger_poll(system)
 
-  // 4. Wait for events to propagate through the actor chain AND debounce timer (5s)
-  process.sleep(5500)
+  // 4. Wait for events to propagate through the actor chain
+  // (with instant timers, debounce fires immediately)
+  process.sleep(200)
 
   // 5. Verify the boiler was commanded to turn on (rooms are cold, demand heat)
   let heating_calls = fake_ha_server.get_set_hvac_mode_calls(fake_ha)
@@ -87,9 +88,10 @@ pub fn full_system_wiring_turns_off_heating_when_warm_test() {
   // 2. Start Deep Heating supervisor
   let assert Ok(system) = start_deep_heating(port)
 
-  // 3. Trigger poll and wait for debounce timer (5s)
+  // 3. Trigger poll and wait for events to propagate
+  // (with instant timers, debounce fires immediately)
   trigger_poll(system)
-  process.sleep(5500)
+  process.sleep(200)
 
   // 4. Verify no heating command sent (rooms already warm)
   let heating_calls = fake_ha_server.get_set_hvac_mode_calls(fake_ha)
@@ -321,6 +323,15 @@ fn start_deep_heating_with_time_provider(
   port: Int,
   time_provider: Option(house_mode_actor.TimeProvider),
 ) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
+  start_deep_heating_with_options(port, time_provider, True)
+}
+
+/// Start the Deep Heating supervisor with all options
+fn start_deep_heating_with_options(
+  port: Int,
+  time_provider: Option(house_mode_actor.TimeProvider),
+  use_instant_timers: Bool,
+) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
   let ha_client =
     HaClient("http://127.0.0.1:" <> int_to_string(port), test_token)
 
@@ -338,6 +349,7 @@ fn start_deep_heating_with_time_provider(
       home_config: home_config,
       name_prefix: Some(name_prefix),
       time_provider: time_provider,
+      use_instant_timers: use_instant_timers,
     ))
   {
     Ok(started) -> Ok(started.data)
@@ -445,8 +457,9 @@ pub fn full_system_wiring_multi_room_demand_aggregation_test() {
   // 3. Trigger a poll to get initial state
   trigger_poll(system)
 
-  // 4. Wait for events to propagate through the actor chain AND debounce timer (5s)
-  process.sleep(5500)
+  // 4. Wait for events to propagate through the actor chain
+  // (with instant timers, debounce fires immediately)
+  process.sleep(200)
 
   // 5. Verify the boiler was commanded to turn on
   // Even though bedroom is warm, lounge is cold so heating should be ON
@@ -749,6 +762,7 @@ fn start_deep_heating_multi_room(
       home_config: home_config,
       name_prefix: Some(name_prefix),
       time_provider: None,
+      use_instant_timers: True,
     ))
   {
     Ok(started) -> Ok(started.data)
