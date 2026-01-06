@@ -3,6 +3,7 @@ import deep_heating/home_assistant/client as home_assistant
 import deep_heating/home_assistant/ha_command_actor.{type ApiCall}
 import deep_heating/mode
 import deep_heating/temperature
+import deep_heating/timer
 import gleam/erlang/process
 import gleam/list
 import gleeunit/should
@@ -12,6 +13,7 @@ import gleeunit/should
 // =============================================================================
 
 /// Start a test HaCommandActor with sensible defaults.
+/// Uses instant_send_after for fast tests - debounce timers fire immediately.
 /// Returns tuple of (actor subject, api_spy subject) for assertions.
 fn make_test_context() -> #(
   process.Subject(ha_command_actor.Message),
@@ -24,6 +26,26 @@ fn make_test_context() -> #(
       api_spy: api_spy,
       debounce_ms: 50,
       skip_http: True,
+      send_after: timer.instant_send_after,
+    )
+  #(started.data, api_spy)
+}
+
+/// Start a test HaCommandActor that uses real timers for debounce.
+/// Use this for tests that specifically test debounce coalescence behavior.
+/// These tests need real timing to allow multiple commands to coalesce.
+fn make_debounce_test_context() -> #(
+  process.Subject(ha_command_actor.Message),
+  process.Subject(ApiCall),
+) {
+  let api_spy: process.Subject(ApiCall) = process.new_subject()
+  let assert Ok(started) =
+    ha_command_actor.start_with_options(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      api_spy: api_spy,
+      debounce_ms: 50,
+      skip_http: True,
+      send_after: timer.real_send_after,
     )
   #(started.data, api_spy)
 }
@@ -80,7 +102,8 @@ pub fn sends_api_call_after_debounce_test() {
 pub fn debounces_rapid_commands_to_same_trv_test() {
   // When multiple commands are sent rapidly to the same TRV,
   // only the LAST one should be executed after the debounce period
-  let #(actor, api_spy) = make_test_context()
+  // Uses real timers since we're testing debounce coalescence behavior
+  let #(actor, api_spy) = make_debounce_test_context()
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
   // Send multiple rapid commands to the same TRV
@@ -227,7 +250,8 @@ pub fn sends_heating_api_call_after_debounce_test() {
 
 pub fn debounces_rapid_heating_commands_test() {
   // Multiple rapid heating commands should be debounced to one call
-  let #(actor, api_spy) = make_test_context()
+  // Uses real timers since we're testing debounce coalescence behavior
+  let #(actor, api_spy) = make_debounce_test_context()
   let assert Ok(heating_id) =
     entity_id.climate_entity_id("climate.main_heating")
 
@@ -295,4 +319,47 @@ pub fn child_spec_creates_valid_specification_test() {
 
   // If we got here without error, the child_spec function exists and compiles
   should.be_true(True)
+}
+
+// =============================================================================
+// Injectable Timer Tests
+// =============================================================================
+
+pub fn instant_send_after_delivers_immediately_test() {
+  // When using instant_send_after, debounce timer fires immediately
+  // so we don't need process.sleep() to wait for the API call
+  let api_spy: process.Subject(ApiCall) = process.new_subject()
+  let assert Ok(started) =
+    ha_command_actor.start_with_options(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      api_spy: api_spy,
+      debounce_ms: 5000,
+      skip_http: True,
+      send_after: timer.instant_send_after,
+    )
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.test_trv")
+
+  // Send a TRV action - with instant_send_after, the debounce timer
+  // fires immediately (no 5 second wait)
+  process.send(
+    started.data,
+    ha_command_actor.SetTrvAction(
+      entity_id: trv_id,
+      mode: mode.HvacHeat,
+      target: temperature.temperature(21.0),
+    ),
+  )
+
+  // Should receive API call immediately (no sleep needed!)
+  // Using a short timeout since delivery should be instant
+  let assert Ok(call) = process.receive(api_spy, 100)
+
+  case call {
+    ha_command_actor.TrvApiCall(entity_id, called_mode, called_target) -> {
+      entity_id |> should.equal(trv_id)
+      called_mode |> should.equal(mode.HvacHeat)
+      temperature.unwrap(called_target) |> should.equal(21.0)
+    }
+    _ -> should.fail()
+  }
 }

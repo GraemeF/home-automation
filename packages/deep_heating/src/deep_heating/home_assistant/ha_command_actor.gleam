@@ -10,6 +10,7 @@ import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/home_assistant/client.{type HaClient} as home_assistant
 import deep_heating/mode.{type HvacMode}
 import deep_heating/temperature.{type Temperature}
+import deep_heating/timer.{type SendAfter}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/otp/actor
@@ -72,6 +73,8 @@ type State {
     heating_timer_active: Bool,
     /// Skip real HTTP calls (for testing)
     skip_http: Bool,
+    /// Injectable send_after function for timers
+    send_after: SendAfter(Message),
   )
 }
 
@@ -86,6 +89,7 @@ pub fn start(
     api_spy: api_spy,
     debounce_ms: debounce_ms,
     skip_http: False,
+    send_after: timer.real_send_after,
   )
 }
 
@@ -95,6 +99,7 @@ pub fn start_with_options(
   api_spy api_spy: Subject(ApiCall),
   debounce_ms debounce_ms: Int,
   skip_http skip_http: Bool,
+  send_after send_after: SendAfter(Message),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   actor.new_with_initialiser(1000, fn(self_subject) {
     let initial_state =
@@ -108,6 +113,7 @@ pub fn start_with_options(
         active_trv_timers: dict.new(),
         heating_timer_active: False,
         skip_http: skip_http,
+        send_after: send_after,
       )
     actor.initialised(initial_state)
     |> actor.returning(self_subject)
@@ -133,6 +139,7 @@ pub fn start_named(
     api_spy: api_spy,
     debounce_ms: debounce_ms,
     skip_http: False,
+    send_after: timer.real_send_after,
   )
 }
 
@@ -144,6 +151,7 @@ pub fn start_named_with_options(
   api_spy api_spy: Subject(ApiCall),
   debounce_ms debounce_ms: Int,
   skip_http skip_http: Bool,
+  send_after send_after: SendAfter(Message),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   actor.new_with_initialiser(1000, fn(self_subject) {
     let initial_state =
@@ -157,6 +165,7 @@ pub fn start_named_with_options(
         active_trv_timers: dict.new(),
         heating_timer_active: False,
         skip_http: skip_http,
+        send_after: send_after,
       )
     actor.initialised(initial_state)
     |> actor.returning(self_subject)
@@ -196,7 +205,7 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
         True -> state.active_trv_timers
         False -> {
           // Start timer - send message to self after debounce period
-          process.send_after(
+          state.send_after(
             state.self_subject,
             state.debounce_ms,
             TrvDebounceTimeout(entity_id),
@@ -289,7 +298,7 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
         True -> True
         False -> {
           // Start timer
-          process.send_after(
+          state.send_after(
             state.self_subject,
             state.debounce_ms,
             HeatingDebounceTimeout,
