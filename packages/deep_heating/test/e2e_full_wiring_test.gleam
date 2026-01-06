@@ -425,6 +425,94 @@ fn should_have_heating_command(
 }
 
 // =============================================================================
+// Multi-room integration test
+// =============================================================================
+
+/// Tests that heating demand is correctly aggregated across multiple rooms.
+/// When one room is warm and one is cold, the boiler should stay ON.
+pub fn full_system_wiring_multi_room_demand_aggregation_test() {
+  let port = base_port + 5
+
+  // 1. Start fake HA with two rooms: lounge (cold) and bedroom (warm)
+  let assert Ok(fake_ha) = start_fake_ha_with_mixed_rooms(port)
+
+  // Give the server time to be ready for connections
+  process.sleep(500)
+
+  // 2. Start Deep Heating supervisor with multi-room config
+  let assert Ok(system) = start_deep_heating_multi_room(port)
+
+  // 3. Trigger a poll to get initial state
+  trigger_poll(system)
+
+  // 4. Wait for events to propagate through the actor chain AND debounce timer (5s)
+  process.sleep(5500)
+
+  // 5. Verify the boiler was commanded to turn on
+  // Even though bedroom is warm, lounge is cold so heating should be ON
+  let heating_calls = fake_ha_server.get_set_hvac_mode_calls(fake_ha)
+
+  should_have_heating_command(heating_calls, mode.HvacHeat)
+
+  // Cleanup
+  fake_ha_server.stop(fake_ha)
+}
+
+/// Tests that UI state contains data for all rooms
+pub fn full_system_wiring_multi_room_broadcasts_all_rooms_to_ui_test() {
+  let port = base_port + 6
+
+  // 1. Start fake HA with two rooms
+  let assert Ok(fake_ha) = start_fake_ha_with_mixed_rooms(port)
+
+  process.sleep(500)
+
+  // 2. Start Deep Heating supervisor with multi-room config
+  let assert Ok(system) = start_deep_heating_multi_room(port)
+
+  // 3. Subscribe a test subject to the StateAggregatorActor (simulates UI client)
+  let ui_subscriber: process.Subject(DeepHeatingState) = process.new_subject()
+  let state_aggregator = supervisor.get_state_aggregator_subject(system)
+  process.send(
+    state_aggregator,
+    state_aggregator_actor.Subscribe(ui_subscriber),
+  )
+
+  // 4. Trigger a poll to get HA state
+  trigger_poll(system)
+
+  // 5. Wait for state to propagate through actors to aggregator
+  process.sleep(200)
+
+  // 6. Check that we received a state update with BOTH rooms
+  case process.receive(ui_subscriber, 1000) {
+    Ok(received_state) -> {
+      // Should have two rooms
+      list.length(received_state.rooms) |> should.equal(2)
+
+      // Both rooms should be present
+      let room_names =
+        received_state.rooms
+        |> list.map(fn(r) { r.name })
+        |> set.from_list
+
+      set.contains(room_names, "lounge") |> should.be_true
+      set.contains(room_names, "bedroom") |> should.be_true
+    }
+    Error(_) -> {
+      should.fail()
+    }
+  }
+
+  // Cleanup
+  process.send(
+    state_aggregator,
+    state_aggregator_actor.Unsubscribe(ui_subscriber),
+  )
+  fake_ha_server.stop(fake_ha)
+}
+
+// =============================================================================
 // Test configuration helpers
 // =============================================================================
 
@@ -513,5 +601,157 @@ fn int_to_string(n: Int) -> String {
     8 -> "8"
     9 -> "9"
     _ -> int_to_string(n / 10) <> int_to_string(n % 10)
+  }
+}
+
+// =============================================================================
+// Multi-room test helpers
+// =============================================================================
+
+/// Start a fake HA server with two rooms: lounge (cold) and bedroom (warm)
+fn start_fake_ha_with_mixed_rooms(
+  port: Int,
+) -> Result(fake_ha_server.Server, String) {
+  case fake_ha_server.start(port, test_token) {
+    Error(e) -> Error(e)
+    Ok(server) -> {
+      // Configure lounge TRV - cold (15°C current, 20°C target) - needs heating
+      let assert Ok(lounge_trv_id) =
+        entity_id.climate_entity_id("climate.lounge_trv")
+      fake_ha_server.set_climate_entity(
+        server,
+        lounge_trv_id,
+        ClimateEntityState(
+          current_temperature: Some(temperature.temperature(15.0)),
+          target_temperature: Some(temperature.temperature(20.0)),
+          hvac_mode: mode.HvacHeat,
+          hvac_action: Some("idle"),
+        ),
+      )
+
+      // Configure lounge external temperature sensor - cold
+      let assert Ok(lounge_sensor_id) =
+        entity_id.sensor_entity_id("sensor.lounge_temperature")
+      fake_ha_server.set_sensor_entity(
+        server,
+        lounge_sensor_id,
+        SensorEntityState(
+          temperature: Some(temperature.temperature(15.0)),
+          is_available: True,
+        ),
+      )
+
+      // Configure bedroom TRV - warm (22°C current, 20°C target) - doesn't need heating
+      let assert Ok(bedroom_trv_id) =
+        entity_id.climate_entity_id("climate.bedroom_trv")
+      fake_ha_server.set_climate_entity(
+        server,
+        bedroom_trv_id,
+        ClimateEntityState(
+          current_temperature: Some(temperature.temperature(22.0)),
+          target_temperature: Some(temperature.temperature(20.0)),
+          hvac_mode: mode.HvacHeat,
+          hvac_action: Some("idle"),
+        ),
+      )
+
+      // Configure bedroom external temperature sensor - warm
+      let assert Ok(bedroom_sensor_id) =
+        entity_id.sensor_entity_id("sensor.bedroom_temperature")
+      fake_ha_server.set_sensor_entity(
+        server,
+        bedroom_sensor_id,
+        SensorEntityState(
+          temperature: Some(temperature.temperature(22.0)),
+          is_available: True,
+        ),
+      )
+
+      // Configure main heating entity - currently off
+      let assert Ok(heating_id) =
+        entity_id.climate_entity_id("climate.main_heating")
+      fake_ha_server.set_climate_entity(
+        server,
+        heating_id,
+        ClimateEntityState(
+          current_temperature: None,
+          target_temperature: Some(temperature.temperature(20.0)),
+          hvac_mode: mode.HvacOff,
+          hvac_action: None,
+        ),
+      )
+
+      // Configure sleep button - not pressed recently
+      fake_ha_server.set_input_button(
+        server,
+        "input_button.goodnight",
+        "2020-01-01T00:00:00+00:00",
+      )
+
+      Ok(server)
+    }
+  }
+}
+
+/// Create a multi-room home config with lounge and bedroom
+fn make_multi_room_home_config() -> HomeConfig {
+  let assert Ok(lounge_trv_id) =
+    entity_id.climate_entity_id("climate.lounge_trv")
+  let assert Ok(lounge_sensor_id) =
+    entity_id.sensor_entity_id("sensor.lounge_temperature")
+  let assert Ok(bedroom_trv_id) =
+    entity_id.climate_entity_id("climate.bedroom_trv")
+  let assert Ok(bedroom_sensor_id) =
+    entity_id.sensor_entity_id("sensor.bedroom_temperature")
+  let assert Ok(sleep_switch) =
+    entity_id.goodnight_entity_id("input_button.goodnight")
+  let assert Ok(heating_id) =
+    entity_id.climate_entity_id("climate.main_heating")
+
+  HomeConfig(
+    rooms: [
+      RoomConfig(
+        name: "lounge",
+        temperature_sensor_entity_id: Some(lounge_sensor_id),
+        climate_entity_ids: [lounge_trv_id],
+        schedule: Some(make_all_day_schedule(20.0)),
+      ),
+      RoomConfig(
+        name: "bedroom",
+        temperature_sensor_entity_id: Some(bedroom_sensor_id),
+        climate_entity_ids: [bedroom_trv_id],
+        schedule: Some(make_all_day_schedule(20.0)),
+      ),
+    ],
+    sleep_switch_id: sleep_switch,
+    heating_id: heating_id,
+  )
+}
+
+/// Start the Deep Heating supervisor with multi-room config
+fn start_deep_heating_multi_room(
+  port: Int,
+) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
+  let ha_client =
+    HaClient("http://127.0.0.1:" <> int_to_string(port), test_token)
+
+  let home_config = make_multi_room_home_config()
+  let poller_config = make_poller_config(home_config)
+
+  // Use port as a unique prefix for actor names to avoid conflicts in parallel tests
+  let name_prefix = "e2e_multi_" <> int_to_string(port)
+
+  case
+    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
+      ha_client: ha_client,
+      poller_config: poller_config,
+      adjustments_path: test_adjustments_path,
+      home_config: home_config,
+      name_prefix: Some(name_prefix),
+      time_provider: None,
+    ))
+  {
+    Ok(started) -> Ok(started.data)
+    Error(e) -> Error(e)
   }
 }
