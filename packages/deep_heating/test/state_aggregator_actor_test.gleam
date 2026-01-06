@@ -3,6 +3,7 @@ import deep_heating/rooms/room_adjustments
 import deep_heating/state
 import deep_heating/state/state_aggregator_actor
 import deep_heating/temperature
+import deep_heating/timer
 import gleam/erlang/process
 import gleam/list
 import gleam/option
@@ -172,7 +173,12 @@ pub fn state_aggregator_tracks_multiple_rooms_test() {
 // =============================================================================
 
 pub fn state_aggregator_broadcasts_to_subscribers_after_throttle_test() {
-  let assert Ok(actor) = state_aggregator_actor.start_link()
+  // Use instant_send_after so we don't need to wait for real throttle timer
+  let assert Ok(actor) =
+    state_aggregator_actor.start_link_with_options(
+      adjustments_path: "/tmp/test_broadcast_throttle.json",
+      send_after: timer.instant_send_after,
+    )
 
   // Subscribe
   let subscriber: process.Subject(state.DeepHeatingState) =
@@ -184,11 +190,11 @@ pub fn state_aggregator_broadcasts_to_subscribers_after_throttle_test() {
   let room_state = make_room_state("lounge")
   process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
 
-  // Wait for throttle period (100ms) plus buffer
-  process.sleep(150)
+  // With instant_send_after, broadcast happens immediately - short wait for processing
+  process.sleep(20)
 
   // Subscriber should receive the broadcast
-  let assert Ok(received_state) = process.receive(subscriber, 1000)
+  let assert Ok(received_state) = process.receive(subscriber, 100)
   list.length(received_state.rooms) |> should.equal(1)
 }
 
@@ -230,7 +236,12 @@ pub fn state_aggregator_throttles_rapid_updates_test() {
 }
 
 pub fn state_aggregator_does_not_broadcast_to_unsubscribed_test() {
-  let assert Ok(actor) = state_aggregator_actor.start_link()
+  // Use instant_send_after so we don't need to wait for real throttle timer
+  let assert Ok(actor) =
+    state_aggregator_actor.start_link_with_options(
+      adjustments_path: "/tmp/test_unsubscribe.json",
+      send_after: timer.instant_send_after,
+    )
 
   let subscriber: process.Subject(state.DeepHeatingState) =
     process.new_subject()
@@ -245,8 +256,8 @@ pub fn state_aggregator_does_not_broadcast_to_unsubscribed_test() {
   let room_state = make_room_state("lounge")
   process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
 
-  // Wait for throttle period
-  process.sleep(150)
+  // With instant_send_after, broadcast happens immediately - short wait for processing
+  process.sleep(20)
 
   // Subscriber should NOT receive anything (unsubscribed)
   case process.receive(subscriber, 50) {
@@ -432,4 +443,37 @@ pub fn state_aggregator_only_persists_on_adjustment_change_test() {
   |> should.equal([
     room_adjustments.RoomAdjustment(room_name: "lounge", adjustment: 0.0),
   ])
+}
+
+// =============================================================================
+// Injectable Timer Tests
+// =============================================================================
+
+pub fn state_aggregator_with_instant_send_after_broadcasts_immediately_test() {
+  // Start with instant_send_after - broadcasts should happen immediately
+  let assert Ok(actor) =
+    state_aggregator_actor.start_link_with_options(
+      adjustments_path: "/tmp/test_instant_timer.json",
+      send_after: timer.instant_send_after,
+    )
+
+  // Subscribe
+  let subscriber: process.Subject(state.DeepHeatingState) =
+    process.new_subject()
+  process.send(actor, state_aggregator_actor.Subscribe(subscriber))
+
+  // Give the subscribe message time to process
+  process.sleep(10)
+
+  // Send a room update
+  let room_state = make_room_state("lounge")
+  process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
+
+  // With instant_send_after, broadcast happens immediately - no 150ms wait needed
+  // Just give a tiny bit of time for message processing
+  process.sleep(10)
+
+  // Subscriber should receive the broadcast immediately
+  let assert Ok(received_state) = process.receive(subscriber, 100)
+  list.length(received_state.rooms) |> should.equal(1)
 }

@@ -10,6 +10,7 @@
 import deep_heating/rooms/room_actor
 import deep_heating/rooms/room_adjustments
 import deep_heating/state.{type DeepHeatingState, type RoomState}
+import deep_heating/timer.{type SendAfter}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/list
@@ -50,6 +51,8 @@ pub type State {
     adjustments_path: String,
     /// Track previous adjustments to detect changes
     previous_adjustments: Dict(String, Float),
+    /// Injectable timer function
+    send_after: SendAfter(Message),
   )
 }
 
@@ -63,6 +66,18 @@ pub fn start_link() -> Result(Subject(Message), actor.StartError) {
 pub fn start_link_with_persistence(
   adjustments_path: String,
 ) -> Result(Subject(Message), actor.StartError) {
+  start_link_with_options(
+    adjustments_path: adjustments_path,
+    send_after: timer.real_send_after,
+  )
+}
+
+/// Start the StateAggregatorActor with all options (for testing)
+/// Allows injection of send_after for deterministic timer testing
+pub fn start_link_with_options(
+  adjustments_path adjustments_path: String,
+  send_after send_after: SendAfter(Message),
+) -> Result(Subject(Message), actor.StartError) {
   actor.new_with_initialiser(1000, fn(self_subject) {
     actor.initialised(State(
       current: state.empty_deep_heating_state(),
@@ -72,6 +87,7 @@ pub fn start_link_with_persistence(
       room_actors: dict.new(),
       adjustments_path: adjustments_path,
       previous_adjustments: dict.new(),
+      send_after: send_after,
     ))
     |> actor.returning(self_subject)
     |> Ok
@@ -95,6 +111,7 @@ pub fn start(
       room_actors: dict.new(),
       adjustments_path: adjustments_path,
       previous_adjustments: dict.new(),
+      send_after: timer.real_send_after,
     ))
     |> actor.returning(self_subject)
     |> Ok
@@ -248,7 +265,8 @@ fn schedule_broadcast_if_needed(
     }
     False -> {
       // Schedule a broadcast after throttle period
-      process.send_after(actor_state.self_subject, throttle_ms, Broadcast)
+      let _ =
+        actor_state.send_after(actor_state.self_subject, throttle_ms, Broadcast)
       actor.continue(State(..actor_state, broadcast_pending: True))
     }
   }
