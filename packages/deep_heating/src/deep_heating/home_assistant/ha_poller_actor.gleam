@@ -12,6 +12,7 @@ import deep_heating/entity_id.{type ClimateEntityId, type SensorEntityId}
 import deep_heating/home_assistant/client.{type HaClient} as home_assistant
 import deep_heating/rooms/trv_actor.{type TrvUpdate, TrvUpdate}
 import deep_heating/temperature.{type Temperature}
+import deep_heating/timer.{type SendAfter}
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/int
 import gleam/list
@@ -97,14 +98,31 @@ type State {
     mock_error: option.Option(home_assistant.HaError),
     /// Current backoff multiplier (1 = no backoff, 2 = doubled, etc.)
     backoff_multiplier: Int,
+    /// Injectable send_after function for deterministic timer testing
+    send_after: SendAfter(Message),
   )
 }
 
-/// Start the HaPollerActor
+/// Start the HaPollerActor with default real_send_after
 pub fn start(
   ha_client ha_client: HaClient,
   config config: PollerConfig,
   event_spy event_spy: Subject(PollerEvent),
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  start_with_send_after(
+    ha_client: ha_client,
+    config: config,
+    event_spy: event_spy,
+    send_after: timer.real_send_after,
+  )
+}
+
+/// Start the HaPollerActor with injectable send_after (for testing)
+pub fn start_with_send_after(
+  ha_client ha_client: HaClient,
+  config config: PollerConfig,
+  event_spy event_spy: Subject(PollerEvent),
+  send_after send_after: SendAfter(Message),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   actor.new_with_initialiser(1000, fn(self_subject) {
     let initial_state =
@@ -118,6 +136,7 @@ pub fn start(
         mock_response: None,
         mock_error: None,
         backoff_multiplier: 1,
+        send_after: send_after,
       )
     actor.initialised(initial_state)
     |> actor.returning(self_subject)
@@ -129,11 +148,29 @@ pub fn start(
 
 /// Start the HaPollerActor and register it with the given name.
 /// Events are sent to the provided event_spy subject.
+/// Uses default real_send_after.
 pub fn start_named(
   name: Name(Message),
   ha_client: HaClient,
   config: PollerConfig,
   event_spy: Subject(PollerEvent),
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  start_named_with_send_after(
+    name: name,
+    ha_client: ha_client,
+    config: config,
+    event_spy: event_spy,
+    send_after: timer.real_send_after,
+  )
+}
+
+/// Start the HaPollerActor with injectable send_after and register with given name.
+pub fn start_named_with_send_after(
+  name name: Name(Message),
+  ha_client ha_client: HaClient,
+  config config: PollerConfig,
+  event_spy event_spy: Subject(PollerEvent),
+  send_after send_after: SendAfter(Message),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   actor.new_with_initialiser(1000, fn(self_subject) {
     let initial_state =
@@ -147,6 +184,7 @@ pub fn start_named(
         mock_response: None,
         mock_error: None,
         backoff_multiplier: 1,
+        send_after: send_after,
       )
     actor.initialised(initial_state)
     |> actor.returning(self_subject)
@@ -340,7 +378,7 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
                 max_backoff_ms,
               )
           }
-          let _ = process.send_after(state.self_subject, delay_ms, PollNow)
+          let _ = state.send_after(state.self_subject, delay_ms, PollNow)
           Nil
         }
         False -> Nil
