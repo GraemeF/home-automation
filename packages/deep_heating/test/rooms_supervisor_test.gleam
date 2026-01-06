@@ -12,6 +12,7 @@ import deep_heating/rooms/trv_actor
 import deep_heating/scheduling/schedule
 import deep_heating/state/state_aggregator_actor
 import deep_heating/temperature
+import deep_heating/timer
 import gleam/dict
 import gleam/erlang/process
 import gleam/list
@@ -158,6 +159,7 @@ pub fn room_supervisor_starts_successfully_test() {
       house_mode: make_dummy_house_mode(),
       heating_control: None,
       initial_adjustments: [],
+      room_send_after: timer.real_send_after,
     )
 
   should.be_ok(result)
@@ -177,6 +179,7 @@ pub fn room_supervisor_starts_room_actor_test() {
       house_mode: make_dummy_house_mode(),
       heating_control: None,
       initial_adjustments: [],
+      room_send_after: timer.real_send_after,
     )
 
   // Should be able to get the room actor subject
@@ -209,6 +212,7 @@ pub fn room_supervisor_starts_room_with_initial_adjustment_test() {
       house_mode: make_dummy_house_mode(),
       heating_control: None,
       initial_adjustments: initial_adjustments,
+      room_send_after: timer.real_send_after,
     )
 
   // Query the room actor to verify initial adjustment is set
@@ -239,6 +243,7 @@ pub fn room_supervisor_uses_zero_adjustment_for_unknown_room_test() {
       house_mode: make_dummy_house_mode(),
       heating_control: None,
       initial_adjustments: initial_adjustments,
+      room_send_after: timer.real_send_after,
     )
 
   // Query the room actor - should have 0.0 adjustment (not in list)
@@ -264,6 +269,7 @@ pub fn room_supervisor_starts_trv_actors_test() {
       house_mode: make_dummy_house_mode(),
       heating_control: None,
       initial_adjustments: [],
+      room_send_after: timer.real_send_after,
     )
 
   // Should be able to get the TRV actor subjects
@@ -296,6 +302,7 @@ pub fn room_supervisor_starts_decision_actor_test() {
       house_mode: make_dummy_house_mode(),
       heating_control: None,
       initial_adjustments: [],
+      room_send_after: timer.real_send_after,
     )
 
   // Should be able to get the decision actor subject
@@ -317,6 +324,7 @@ pub fn room_supervisor_with_multiple_trvs_test() {
       house_mode: make_dummy_house_mode(),
       heating_control: None,
       initial_adjustments: [],
+      room_send_after: timer.real_send_after,
     )
 
   // Should have two TRV actors
@@ -344,6 +352,7 @@ pub fn trv_update_reaches_room_actor_test() {
       house_mode: make_dummy_house_mode(),
       heating_control: None,
       initial_adjustments: [],
+      room_send_after: timer.real_send_after,
     )
 
   // Get the TRV actor
@@ -391,6 +400,7 @@ pub fn room_decision_sends_command_to_trv_test() {
       house_mode: make_dummy_house_mode(),
       heating_control: None,
       initial_adjustments: [],
+      room_send_after: timer.real_send_after,
     )
 
   // Get actors
@@ -462,6 +472,7 @@ pub fn rooms_supervisor_starts_all_rooms_test() {
       house_mode: make_dummy_house_mode(),
       heating_control: None,
       initial_adjustments: [],
+      room_send_after: timer.real_send_after,
     )
 
   // Should have supervisors for both rooms
@@ -485,6 +496,7 @@ pub fn room_supervisor_registers_room_actor_with_state_aggregator_test() {
       house_mode: make_dummy_house_mode(),
       heating_control: None,
       initial_adjustments: [],
+      room_send_after: timer.real_send_after,
     )
 
   // Give time for any async registration
@@ -527,6 +539,7 @@ pub fn trv_actor_is_restarted_when_it_crashes_test() {
       house_mode: make_dummy_house_mode(),
       heating_control: None,
       initial_adjustments: [],
+      room_send_after: timer.real_send_after,
     )
 
   // Get the TRV actor's name and current pid
@@ -571,6 +584,7 @@ pub fn room_supervisor_exposes_room_name_test() {
       house_mode: make_dummy_house_mode(),
       heating_control: None,
       initial_adjustments: [],
+      room_send_after: timer.real_send_after,
     )
 
   // Should be able to get the room name directly from RoomSupervisor
@@ -601,6 +615,7 @@ pub fn rooms_supervisor_can_get_room_by_name_test() {
       house_mode: make_dummy_house_mode(),
       heating_control: None,
       initial_adjustments: [],
+      room_send_after: timer.real_send_after,
     )
 
   // Should be able to look up rooms by name
@@ -636,6 +651,7 @@ pub fn trv_command_adapter_forwards_commands_to_ha_test() {
       house_mode: make_dummy_house_mode(),
       heating_control: None,
       initial_adjustments: [],
+      room_send_after: timer.real_send_after,
     )
 
   // Get actors
@@ -713,6 +729,7 @@ pub fn room_supervisor_registers_room_actor_with_house_mode_actor_test() {
       house_mode: house_mode,
       heating_control: None,
       initial_adjustments: [],
+      room_send_after: timer.real_send_after,
     )
 
   // Get the room actor to query its state

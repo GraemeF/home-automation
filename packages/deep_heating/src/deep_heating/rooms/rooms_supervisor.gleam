@@ -25,6 +25,7 @@ import deep_heating/rooms/room_decision_actor
 import deep_heating/rooms/trv_actor
 import deep_heating/rooms/trv_command_adapter_actor
 import deep_heating/state/state_aggregator_actor
+import deep_heating/timer.{type SendAfter}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Name, type Pid, type Subject}
 import gleam/list
@@ -107,6 +108,7 @@ pub fn start_room(
     Subject(room_actor.HeatingControlMessage),
   ),
   initial_adjustments initial_adjustments: List(RoomAdjustment),
+  room_send_after room_send_after: SendAfter(room_actor.Message),
 ) -> Result(RoomSupervisor, StartError) {
   // Get schedule - rooms must have a schedule configured
   use room_schedule <- result.try(case room_config.schedule {
@@ -168,9 +170,9 @@ pub fn start_room(
   let room_actor_name = process.new_name("room_actor_" <> room_config.name)
 
   // Start the RoomActor - looks up RoomDecisionActor by name
-  // Uses start_named for OTP supervision support
+  // Uses start_named_with_options for OTP supervision support and testable timers
   use room_started <- result.try(
-    room_actor.start_named(
+    room_actor.start_named_with_options(
       actor_name: room_actor_name,
       room_name: room_config.name,
       schedule: room_schedule,
@@ -180,6 +182,7 @@ pub fn start_room(
       get_time: room_actor.get_current_datetime,
       timer_interval_ms: room_actor.default_timer_interval_ms,
       initial_adjustment: initial_adjustment,
+      send_after: room_send_after,
     )
     |> result.map_error(ActorStartError),
   )
@@ -307,6 +310,7 @@ pub fn start(
     Subject(room_actor.HeatingControlMessage),
   ),
   initial_adjustments initial_adjustments: List(RoomAdjustment),
+  room_send_after room_send_after: SendAfter(room_actor.Message),
 ) -> Result(RoomsSupervisor, StartError) {
   config.rooms
   |> list.try_map(fn(room_config) {
@@ -317,6 +321,7 @@ pub fn start(
       house_mode: house_mode,
       heating_control: heating_control,
       initial_adjustments: initial_adjustments,
+      room_send_after: room_send_after,
     )
     |> result.map(fn(room_sup) { #(room_config.name, room_sup) })
   })

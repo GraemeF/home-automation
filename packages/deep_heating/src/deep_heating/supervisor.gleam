@@ -19,6 +19,7 @@ import deep_heating/home_assistant/ha_command_actor
 import deep_heating/home_assistant/ha_poller_actor
 import deep_heating/house_mode/house_mode_actor
 import deep_heating/mode
+import deep_heating/rooms/room_actor
 import deep_heating/rooms/room_adjustments
 import deep_heating/rooms/rooms_supervisor.{type RoomsSupervisor}
 import deep_heating/state/state_aggregator_actor
@@ -396,6 +397,9 @@ pub fn start_with_home_config(
                               house_mode: house_mode_subject,
                               heating_control: Some(heating_control_for_rooms),
                               initial_adjustments: initial_adjustments,
+                              room_send_after: select_room_actor_timer(
+                                config.use_instant_timers,
+                              ),
                             )
                           {
                             Error(e) -> Error(RoomsStartError(e))
@@ -619,6 +623,16 @@ fn select_ha_command_timer(
 fn select_ha_poller_timer(
   use_instant: Bool,
 ) -> timer.SendAfter(ha_poller_actor.Message) {
+  case use_instant {
+    True -> timer.instant_send_after
+    False -> timer.real_send_after
+  }
+}
+
+/// Select the appropriate timer implementation for RoomActor
+fn select_room_actor_timer(
+  use_instant: Bool,
+) -> timer.SendAfter(room_actor.Message) {
   case use_instant {
     True -> timer.instant_send_after
     False -> timer.real_send_after
