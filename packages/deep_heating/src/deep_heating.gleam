@@ -2,13 +2,13 @@ import deep_heating/config/home_config
 import deep_heating/entity_id
 import deep_heating/home_assistant/client as home_assistant
 import deep_heating/home_assistant/ha_poller_actor
+import deep_heating/log
 import deep_heating/rooms/room_adjustments
 import deep_heating/server
 import deep_heating/state/state_aggregator_actor
 import deep_heating/supervisor
 import gleam/erlang/process
 import gleam/int
-import gleam/io
 import gleam/list
 import gleam/option
 import gleam/set
@@ -20,16 +20,18 @@ const default_poll_interval_ms: Int = 10_000
 /// Main entry point for Deep Heating.
 /// Starts the supervision tree and HTTP/WebSocket server.
 pub fn main() -> Nil {
-  io.println("Deep Heating starting...")
+  // Configure the logger first thing
+  log.configure()
+  log.info("Deep Heating starting...")
 
   // Try to start with HA integration, fall back to dev mode
   let start_result = case build_supervisor_config() {
     Ok(config) -> {
-      io.println("Starting with Home Assistant integration...")
+      log.info("Starting with Home Assistant integration...")
       supervisor.start_with_config(config)
     }
     Error(reason) -> {
-      io.println(
+      log.info(
         "Starting in dev mode (no HA integration): " <> string.inspect(reason),
       )
       supervisor.start()
@@ -39,12 +41,12 @@ pub fn main() -> Nil {
   // Continue with server startup
   case start_result {
     Ok(started) -> {
-      io.println("Supervision tree started")
+      log.info("Supervision tree started")
 
       // Get the state aggregator actor
       case supervisor.get_state_aggregator(started.data) {
         Ok(aggregator_ref) -> {
-          io.println("Got state aggregator reference")
+          log.debug("Got state aggregator reference")
 
           // Create room adjuster callback that forwards to StateAggregatorActor
           let room_adjuster = fn(room_name: String, adjustment: Float) {
@@ -67,22 +69,22 @@ pub fn main() -> Nil {
           // Start the HTTP/WebSocket server
           case server.start(config) {
             Ok(Nil) -> {
-              io.println(
+              log.info(
                 "Server started on http://localhost:" <> int.to_string(port),
               )
             }
             Error(e) -> {
-              io.println("Failed to start server: " <> e)
+              log.error("Failed to start server: " <> e)
             }
           }
         }
         Error(Nil) -> {
-          io.println("Failed to get state aggregator reference")
+          log.error("Failed to get state aggregator reference")
         }
       }
     }
     Error(e) -> {
-      io.println("Failed to start supervision tree: " <> string.inspect(e))
+      log.error("Failed to start supervision tree: " <> string.inspect(e))
     }
   }
 
