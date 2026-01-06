@@ -1,6 +1,7 @@
 import deep_heating/house_mode/house_mode_actor.{type LocalDateTime}
 import deep_heating/mode
 import deep_heating/rooms/room_actor
+import deep_heating/timer
 import gleam/erlang/process
 import gleeunit/should
 
@@ -13,11 +14,30 @@ fn evening_time() -> LocalDateTime {
   make_datetime(2026, 1, 3, 21, 0, 0)
 }
 
-/// Start an actor with the clock at evening time (9pm).
+/// Start an actor with the clock at evening time (9pm) and timer disabled.
 /// Button presses will be accepted since it's after 8pm.
+/// Timer is disabled (interval=0) since most tests don't need automatic re-evaluation.
 fn make_test_actor_at_evening() -> process.Subject(house_mode_actor.Message) {
   let assert Ok(actor) =
-    house_mode_actor.start_with_time_provider(fn() { evening_time() })
+    house_mode_actor.start_with_options(
+      get_now: fn() { evening_time() },
+      timer_interval_ms: 0,
+      send_after: timer.instant_send_after,
+    )
+  actor
+}
+
+/// Start an actor with a specific time provider and timer disabled.
+/// Use this for tests that need to control time but don't care about timer behavior.
+fn make_test_actor_at_time(
+  get_now: fn() -> LocalDateTime,
+) -> process.Subject(house_mode_actor.Message) {
+  let assert Ok(actor) =
+    house_mode_actor.start_with_options(
+      get_now: get_now,
+      timer_interval_ms: 0,
+      send_after: timer.instant_send_after,
+    )
   actor
 }
 
@@ -55,9 +75,7 @@ pub fn house_mode_actor_transitions_to_sleeping_on_button_press_test() {
   // Press sleep button
   process.send(actor, house_mode_actor.SleepButtonPressed)
 
-  process.sleep(10)
-
-  // Query mode
+  // Query mode - messages are processed in FIFO order
   let reply_subject = process.new_subject()
   process.send(actor, house_mode_actor.GetMode(reply_subject))
 
@@ -70,11 +88,9 @@ pub fn house_mode_actor_transitions_to_auto_on_wakeup_test() {
 
   // Go to sleep first
   process.send(actor, house_mode_actor.SleepButtonPressed)
-  process.sleep(10)
 
-  // Wake up
+  // Wake up - messages are processed in FIFO order
   process.send(actor, house_mode_actor.WakeUp)
-  process.sleep(10)
 
   let reply_subject = process.new_subject()
   process.send(actor, house_mode_actor.GetMode(reply_subject))
@@ -88,7 +104,8 @@ pub fn house_mode_actor_transitions_to_auto_on_wakeup_test() {
 // =============================================================================
 
 pub fn house_mode_actor_accepts_room_registration_test() {
-  let assert Ok(actor) = house_mode_actor.start_link()
+  // Use timer-disabled actor for fast test
+  let actor = make_test_actor_at_time(house_mode_actor.now)
 
   // Create a subject that can receive HouseModeChanged messages
   let room_listener: process.Subject(room_actor.Message) = process.new_subject()
@@ -96,9 +113,7 @@ pub fn house_mode_actor_accepts_room_registration_test() {
   // Register the room actor - should not crash
   process.send(actor, house_mode_actor.RegisterRoomActor(room_listener))
 
-  process.sleep(10)
-
-  // Actor should still be alive
+  // Actor should still be alive - messages processed in FIFO order
   let reply_subject = process.new_subject()
   process.send(actor, house_mode_actor.GetMode(reply_subject))
   let assert Ok(_) = process.receive(reply_subject, 1000)
@@ -108,9 +123,8 @@ pub fn house_mode_actor_broadcasts_sleeping_to_registered_rooms_test() {
   let actor = make_test_actor_at_evening()
   let room_listener = make_room_listener()
 
-  // Register the room actor
+  // Register the room actor - messages processed in FIFO order
   process.send(actor, house_mode_actor.RegisterRoomActor(room_listener))
-  process.sleep(10)
 
   // Press sleep button
   process.send(actor, house_mode_actor.SleepButtonPressed)
@@ -129,9 +143,8 @@ pub fn house_mode_actor_broadcasts_auto_on_wakeup_test() {
   let actor = make_test_actor_at_evening()
   let room_listener = make_room_listener()
 
-  // Register the room actor
+  // Register the room actor - messages processed in FIFO order
   process.send(actor, house_mode_actor.RegisterRoomActor(room_listener))
-  process.sleep(10)
 
   // Go to sleep first
   process.send(actor, house_mode_actor.SleepButtonPressed)
@@ -156,10 +169,9 @@ pub fn house_mode_actor_broadcasts_to_multiple_rooms_test() {
   let room1 = make_room_listener()
   let room2 = make_room_listener()
 
-  // Register both
+  // Register both - messages processed in FIFO order
   process.send(actor, house_mode_actor.RegisterRoomActor(room1))
   process.send(actor, house_mode_actor.RegisterRoomActor(room2))
-  process.sleep(10)
 
   // Press sleep button
   process.send(actor, house_mode_actor.SleepButtonPressed)
@@ -199,8 +211,7 @@ pub fn time_before_3am_is_sleeping_test() {
   // Time: 2am on any day
   let current_time = make_datetime(2026, 1, 3, 2, 0, 0)
 
-  let assert Ok(actor) =
-    house_mode_actor.start_with_time_provider(fn() { current_time })
+  let actor = make_test_actor_at_time(fn() { current_time })
 
   let reply_subject = process.new_subject()
   process.send(actor, house_mode_actor.GetMode(reply_subject))
@@ -214,8 +225,7 @@ pub fn time_after_3am_is_auto_test() {
   // Time: 10am on any day
   let current_time = make_datetime(2026, 1, 3, 10, 0, 0)
 
-  let assert Ok(actor) =
-    house_mode_actor.start_with_time_provider(fn() { current_time })
+  let actor = make_test_actor_at_time(fn() { current_time })
 
   let reply_subject = process.new_subject()
   process.send(actor, house_mode_actor.GetMode(reply_subject))
@@ -228,9 +238,8 @@ pub fn button_after_8pm_same_day_is_sleeping_test() {
   // When button is pressed after 8pm (hour > 20) on the same day, mode is Sleeping
   let actor = make_test_actor_at_evening()
 
-  // Press the sleep button
+  // Press the sleep button - messages processed in FIFO order
   process.send(actor, house_mode_actor.SleepButtonPressed)
-  process.sleep(10)
 
   let reply_subject = process.new_subject()
   process.send(actor, house_mode_actor.GetMode(reply_subject))
@@ -244,12 +253,10 @@ pub fn button_before_8pm_same_day_is_auto_test() {
   // Set time to 7pm (19:00) - before the 8pm cutoff
   let current_time = make_datetime(2026, 1, 3, 19, 0, 0)
 
-  let assert Ok(actor) =
-    house_mode_actor.start_with_time_provider(fn() { current_time })
+  let actor = make_test_actor_at_time(fn() { current_time })
 
   // Press the sleep button - should be ignored because it's before 8pm
   process.send(actor, house_mode_actor.SleepButtonPressed)
-  process.sleep(10)
 
   let reply_subject = process.new_subject()
   process.send(actor, house_mode_actor.GetMode(reply_subject))
@@ -274,7 +281,6 @@ pub fn button_yesterday_is_auto_test() {
   let actor1 = make_test_actor_at_evening()
 
   process.send(actor1, house_mode_actor.SleepButtonPressed)
-  process.sleep(10)
 
   let reply1 = process.new_subject()
   process.send(actor1, house_mode_actor.GetMode(reply1))
@@ -283,8 +289,7 @@ pub fn button_yesterday_is_auto_test() {
 
   // Test 2: At 10am next day, no button press -> Auto (not sleeping)
   let jan_4_10am = make_datetime(2026, 1, 4, 10, 0, 0)
-  let assert Ok(actor2) =
-    house_mode_actor.start_with_time_provider(fn() { jan_4_10am })
+  let actor2 = make_test_actor_at_time(fn() { jan_4_10am })
 
   let reply2 = process.new_subject()
   process.send(actor2, house_mode_actor.GetMode(reply2))
@@ -303,8 +308,7 @@ pub fn mode_transitions_to_auto_after_3am_test() {
 
   // At 2am (before 3am), should be Sleeping
   let two_am = make_datetime(2026, 1, 3, 2, 0, 0)
-  let assert Ok(actor1) =
-    house_mode_actor.start_with_time_provider(fn() { two_am })
+  let actor1 = make_test_actor_at_time(fn() { two_am })
 
   let reply1 = process.new_subject()
   process.send(actor1, house_mode_actor.GetMode(reply1))
@@ -313,8 +317,7 @@ pub fn mode_transitions_to_auto_after_3am_test() {
 
   // At 4am (after 3am), should be Auto
   let four_am = make_datetime(2026, 1, 3, 4, 0, 0)
-  let assert Ok(actor2) =
-    house_mode_actor.start_with_time_provider(fn() { four_am })
+  let actor2 = make_test_actor_at_time(fn() { four_am })
 
   let reply2 = process.new_subject()
   process.send(actor2, house_mode_actor.GetMode(reply2))
@@ -425,6 +428,66 @@ pub fn timer_reschedules_after_each_evaluation_test() {
 
   // Clean up
   delete_counter(counter)
+}
+
+// =============================================================================
+// Injectable Timer Tests
+// =============================================================================
+
+pub fn instant_send_after_with_disabled_timer_avoids_infinite_loop_test() {
+  // When using instant_send_after with timer_interval_ms=0, the timer
+  // is disabled so there's no infinite recursion from ReEvaluateMode
+  // rescheduling itself immediately.
+  //
+  // This test verifies the pattern used by make_test_actor_at_time()
+  // works correctly for fast tests.
+  let current_time = make_datetime(2026, 1, 3, 10, 0, 0)
+  let assert Ok(actor) =
+    house_mode_actor.start_with_options(
+      get_now: fn() { current_time },
+      timer_interval_ms: 0,
+      send_after: timer.instant_send_after,
+    )
+
+  // Should be able to query mode immediately (no infinite loop)
+  let reply = process.new_subject()
+  process.send(actor, house_mode_actor.GetMode(reply))
+
+  // Using short timeout since delivery should be instant
+  let assert Ok(current_mode) = process.receive(reply, 100)
+  current_mode |> should.equal(mode.HouseModeAuto)
+}
+
+pub fn spy_send_after_captures_timer_requests_test() {
+  // When using spy_send_after, timer requests are captured
+  // but messages are NOT delivered to the target.
+  // This allows verifying timer scheduling without waiting.
+  let current_time = make_datetime(2026, 1, 3, 10, 0, 0)
+  let spy: process.Subject(timer.TimerRequest(house_mode_actor.Message)) =
+    process.new_subject()
+
+  let assert Ok(actor) =
+    house_mode_actor.start_with_options(
+      get_now: fn() { current_time },
+      timer_interval_ms: 100,
+      send_after: timer.spy_send_after(spy),
+    )
+
+  // Should receive a timer request (initial timer scheduled on startup)
+  let assert Ok(request) = process.receive(spy, 100)
+
+  // Verify the timer was scheduled with correct parameters
+  request.delay_ms |> should.equal(100)
+  case request.msg {
+    house_mode_actor.ReEvaluateMode -> should.be_true(True)
+    _ -> should.fail()
+  }
+
+  // Actor should still be responsive (no timer actually fired)
+  let reply = process.new_subject()
+  process.send(actor, house_mode_actor.GetMode(reply))
+  let assert Ok(mode_result) = process.receive(reply, 100)
+  mode_result |> should.equal(mode.HouseModeAuto)
 }
 
 // =============================================================================

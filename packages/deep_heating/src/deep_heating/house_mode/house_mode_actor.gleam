@@ -11,6 +11,7 @@
 
 import deep_heating/mode.{type HouseMode, HouseModeAuto, HouseModeSleeping}
 import deep_heating/rooms/room_actor
+import deep_heating/timer.{type SendAfter}
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/list
 import gleam/otp/actor
@@ -95,6 +96,7 @@ type State {
     last_button_press: Result(LocalDateTime, Nil),
     self_subject: Result(Subject(Message), Nil),
     timer_interval_ms: Int,
+    send_after: SendAfter(Message),
   )
 }
 
@@ -117,6 +119,20 @@ pub fn start_with_timer_interval(
   get_now: TimeProvider,
   timer_interval_ms: Int,
 ) -> Result(Subject(Message), actor.StartError) {
+  start_with_options(
+    get_now: get_now,
+    timer_interval_ms: timer_interval_ms,
+    send_after: timer.real_send_after,
+  )
+}
+
+/// Start the HouseModeActor with all options (for testing)
+/// Allows injection of send_after for deterministic timer testing
+pub fn start_with_options(
+  get_now get_now: TimeProvider,
+  timer_interval_ms timer_interval_ms: Int,
+  send_after send_after: SendAfter(Message),
+) -> Result(Subject(Message), actor.StartError) {
   // Evaluate initial mode based on current time
   let current_time = get_now()
   let initial_mode = evaluate_mode(current_time, Error(Nil))
@@ -125,7 +141,7 @@ pub fn start_with_timer_interval(
     // Schedule initial timer if interval > 0
     case timer_interval_ms > 0 {
       True -> {
-        process.send_after(self_subject, timer_interval_ms, ReEvaluateMode)
+        send_after(self_subject, timer_interval_ms, ReEvaluateMode)
         Nil
       }
       False -> Nil
@@ -139,6 +155,7 @@ pub fn start_with_timer_interval(
         last_button_press: Error(Nil),
         self_subject: Ok(self_subject),
         timer_interval_ms: timer_interval_ms,
+        send_after: send_after,
       )
 
     actor.initialised(initial_state)
@@ -162,13 +179,34 @@ pub fn start_named_with_time_provider(
   name: Name(Message),
   get_now: TimeProvider,
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  start_named_with_options(
+    name: name,
+    get_now: get_now,
+    timer_interval_ms: default_timer_interval_ms,
+    send_after: timer.real_send_after,
+  )
+}
+
+/// Start the HouseModeActor with all options and register with given name (for testing)
+pub fn start_named_with_options(
+  name name: Name(Message),
+  get_now get_now: TimeProvider,
+  timer_interval_ms timer_interval_ms: Int,
+  send_after send_after: SendAfter(Message),
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   // Evaluate initial mode based on current time
   let current_time = get_now()
   let initial_mode = evaluate_mode(current_time, Error(Nil))
 
   actor.new_with_initialiser(1000, fn(self_subject) {
-    // Schedule initial timer
-    process.send_after(self_subject, default_timer_interval_ms, ReEvaluateMode)
+    // Schedule initial timer if interval > 0
+    case timer_interval_ms > 0 {
+      True -> {
+        send_after(self_subject, timer_interval_ms, ReEvaluateMode)
+        Nil
+      }
+      False -> Nil
+    }
 
     let initial_state =
       State(
@@ -177,7 +215,8 @@ pub fn start_named_with_time_provider(
         get_now: get_now,
         last_button_press: Error(Nil),
         self_subject: Ok(self_subject),
-        timer_interval_ms: default_timer_interval_ms,
+        timer_interval_ms: timer_interval_ms,
+        send_after: send_after,
       )
 
     actor.initialised(initial_state)
@@ -308,7 +347,7 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
 fn reschedule_timer(state: State) -> Nil {
   case state.self_subject, state.timer_interval_ms > 0 {
     Ok(self), True -> {
-      process.send_after(self, state.timer_interval_ms, ReEvaluateMode)
+      state.send_after(self, state.timer_interval_ms, ReEvaluateMode)
       Nil
     }
     _, _ -> Nil
