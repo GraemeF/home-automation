@@ -168,6 +168,8 @@ fn handle_message(
       actor.continue(actor_state)
     }
     Subscribe(subscriber) -> {
+      // Send current state immediately to new subscriber
+      process.send(subscriber, actor_state.current)
       actor.continue(
         State(..actor_state, subscribers: [
           subscriber,

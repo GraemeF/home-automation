@@ -47,6 +47,15 @@ fn make_room_state_with_temp(name: String, temp: Float) -> state.RoomState {
   )
 }
 
+/// Drain the initial state sent on Subscribe.
+/// Subscribe now immediately sends current state; this helper receives and discards it.
+fn drain_initial_state(
+  subscriber: process.Subject(state.DeepHeatingState),
+) -> Nil {
+  let assert Ok(_) = process.receive(subscriber, 100)
+  Nil
+}
+
 // =============================================================================
 // Actor Startup Tests
 // =============================================================================
@@ -101,6 +110,36 @@ pub fn state_aggregator_accepts_unsubscribe_test() {
   let reply_subject = process.new_subject()
   process.send(actor, state_aggregator_actor.GetState(reply_subject))
   let assert Ok(_) = process.receive(reply_subject, 1000)
+}
+
+pub fn state_aggregator_sends_current_state_on_subscribe_test() {
+  // Use spy_send_after so NO broadcasts ever happen from the timer
+  // This ensures any state received is from the Subscribe handler itself
+  let timer_spy: process.Subject(
+    timer.TimerRequest(state_aggregator_actor.Message),
+  ) = process.new_subject()
+
+  let assert Ok(actor) =
+    state_aggregator_actor.start_link_with_options(
+      adjustments_path: "/tmp/test_subscribe_sends_state.json",
+      send_after: timer.spy_send_after(timer_spy),
+    )
+
+  // First add some room state so there's something to send
+  let room_state = make_room_state("lounge")
+  process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
+  process.sleep(10)
+
+  // Now subscribe - should immediately receive current state
+  let subscriber: process.Subject(state.DeepHeatingState) =
+    process.new_subject()
+  process.send(actor, state_aggregator_actor.Subscribe(subscriber))
+  process.sleep(10)
+
+  // Should receive state immediately (not from a broadcast since spy_send_after
+  // doesn't actually send the Broadcast message)
+  let assert Ok(received_state) = process.receive(subscriber, 100)
+  list.length(received_state.rooms) |> should.equal(1)
 }
 
 // =============================================================================
@@ -186,6 +225,9 @@ pub fn state_aggregator_broadcasts_to_subscribers_after_throttle_test() {
   process.send(actor, state_aggregator_actor.Subscribe(subscriber))
   process.sleep(10)
 
+  // Drain the initial empty state sent on subscribe
+  drain_initial_state(subscriber)
+
   // Send a room update
   let room_state = make_room_state("lounge")
   process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
@@ -206,6 +248,9 @@ pub fn state_aggregator_throttles_rapid_updates_test() {
     process.new_subject()
   process.send(actor, state_aggregator_actor.Subscribe(subscriber))
   process.sleep(10)
+
+  // Drain the initial empty state sent on subscribe
+  drain_initial_state(subscriber)
 
   // Send multiple rapid updates
   let room_state1 = make_room_state("lounge")
@@ -249,6 +294,10 @@ pub fn state_aggregator_does_not_broadcast_to_unsubscribed_test() {
   // Subscribe then immediately unsubscribe
   process.send(actor, state_aggregator_actor.Subscribe(subscriber))
   process.sleep(10)
+
+  // Drain the initial empty state sent on subscribe
+  drain_initial_state(subscriber)
+
   process.send(actor, state_aggregator_actor.Unsubscribe(subscriber))
   process.sleep(10)
 
@@ -465,6 +514,9 @@ pub fn state_aggregator_with_instant_send_after_broadcasts_immediately_test() {
   // Give the subscribe message time to process
   process.sleep(10)
 
+  // Drain the initial empty state sent on subscribe
+  drain_initial_state(subscriber)
+
   // Send a room update
   let room_state = make_room_state("lounge")
   process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
@@ -521,6 +573,9 @@ pub fn state_aggregator_start_with_options_uses_injected_timer_test() {
     process.new_subject()
   process.send(started.data, state_aggregator_actor.Subscribe(subscriber))
   process.sleep(10)
+
+  // Drain the initial empty state sent on subscribe
+  drain_initial_state(subscriber)
 
   // Send a room update
   let room_state = make_room_state("lounge")
