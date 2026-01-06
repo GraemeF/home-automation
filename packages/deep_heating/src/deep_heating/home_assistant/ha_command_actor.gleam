@@ -10,7 +10,7 @@ import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/home_assistant/client.{type HaClient} as home_assistant
 import deep_heating/mode.{type HvacMode}
 import deep_heating/temperature.{type Temperature}
-import deep_heating/timer.{type SendAfter}
+import deep_heating/timer.{type SendAfter, type TimerHandle}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/otp/actor
@@ -54,6 +54,8 @@ pub type Message {
   TrvDebounceTimeout(entity_id: ClimateEntityId)
   /// Internal: debounce timer fired for heating
   HeatingDebounceTimeout
+  /// Gracefully stop the actor, cancelling all pending timers
+  Shutdown
 }
 
 /// Internal actor state
@@ -67,10 +69,10 @@ type State {
     pending_trv_actions: Dict(ClimateEntityId, PendingAction),
     /// Pending heating action waiting for debounce
     pending_heating_action: Result(PendingHeatingAction, Nil),
-    /// Track which entities have active timers
-    active_trv_timers: Dict(ClimateEntityId, Bool),
-    /// Track if heating timer is active
-    heating_timer_active: Bool,
+    /// Active TRV timer handles (can be cancelled)
+    active_trv_timers: Dict(ClimateEntityId, TimerHandle),
+    /// Active heating timer handle (can be cancelled)
+    heating_timer_handle: Result(TimerHandle, Nil),
     /// Skip real HTTP calls (for testing)
     skip_http: Bool,
     /// Injectable send_after function for timers
@@ -111,7 +113,7 @@ pub fn start_with_options(
         pending_trv_actions: dict.new(),
         pending_heating_action: Error(Nil),
         active_trv_timers: dict.new(),
-        heating_timer_active: False,
+        heating_timer_handle: Error(Nil),
         skip_http: skip_http,
         send_after: send_after,
       )
@@ -163,7 +165,7 @@ pub fn start_named_with_options(
         pending_trv_actions: dict.new(),
         pending_heating_action: Error(Nil),
         active_trv_timers: dict.new(),
-        heating_timer_active: False,
+        heating_timer_handle: Error(Nil),
         skip_http: skip_http,
         send_after: send_after,
       )
@@ -205,12 +207,13 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
         True -> state.active_trv_timers
         False -> {
           // Start timer - send message to self after debounce period
-          state.send_after(
-            state.self_subject,
-            state.debounce_ms,
-            TrvDebounceTimeout(entity_id),
-          )
-          dict.insert(state.active_trv_timers, entity_id, True)
+          let handle =
+            state.send_after(
+              state.self_subject,
+              state.debounce_ms,
+              TrvDebounceTimeout(entity_id),
+            )
+          dict.insert(state.active_trv_timers, entity_id, handle)
         }
       }
 
@@ -294,16 +297,17 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
         ))
 
       // Start debounce timer if not already running
-      let new_timer_active = case state.heating_timer_active {
-        True -> True
-        False -> {
-          // Start timer
-          state.send_after(
-            state.self_subject,
-            state.debounce_ms,
-            HeatingDebounceTimeout,
-          )
-          True
+      let new_timer_handle = case state.heating_timer_handle {
+        Ok(_) -> state.heating_timer_handle
+        Error(_) -> {
+          // Start timer and store the handle
+          let handle =
+            state.send_after(
+              state.self_subject,
+              state.debounce_ms,
+              HeatingDebounceTimeout,
+            )
+          Ok(handle)
         }
       }
 
@@ -311,7 +315,7 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
         State(
           ..state,
           pending_heating_action: new_pending,
-          heating_timer_active: new_timer_active,
+          heating_timer_handle: new_timer_handle,
         ),
       )
     }
@@ -358,20 +362,36 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
             }
           }
 
-          // Clear pending action and timer flag
+          // Clear pending action and timer handle (timer already fired)
           actor.continue(
             State(
               ..state,
               pending_heating_action: Error(Nil),
-              heating_timer_active: False,
+              heating_timer_handle: Error(Nil),
             ),
           )
         }
         Error(_) -> {
-          // No pending action, just clear timer
-          actor.continue(State(..state, heating_timer_active: False))
+          // No pending action, just clear timer handle
+          actor.continue(State(..state, heating_timer_handle: Error(Nil)))
         }
       }
+    }
+
+    Shutdown -> {
+      // Cancel all pending TRV timers
+      dict.each(state.active_trv_timers, fn(_entity_id, handle) {
+        timer.cancel_handle(handle)
+      })
+
+      // Cancel heating timer if present
+      case state.heating_timer_handle {
+        Ok(handle) -> timer.cancel_handle(handle)
+        Error(_) -> Nil
+      }
+
+      // Stop the actor
+      actor.stop()
     }
   }
 }

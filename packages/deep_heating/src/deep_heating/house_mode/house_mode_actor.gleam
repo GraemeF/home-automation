@@ -11,7 +11,7 @@
 
 import deep_heating/mode.{type HouseMode, HouseModeAuto, HouseModeSleeping}
 import deep_heating/rooms/room_actor
-import deep_heating/timer.{type SendAfter}
+import deep_heating/timer.{type SendAfter, type TimerHandle}
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/list
 import gleam/otp/actor
@@ -78,6 +78,8 @@ pub type Message {
   RegisterRoomActor(room_actor: Subject(room_actor.Message))
   /// Re-evaluate mode based on current time (called by internal timer)
   ReEvaluateMode
+  /// Gracefully stop the actor, cancelling any pending timer
+  Shutdown
 }
 
 /// Type alias for time provider function
@@ -97,6 +99,8 @@ type State {
     self_subject: Result(Subject(Message), Nil),
     timer_interval_ms: Int,
     send_after: SendAfter(Message),
+    /// Handle to the current timer (for cancellation on shutdown)
+    timer_handle: Result(TimerHandle, Nil),
   )
 }
 
@@ -138,13 +142,13 @@ pub fn start_with_options(
   let initial_mode = evaluate_mode(current_time, Error(Nil))
 
   actor.new_with_initialiser(1000, fn(self_subject) {
-    // Schedule initial timer if interval > 0
-    case timer_interval_ms > 0 {
+    // Schedule initial timer if interval > 0 and capture handle
+    let initial_timer_handle = case timer_interval_ms > 0 {
       True -> {
-        send_after(self_subject, timer_interval_ms, ReEvaluateMode)
-        Nil
+        let handle = send_after(self_subject, timer_interval_ms, ReEvaluateMode)
+        Ok(handle)
       }
-      False -> Nil
+      False -> Error(Nil)
     }
 
     let initial_state =
@@ -156,6 +160,7 @@ pub fn start_with_options(
         self_subject: Ok(self_subject),
         timer_interval_ms: timer_interval_ms,
         send_after: send_after,
+        timer_handle: initial_timer_handle,
       )
 
     actor.initialised(initial_state)
@@ -199,13 +204,13 @@ pub fn start_named_with_options(
   let initial_mode = evaluate_mode(current_time, Error(Nil))
 
   actor.new_with_initialiser(1000, fn(self_subject) {
-    // Schedule initial timer if interval > 0
-    case timer_interval_ms > 0 {
+    // Schedule initial timer if interval > 0 and capture handle
+    let initial_timer_handle = case timer_interval_ms > 0 {
       True -> {
-        send_after(self_subject, timer_interval_ms, ReEvaluateMode)
-        Nil
+        let handle = send_after(self_subject, timer_interval_ms, ReEvaluateMode)
+        Ok(handle)
       }
-      False -> Nil
+      False -> Error(Nil)
     }
 
     let initial_state =
@@ -217,6 +222,7 @@ pub fn start_named_with_options(
         self_subject: Ok(self_subject),
         timer_interval_ms: timer_interval_ms,
         send_after: send_after,
+        timer_handle: initial_timer_handle,
       )
 
     actor.initialised(initial_state)
@@ -336,21 +342,32 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
         }
         False -> state
       }
-      // Reschedule the timer for the next evaluation
-      reschedule_timer(new_state)
-      actor.continue(new_state)
+      // Reschedule the timer for the next evaluation and store handle
+      let new_timer_handle = reschedule_timer(new_state)
+      actor.continue(State(..new_state, timer_handle: new_timer_handle))
+    }
+
+    Shutdown -> {
+      // Cancel the timer if present
+      case state.timer_handle {
+        Ok(handle) -> timer.cancel_handle(handle)
+        Error(_) -> Nil
+      }
+      // Stop the actor
+      actor.stop()
     }
   }
 }
 
 /// Reschedule the timer for the next evaluation cycle
-fn reschedule_timer(state: State) -> Nil {
+/// Returns the new timer handle (or Error(Nil) if no timer scheduled)
+fn reschedule_timer(state: State) -> Result(TimerHandle, Nil) {
   case state.self_subject, state.timer_interval_ms > 0 {
     Ok(self), True -> {
-      state.send_after(self, state.timer_interval_ms, ReEvaluateMode)
-      Nil
+      let handle = state.send_after(self, state.timer_interval_ms, ReEvaluateMode)
+      Ok(handle)
     }
-    _, _ -> Nil
+    _, _ -> Error(Nil)
   }
 }
 

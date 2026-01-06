@@ -491,6 +491,38 @@ pub fn spy_send_after_captures_timer_requests_test() {
 }
 
 // =============================================================================
+// Graceful Shutdown Tests
+// =============================================================================
+
+pub fn shutdown_cancels_pending_timer_test() {
+  // When Shutdown is called, the timer should be cancelled
+  // and no more ReEvaluateMode messages should be processed
+  let current_time = make_datetime(2026, 1, 3, 10, 0, 0)
+
+  // Start actor with real timer (200ms interval)
+  let assert Ok(actor) =
+    house_mode_actor.start_with_options(
+      get_now: fn() { current_time },
+      timer_interval_ms: 200,
+      send_after: timer.real_send_after,
+    )
+
+  // Immediately send Shutdown (before the 200ms timer fires)
+  process.send(actor, house_mode_actor.Shutdown)
+
+  // Wait longer than the timer interval
+  process.sleep(300)
+
+  // Actor should be stopped - sending a message should not get a response
+  let reply_subject = process.new_subject()
+  process.send(actor, house_mode_actor.GetMode(reply_subject))
+
+  // The message should timeout because the actor is dead
+  let result = process.receive(reply_subject, 100)
+  result |> should.be_error
+}
+
+// =============================================================================
 // ETS Counter Helpers for Cross-Process State
 // =============================================================================
 

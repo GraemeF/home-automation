@@ -363,3 +363,130 @@ pub fn instant_send_after_delivers_immediately_test() {
     _ -> should.fail()
   }
 }
+
+// =============================================================================
+// Graceful Shutdown Tests
+// =============================================================================
+
+pub fn shutdown_cancels_pending_trv_timers_test() {
+  // When Shutdown is called, pending debounce timers should be cancelled
+  // and no API calls should be made
+  let api_spy: process.Subject(ApiCall) = process.new_subject()
+  let assert Ok(started) =
+    ha_command_actor.start_with_options(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      api_spy: api_spy,
+      debounce_ms: 200,
+      skip_http: True,
+      send_after: timer.real_send_after,
+    )
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.test_trv")
+
+  // Send a TRV action to start the debounce timer
+  process.send(
+    started.data,
+    ha_command_actor.SetTrvAction(
+      entity_id: trv_id,
+      mode: mode.HvacHeat,
+      target: temperature.temperature(21.0),
+    ),
+  )
+
+  // Immediately send Shutdown (before the 200ms debounce fires)
+  process.send(started.data, ha_command_actor.Shutdown)
+
+  // Wait longer than the debounce period would have been
+  process.sleep(300)
+
+  // Should NOT receive any API calls (timer was cancelled)
+  let result = process.receive(api_spy, 100)
+  result |> should.be_error
+}
+
+pub fn shutdown_cancels_pending_heating_timer_test() {
+  // When Shutdown is called, pending heating timer should be cancelled
+  let api_spy: process.Subject(ApiCall) = process.new_subject()
+  let assert Ok(started) =
+    ha_command_actor.start_with_options(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      api_spy: api_spy,
+      debounce_ms: 200,
+      skip_http: True,
+      send_after: timer.real_send_after,
+    )
+  let assert Ok(heating_id) =
+    entity_id.climate_entity_id("climate.main_heating")
+
+  // Send a heating action to start the debounce timer
+  process.send(
+    started.data,
+    ha_command_actor.SetHeatingAction(
+      entity_id: heating_id,
+      mode: mode.HvacHeat,
+      target: temperature.temperature(22.0),
+    ),
+  )
+
+  // Immediately send Shutdown (before the 200ms debounce fires)
+  process.send(started.data, ha_command_actor.Shutdown)
+
+  // Wait longer than the debounce period would have been
+  process.sleep(300)
+
+  // Should NOT receive any API calls (timer was cancelled)
+  let result = process.receive(api_spy, 100)
+  result |> should.be_error
+}
+
+pub fn shutdown_cancels_multiple_pending_timers_test() {
+  // When Shutdown is called, all pending timers should be cancelled
+  let api_spy: process.Subject(ApiCall) = process.new_subject()
+  let assert Ok(started) =
+    ha_command_actor.start_with_options(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      api_spy: api_spy,
+      debounce_ms: 200,
+      skip_http: True,
+      send_after: timer.real_send_after,
+    )
+  let assert Ok(trv1) = entity_id.climate_entity_id("climate.trv1")
+  let assert Ok(trv2) = entity_id.climate_entity_id("climate.trv2")
+  let assert Ok(heating_id) =
+    entity_id.climate_entity_id("climate.main_heating")
+
+  // Start multiple timers
+  process.send(
+    started.data,
+    ha_command_actor.SetTrvAction(
+      entity_id: trv1,
+      mode: mode.HvacHeat,
+      target: temperature.temperature(20.0),
+    ),
+  )
+  process.send(
+    started.data,
+    ha_command_actor.SetTrvAction(
+      entity_id: trv2,
+      mode: mode.HvacHeat,
+      target: temperature.temperature(21.0),
+    ),
+  )
+  process.send(
+    started.data,
+    ha_command_actor.SetHeatingAction(
+      entity_id: heating_id,
+      mode: mode.HvacHeat,
+      target: temperature.temperature(22.0),
+    ),
+  )
+
+  // Immediately send Shutdown
+  process.send(started.data, ha_command_actor.Shutdown)
+
+  // Wait longer than the debounce period
+  process.sleep(300)
+
+  // Should NOT receive any API calls (all timers were cancelled)
+  let result = process.receive(api_spy, 100)
+  result |> should.be_error
+}
