@@ -562,7 +562,3 @@ fn increment_counter(table: EtsTable) -> Int
 /// Delete counter table
 @external(erlang, "house_mode_actor_test_ffi", "delete_counter")
 fn delete_counter(table: EtsTable) -> Nil
-
-/// Read counter without incrementing (for debugging)
-@external(erlang, "house_mode_actor_test_ffi", "read_counter")
-fn read_counter(table: EtsTable) -> Int
