@@ -337,6 +337,9 @@ pub fn routes_sensor_updated_to_correct_room_actor_test() {
       heating_control: option.None,
     )
 
+  // Consume initial state broadcast from RoomActor
+  let assert Ok(_initial) = process.receive(aggregator_spy, 1000)
+
   // Build sensor registry with the RoomActor's subject
   let sensor_registry =
     event_router_actor.build_sensor_registry(

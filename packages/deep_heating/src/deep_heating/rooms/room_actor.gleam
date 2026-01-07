@@ -374,6 +374,9 @@ fn start_internal(
           timer_handle: initial_timer_handle,
         )
 
+      // Broadcast initial state so subscribers have data immediately
+      notify_state_changed(initial_state)
+
       actor.initialised(initial_state)
       |> actor.returning(self_subject)
       |> Ok

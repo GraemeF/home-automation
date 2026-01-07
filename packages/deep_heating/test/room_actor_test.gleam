@@ -87,6 +87,95 @@ fn make_test_schedule() -> schedule.WeekSchedule {
 }
 
 // =============================================================================
+// Initial State Broadcast Tests
+// =============================================================================
+
+pub fn room_actor_broadcasts_initial_state_to_aggregator_on_startup_test() {
+  // Bug: dh-33jq.68
+  // RoomActor should broadcast its initial state to the StateAggregator
+  // immediately after starting, so the UI has state without waiting for
+  // the first HA poll.
+  let ctx = make_test_context("broadcasts_initial_state")
+
+  let assert Ok(_started) =
+    room_actor.start_with_options(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
+      heating_control: option.None,
+      get_time: room_actor.get_current_datetime,
+      timer_interval_ms: 0,
+      initial_adjustment: 0.0,
+      send_after: timer.spy_send_after(process.new_subject()),
+    )
+
+  // StateAggregator should receive initial state immediately after startup
+  let assert Ok(msg) = process.receive(ctx.aggregator_spy, 500)
+  case msg {
+    room_actor.RoomUpdated(name, state) -> {
+      name |> should.equal("lounge")
+      state.name |> should.equal("lounge")
+    }
+  }
+}
+
+pub fn room_actor_broadcasts_initial_state_to_decision_actor_on_startup_test() {
+  // RoomDecisionActor should also receive initial state on startup
+  let ctx = make_test_context("broadcasts_initial_state_decision")
+
+  let assert Ok(_started) =
+    room_actor.start_with_options(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
+      heating_control: option.None,
+      get_time: room_actor.get_current_datetime,
+      timer_interval_ms: 0,
+      initial_adjustment: 0.0,
+      send_after: timer.spy_send_after(process.new_subject()),
+    )
+
+  // RoomDecisionActor should receive initial state immediately after startup
+  let assert Ok(msg) = process.receive(ctx.decision_spy, 500)
+  case msg {
+    room_actor.RoomStateChanged(state) -> {
+      state.name |> should.equal("lounge")
+    }
+  }
+}
+
+pub fn room_actor_broadcasts_initial_state_to_heating_control_on_startup_test() {
+  // HeatingControlActor should also receive initial state on startup
+  let ctx = make_test_context("broadcasts_initial_state_heating")
+  let heating_control_spy: Subject(room_actor.HeatingControlMessage) =
+    process.new_subject()
+
+  let assert Ok(_started) =
+    room_actor.start_with_options(
+      name: "lounge",
+      schedule: make_test_schedule(),
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
+      heating_control: option.Some(heating_control_spy),
+      get_time: room_actor.get_current_datetime,
+      timer_interval_ms: 0,
+      initial_adjustment: 0.0,
+      send_after: timer.spy_send_after(process.new_subject()),
+    )
+
+  // HeatingControlActor should receive initial state immediately after startup
+  let assert Ok(msg) = process.receive(heating_control_spy, 500)
+  case msg {
+    room_actor.HeatingRoomUpdated(name, state) -> {
+      name |> should.equal("lounge")
+      state.name |> should.equal("lounge")
+    }
+  }
+}
+
+// =============================================================================
 // Actor Startup Tests
 // =============================================================================
 
@@ -337,6 +426,9 @@ pub fn room_actor_notifies_decision_actor_on_trv_change_test() {
       heating_control: option.None,
     )
 
+  // Consume initial state broadcast
+  let assert Ok(_initial) = process.receive(ctx.decision_spy, 1000)
+
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
   // Send TRV temperature update
@@ -396,6 +488,9 @@ pub fn room_actor_notifies_decision_actor_on_house_mode_change_test() {
       state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
+
+  // Consume initial state broadcast
+  let assert Ok(_initial) = process.receive(ctx.decision_spy, 1000)
 
   // Send house mode change
   process.send(
@@ -562,6 +657,9 @@ pub fn room_actor_notifies_decision_actor_on_trv_mode_change_test() {
       heating_control: option.None,
     )
 
+  // Consume initial state broadcast
+  let assert Ok(_initial) = process.receive(ctx.decision_spy, 1000)
+
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
   // Send TRV mode update
@@ -618,6 +716,9 @@ pub fn room_actor_notifies_decision_actor_on_trv_is_heating_change_test() {
       state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
+
+  // Consume initial state broadcast
+  let assert Ok(_initial) = process.receive(ctx.decision_spy, 1000)
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
@@ -889,6 +990,9 @@ pub fn room_actor_notifies_state_aggregator_on_trv_change_test() {
       state_aggregator: ctx.aggregator_spy,
       heating_control: option.None,
     )
+
+  // Consume initial state broadcast
+  let assert Ok(_initial) = process.receive(ctx.aggregator_spy, 1000)
 
   let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
 
