@@ -1,5 +1,5 @@
 -module(house_mode_actor_test_ffi).
--export([create_counter/0, increment_counter/1, delete_counter/1]).
+-export([create_counter/0, increment_counter/1, delete_counter/1, read_counter/1]).
 
 %% Create an atomic counter (can be safely accessed from any process)
 create_counter() ->
@@ -12,3 +12,7 @@ increment_counter(Ref) ->
 %% No-op for atomics (they're garbage collected)
 delete_counter(_Ref) ->
     nil.
+
+%% Read counter without incrementing (for debugging)
+read_counter(Ref) ->
+    atomics:get(Ref, 1).

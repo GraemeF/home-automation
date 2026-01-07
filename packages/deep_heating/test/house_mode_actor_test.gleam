@@ -375,8 +375,14 @@ pub fn timer_triggers_automatic_mode_reevaluation_test() {
 pub fn timer_reschedules_after_each_evaluation_test() {
   // Timer should keep firing periodically, not just once
   // Test by verifying multiple mode transitions
+  //
+  // Uses spy_send_after for DETERMINISTIC testing - we manually trigger
+  // each timer "fire" by forwarding the captured TimerRequest message.
+  // This eliminates race conditions from real timers.
 
   let counter = create_counter()
+  let spy: process.Subject(timer.TimerRequest(house_mode_actor.Message)) =
+    process.new_subject()
 
   let get_time = fn() {
     let count = increment_counter(counter)
@@ -391,36 +397,52 @@ pub fn timer_reschedules_after_each_evaluation_test() {
   }
 
   let assert Ok(actor) =
-    house_mode_actor.start_with_timer_interval(get_time, 50)
+    house_mode_actor.start_with_options(
+      get_now: get_time,
+      timer_interval_ms: 100,
+      send_after: timer.spy_send_after(spy),
+    )
 
-  // Initially Sleeping
+  // Consume the initial timer request (scheduled during init)
+  let assert Ok(_initial_request) = process.receive(spy, 100)
+
+  // Initially Sleeping (count=1 from init)
   let reply1 = process.new_subject()
   process.send(actor, house_mode_actor.GetMode(reply1))
   let assert Ok(mode1) = process.receive(reply1, 1000)
   mode1 |> should.equal(mode.HouseModeSleeping)
 
-  // Wait for first timer
-  process.sleep(75)
+  // Manually "fire" the first timer by sending ReEvaluateMode directly
+  process.send(actor, house_mode_actor.ReEvaluateMode)
 
-  // Still Sleeping (second call returns 2:59am)
+  // Consume the rescheduled timer request (proves timer reschedules)
+  let assert Ok(_second_request) = process.receive(spy, 100)
+
+  // Still Sleeping (count=2 returns 2:59am)
   let reply2 = process.new_subject()
   process.send(actor, house_mode_actor.GetMode(reply2))
   let assert Ok(mode2) = process.receive(reply2, 1000)
   mode2 |> should.equal(mode.HouseModeSleeping)
 
-  // Wait for second timer
-  process.sleep(75)
+  // Manually "fire" the second timer
+  process.send(actor, house_mode_actor.ReEvaluateMode)
 
-  // Now Auto (third call returns 3:01am)
+  // Consume the rescheduled timer request (proves timer keeps rescheduling)
+  let assert Ok(_third_request) = process.receive(spy, 100)
+
+  // Now Auto (count=3 returns 3:01am)
   let reply3 = process.new_subject()
   process.send(actor, house_mode_actor.GetMode(reply3))
   let assert Ok(mode3) = process.receive(reply3, 1000)
   mode3 |> should.equal(mode.HouseModeAuto)
 
-  // Wait for third timer
-  process.sleep(75)
+  // Manually "fire" the third timer
+  process.send(actor, house_mode_actor.ReEvaluateMode)
 
-  // Back to Sleeping (fourth call returns 2:30am) - proves timer keeps firing
+  // Consume the rescheduled timer request (proves timer STILL keeps rescheduling)
+  let assert Ok(_fourth_request) = process.receive(spy, 100)
+
+  // Back to Sleeping (count=4 returns 2:30am) - proves timer keeps firing
   let reply4 = process.new_subject()
   process.send(actor, house_mode_actor.GetMode(reply4))
   let assert Ok(mode4) = process.receive(reply4, 1000)
@@ -540,3 +562,7 @@ fn increment_counter(table: EtsTable) -> Int
 /// Delete counter table
 @external(erlang, "house_mode_actor_test_ffi", "delete_counter")
 fn delete_counter(table: EtsTable) -> Nil
+
+/// Read counter without incrementing (for debugging)
+@external(erlang, "house_mode_actor_test_ffi", "read_counter")
+fn read_counter(table: EtsTable) -> Int
