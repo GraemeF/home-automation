@@ -10,6 +10,7 @@
 
 import deep_heating/entity_id.{type ClimateEntityId, type SensorEntityId}
 import deep_heating/home_assistant/client.{type HaClient} as home_assistant
+import deep_heating/log
 import deep_heating/rooms/trv_actor.{type TrvUpdate, TrvUpdate}
 import deep_heating/temperature.{type Temperature}
 import deep_heating/timer.{type SendAfter}
@@ -221,6 +222,7 @@ fn register_with_name(
 fn handle_message(state: State, message: Message) -> actor.Next(State, Message) {
   case message {
     StartPolling -> {
+      log.info("Polling started")
       // Emit PollingStarted event
       process.send(state.event_spy, PollingStarted)
       // Schedule first poll immediately
@@ -228,11 +230,13 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
       actor.continue(State(..state, is_polling: True))
     }
     StopPolling -> {
+      log.info("Polling stopped")
       // Emit PollingStopped event
       process.send(state.event_spy, PollingStopped)
       actor.continue(State(..state, is_polling: False))
     }
     PollNow -> {
+      log.debug("Polling Home Assistant...")
       // Get JSON either from mock error, mock response, or real HA
       let json_result = case state.mock_error {
         Some(err) -> Error(err)
@@ -338,6 +342,7 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
           }
         }
         Error(err) -> {
+          log.error("Poll failed: " <> home_assistant.error_to_string(err))
           process.send(
             state.event_spy,
             PollFailed(home_assistant.error_to_string(err)),
@@ -349,6 +354,7 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
       // Emit PollCompleted/PollFailed followed by backoff events
       case json_result {
         Ok(_) -> {
+          log.debug("Poll succeeded")
           process.send(state.event_spy, PollCompleted)
           // Emit BackoffReset if we were in backoff state
           case state.backoff_multiplier > 1 {
