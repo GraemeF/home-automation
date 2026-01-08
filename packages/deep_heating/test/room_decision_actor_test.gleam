@@ -231,7 +231,11 @@ pub fn uses_room_target_when_no_external_sensor_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   let cmd =
-    test_helpers.expect_receive(spy, 1000, "TRV command with no external sensor")
+    test_helpers.expect_receive(
+      spy,
+      1000,
+      "TRV command with no external sensor",
+    )
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -262,7 +266,11 @@ pub fn only_sends_command_when_target_differs_test() {
   // First update - should send command
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
   let _cmd =
-    test_helpers.expect_receive(spy, 1000, "First TRV command before dedup test")
+    test_helpers.expect_receive(
+      spy,
+      1000,
+      "First TRV command before dedup test",
+    )
 
   // Second update with same state - should NOT send command
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
@@ -454,7 +462,8 @@ pub fn handles_completely_unknown_trv_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should still receive a command
-  let cmd = test_helpers.expect_receive(spy, 1000, "TRV command for unknown TRV")
+  let cmd =
+    test_helpers.expect_receive(spy, 1000, "TRV command for unknown TRV")
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -744,11 +753,8 @@ pub fn sends_command_when_mode_changes_from_heat_to_auto_test() {
 
   // Step 3: Should receive a SECOND command to change mode back to heat
   // Even though the target is the same (20°C), the mode changed.
-  let cmd = test_helpers.expect_receive(
-    spy,
-    1000,
-    "TRV command to restore heat mode",
-  )
+  let cmd =
+    test_helpers.expect_receive(spy, 1000, "TRV command to restore heat mode")
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -892,8 +898,7 @@ pub fn rounding_applies_after_clamping_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let cmd =
-    test_helpers.expect_receive(spy, 1000, "TRV command after clamping")
+  let cmd = test_helpers.expect_receive(spy, 1000, "TRV command after clamping")
 
   let room_decision_actor.TrvCommand(entity_id, _cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)

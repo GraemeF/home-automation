@@ -535,3 +535,175 @@ pub fn supervisor_accepts_use_instant_timers_config_test() {
   let room_supervisors = rooms_supervisor.get_room_supervisors(rooms_sup)
   list.length(room_supervisors) |> should.equal(1)
 }
+
+// =============================================================================
+// Graceful shutdown tests (dh-33jq.66)
+//
+// IMPORTANT FINDING: Most actors in start_with_home_config are NOT properly
+// supervised. They're linked to the calling process, not the supervisor.
+// When the supervisor dies, only directly supervised children die.
+// See dh-33jq.76 for the bug report.
+// =============================================================================
+
+pub fn shutdown_terminates_otp_supervisor_test() {
+  // After supervisor shutdown, the OTP supervisor process should be dead
+  // NOTE: Due to dh-33jq.76, only the OTP supervisor and its direct children die
+  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
+  let home_config = make_test_home_config()
+  let poller_config = create_test_poller_config()
+
+  let assert Ok(started) =
+    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
+      ha_client: ha_client,
+      poller_config: poller_config,
+      adjustments_path: test_adjustments_path,
+      home_config: home_config,
+      name_prefix: Some("shutdown_test_1"),
+      time_provider: None,
+      use_instant_timers: False,
+    ))
+
+  let supervisor_pid = started.pid
+
+  // Verify supervisor is alive before shutdown
+  process.is_alive(supervisor_pid) |> should.be_true
+
+  // Shutdown the supervisor
+  process.unlink(supervisor_pid)
+  process.send_abnormal_exit(supervisor_pid, "shutdown")
+  process.sleep(100)
+
+  // The OTP supervisor PID should be dead
+  process.is_alive(supervisor_pid) |> should.be_false
+}
+
+pub fn shutdown_manually_started_actors_remain_alive_test() {
+  // DOCUMENTING CURRENT BEHAVIOR: Manually-started actors are NOT killed
+  // when the supervisor is terminated. They're linked to the calling process.
+  // This test documents the bug (see dh-33jq.76) rather than the desired behavior.
+  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
+  let home_config = make_test_home_config()
+  let poller_config = create_test_poller_config()
+
+  let assert Ok(started) =
+    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
+      ha_client: ha_client,
+      poller_config: poller_config,
+      adjustments_path: test_adjustments_path,
+      home_config: home_config,
+      name_prefix: Some("shutdown_test_2"),
+      time_provider: None,
+      use_instant_timers: False,
+    ))
+
+  let supervisor_pid = started.pid
+
+  // Get a manually-started actor's PID
+  let assert Ok(heating_control) =
+    supervisor.get_heating_control_actor(started.data)
+  let heating_pid = heating_control.pid
+
+  // Both should be alive before shutdown
+  process.is_alive(supervisor_pid) |> should.be_true
+  process.is_alive(heating_pid) |> should.be_true
+
+  // Kill only the supervisor
+  process.unlink(supervisor_pid)
+  process.send_abnormal_exit(supervisor_pid, "shutdown")
+  process.sleep(100)
+
+  // Supervisor is dead, but manually-started actor is still alive!
+  // This is the bug documented in dh-33jq.76
+  process.is_alive(supervisor_pid) |> should.be_false
+  process.is_alive(heating_pid) |> should.be_true
+  // Note: heating actor will die when this test process ends
+
+  // Clean up manually since they're not supervised
+  process.unlink(heating_pid)
+  process.send_abnormal_exit(heating_pid, "cleanup")
+}
+
+pub fn shutdown_allows_restart_with_same_names_test() {
+  // After shutdown, we should be able to start a new supervisor with the same names
+  // This verifies that process names are properly unregistered during shutdown
+  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
+  let home_config = make_test_home_config()
+  let poller_config = create_test_poller_config()
+
+  // Use the same prefix for both instances to test name cleanup
+  let name_prefix = Some("restart_test")
+
+  // First instance
+  let assert Ok(started1) =
+    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
+      ha_client: ha_client,
+      poller_config: poller_config,
+      adjustments_path: test_adjustments_path,
+      home_config: home_config,
+      name_prefix: name_prefix,
+      time_provider: None,
+      use_instant_timers: False,
+    ))
+
+  // Shutdown first instance
+  process.unlink(started1.pid)
+  process.send_abnormal_exit(started1.pid, "shutdown")
+  process.sleep(100)
+
+  // Second instance with same prefix should start successfully
+  let result2 =
+    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
+      ha_client: ha_client,
+      poller_config: poller_config,
+      adjustments_path: test_adjustments_path,
+      home_config: home_config,
+      name_prefix: name_prefix,
+      time_provider: None,
+      use_instant_timers: False,
+    ))
+
+  should.be_ok(result2)
+
+  // Cleanup
+  case result2 {
+    Ok(started2) -> {
+      process.unlink(started2.pid)
+      process.send_abnormal_exit(started2.pid, "shutdown")
+      process.sleep(50)
+    }
+    Error(_) -> Nil
+  }
+}
+
+pub fn shutdown_is_fast_test() {
+  // Shutdown should complete quickly without blocking
+  // The supervisor has actors with timers (HouseModeActor 63s, RoomActor 63s, etc.)
+  // OTP supervisor termination should not wait for these timers
+  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
+  let home_config = make_test_home_config()
+  let poller_config = create_test_poller_config()
+
+  let assert Ok(started) =
+    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
+      ha_client: ha_client,
+      poller_config: poller_config,
+      adjustments_path: test_adjustments_path,
+      home_config: home_config,
+      name_prefix: Some("shutdown_timing_test"),
+      time_provider: None,
+      use_instant_timers: False,
+    ))
+
+  let supervisor_pid = started.pid
+
+  // Now shutdown
+  process.unlink(supervisor_pid)
+  process.send_abnormal_exit(supervisor_pid, "shutdown")
+
+  // Shutdown should complete within 200ms even though actors have 63s timers
+  // This proves timers don't block process termination
+  process.sleep(200)
+
+  // Should be dead by now
+  process.is_alive(supervisor_pid) |> should.be_false
+}

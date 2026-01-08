@@ -38,11 +38,11 @@ pub fn expect_receive(
     Ok(msg) -> msg
     Error(Nil) ->
       panic as string.concat([
-        "\nExpected to receive: ",
-        context,
-        "\n(timed out after ",
-        int.to_string(timeout_ms),
-        "ms)",
-      ])
+          "\nExpected to receive: ",
+          context,
+          "\n(timed out after ",
+          int.to_string(timeout_ms),
+          "ms)",
+        ])
   }
 }
