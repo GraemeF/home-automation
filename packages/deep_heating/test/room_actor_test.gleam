@@ -737,21 +737,14 @@ pub fn room_actor_notifies_decision_actor_on_trv_is_heating_change_test() {
 // =============================================================================
 // Synthesized Heating Status Tests
 // =============================================================================
-// TypeScript synthesizes is_heating as target > current for faster feedback.
-// This test documents the expected behavior: when target > current,
-// the aggregated room is_heating should be true regardless of HA-reported status.
+// is_heating is synthesized as target > current for faster UI feedback.
+// This test verifies: when target > current, is_heating should be true
+// regardless of HA-reported status.
 
-pub fn room_actor_passes_through_is_heating_from_ha_test() {
-  // CURRENT BEHAVIOR: Gleam passes through HA-reported is_heating directly.
-  //
-  // EXPECTED BEHAVIOR (TypeScript): is_heating should be SYNTHESIZED (target > current)
-  // rather than just passed through from Home Assistant.
-  //
-  // TypeScript behavior: isHeating = targetTemperature > currentTemperature
-  // This provides faster feedback than HA's reported hvac_action which can lag.
-  //
-  // TODO(dh-33jq.71.12.2): Implement synthesized heating status to match TypeScript
-  // When that bead is complete, rename this test to verify synthesized behavior.
+pub fn room_actor_synthesizes_is_heating_from_target_and_temperature_test() {
+  // is_heating is SYNTHESIZED (target > current) rather than just passed through
+  // from Home Assistant. This provides faster feedback than HA's reported
+  // hvac_action which can lag.
 
   let ctx = make_test_context("synthesized_is_heating")
 
@@ -790,10 +783,8 @@ pub fn room_actor_passes_through_is_heating_from_ha_test() {
   // even though HA reported is_heating=false
   let assert Ok(trv_state) = dict.get(state.trv_states, trv_id)
 
-  // CURRENT BEHAVIOR: is_heating is FALSE because HA reported false
-  // (even though target 22 > current 20 should mean it's heating)
-  // TODO(dh-33jq.71.12.2): Change this to should.be_true when synthesized heating is implemented
-  trv_state.is_heating |> should.be_false
+  // Synthesized is_heating: target 22 > current 20, so is_heating = true
+  trv_state.is_heating |> should.be_true
 }
 
 // =============================================================================

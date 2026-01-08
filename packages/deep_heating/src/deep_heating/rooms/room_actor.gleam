@@ -461,7 +461,7 @@ fn handle_message(
 fn update_trv_temperature(
   state: ActorState,
   entity_id: ClimateEntityId,
-  temperature: Temperature,
+  new_temperature: Temperature,
 ) -> ActorState {
   let current_trv =
     dict.get(state.room.trv_states, entity_id)
@@ -474,7 +474,8 @@ fn update_trv_temperature(
     ))
 
   let updated_trv =
-    TrvState(..current_trv, temperature: option.Some(temperature))
+    TrvState(..current_trv, temperature: option.Some(new_temperature))
+    |> synthesize_is_heating
 
   let new_trv_states =
     dict.insert(state.room.trv_states, entity_id, updated_trv)
@@ -491,7 +492,7 @@ fn update_trv_temperature(
 fn update_trv_target(
   state: ActorState,
   entity_id: ClimateEntityId,
-  target: Temperature,
+  new_target: Temperature,
 ) -> ActorState {
   let current_trv =
     dict.get(state.room.trv_states, entity_id)
@@ -503,7 +504,9 @@ fn update_trv_target(
       is_heating: False,
     ))
 
-  let updated_trv = TrvState(..current_trv, target: option.Some(target))
+  let updated_trv =
+    TrvState(..current_trv, target: option.Some(new_target))
+    |> synthesize_is_heating
 
   let new_trv_states =
     dict.insert(state.room.trv_states, entity_id, updated_trv)
@@ -549,7 +552,7 @@ fn update_trv_mode(
 fn update_trv_is_heating(
   state: ActorState,
   entity_id: ClimateEntityId,
-  is_heating: Bool,
+  ha_is_heating: Bool,
 ) -> ActorState {
   let current_trv =
     dict.get(state.room.trv_states, entity_id)
@@ -561,7 +564,10 @@ fn update_trv_is_heating(
       is_heating: False,
     ))
 
-  let updated_trv = TrvState(..current_trv, is_heating: is_heating)
+  // Store HA's reported value, then synthesize if we have target and temperature
+  let updated_trv =
+    TrvState(..current_trv, is_heating: ha_is_heating)
+    |> synthesize_is_heating
 
   let new_trv_states =
     dict.insert(state.room.trv_states, entity_id, updated_trv)
@@ -573,6 +579,17 @@ fn update_trv_is_heating(
       room_mode: new_room_mode,
     )
   ActorState(..state, room: new_room)
+}
+
+/// Synthesize is_heating based on target and temperature.
+/// When both values are available, is_heating = target > temperature.
+/// This provides faster UI feedback than waiting for HA's hvac_action.
+fn synthesize_is_heating(trv: TrvState) -> TrvState {
+  case trv.target, trv.temperature {
+    Some(target), Some(temp) ->
+      TrvState(..trv, is_heating: temperature.is_calling_for_heat(target, temp))
+    _, _ -> trv
+  }
 }
 
 fn notify_state_changed(actor_state: ActorState) -> Nil {
