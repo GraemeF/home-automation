@@ -664,6 +664,81 @@ pub fn sends_mode_change_when_trv_in_auto_mode_test() {
   temperature.unwrap(target) |> should.equal(20.0)
 }
 
+pub fn sends_command_when_mode_changes_from_heat_to_auto_test() {
+  // BUG FIX TEST: When TRV mode changes from heat→auto but target stays same,
+  // we must still send a command to change it back to heat.
+  //
+  // Scenario:
+  // 1. TRV is in heat mode, target 20°C - we send command
+  // 2. User manually changes TRV to auto mode (same target)
+  // 3. HA reports TRV in auto mode with target 20°C
+  // 4. We MUST send command to change it back to heat
+  //
+  // The bug was: we only checked if TARGET changed, not if MODE changed.
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("mode_change_heat_auto")
+
+  let assert Ok(started) =
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // Step 1: TRV starts in HEAT mode, target 20°C
+  let trv_state_heat =
+    room_actor.TrvState(
+      temperature: option.Some(temperature.temperature(20.0)),
+      target: option.Some(temperature.temperature(20.0)),
+      mode: mode.HvacHeat,
+      is_heating: False,
+    )
+  let room_state_1 =
+    room_actor.RoomState(
+      name: "lounge",
+      temperature: option.Some(temperature.temperature(20.0)),
+      target_temperature: option.Some(temperature.temperature(20.0)),
+      house_mode: mode.HouseModeAuto,
+      room_mode: mode.RoomModeAuto,
+      adjustment: 0.0,
+      trv_states: dict.from_list([#(trv_id, trv_state_heat)]),
+    )
+
+  // First command - initializes last_sent_targets to 20.0
+  process.send(started.data, room_decision_actor.RoomStateChanged(room_state_1))
+  let assert Ok(_first_cmd) = process.receive(spy, 1000)
+
+  // Step 2: User changes TRV to AUTO mode (same target 20°C)
+  let trv_state_auto =
+    room_actor.TrvState(
+      temperature: option.Some(temperature.temperature(20.0)),
+      target: option.Some(temperature.temperature(20.0)),
+      mode: mode.HvacAuto,
+      // Changed from HvacHeat!
+      is_heating: False,
+    )
+  let room_state_2 =
+    room_actor.RoomState(
+      name: "lounge",
+      temperature: option.Some(temperature.temperature(20.0)),
+      target_temperature: option.Some(temperature.temperature(20.0)),
+      house_mode: mode.HouseModeAuto,
+      room_mode: mode.RoomModeAuto,
+      adjustment: 0.0,
+      trv_states: dict.from_list([#(trv_id, trv_state_auto)]),
+    )
+
+  process.send(started.data, room_decision_actor.RoomStateChanged(room_state_2))
+
+  // Step 3: Should receive a SECOND command to change mode back to heat
+  // Even though the target is the same (20°C), the mode changed.
+  let assert Ok(cmd) = process.receive(spy, 1000)
+
+  let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
+  entity_id |> should.equal(trv_id)
+  cmd_mode |> should.equal(mode.HvacHeat)
+  temperature.unwrap(target) |> should.equal(20.0)
+}
+
 // =============================================================================
 // Temperature Rounding Tests
 // =============================================================================

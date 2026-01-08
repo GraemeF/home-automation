@@ -99,18 +99,25 @@ fn evaluate_and_send_commands(
                   trv_state.temperature,
                 )
 
-              // Only send if target has changed
+              // Decide if we should send a command:
+              // 1. If TRV mode != HvacHeat, always send (to change mode to heat)
+              // 2. If TRV mode == HvacHeat, only send if target has changed
+              // This matches TypeScript behavior which checks mode AND target.
+              let mode_needs_change = trv_state.mode != mode.HvacHeat
+
               let last_target =
                 dict.get(current_state.last_sent_targets, entity_id)
-              let should_send = case last_target {
+              let target_needs_change = case last_target {
                 Ok(last) -> !temperature.eq(last, desired_target)
                 Error(_) -> True
               }
 
+              let should_send = mode_needs_change || target_needs_change
+
               case should_send {
                 False -> current_state
                 True -> {
-                  // Target changed or first time, send command
+                  // Mode or target changed, send command
                   // Always set mode to HvacHeat (converts auto→heat)
                   // Look up the TrvCommandAdapterActor by name (survives restarts)
                   let trv_commands: Subject(TrvCommand) =
