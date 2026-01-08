@@ -31,8 +31,10 @@ type State {
   State(
     /// Name of the TrvCommandAdapterActor - looked up via named_subject() on each send
     trv_adapter_name: Name(TrvCommand),
-    /// Track last sent target per TRV to avoid duplicate commands
-    last_sent_targets: Dict(ClimateEntityId, Temperature),
+    /// Track TRVs we've sent commands to. Used to detect first contact (always send)
+    /// vs subsequent updates (compare against HA state). The actual target value
+    /// stored here is not used for comparison - we compare against HA-reported state.
+    sent_trvs: Dict(ClimateEntityId, Temperature),
   )
 }
 
@@ -43,7 +45,7 @@ pub fn start_with_trv_adapter_name(
   trv_adapter_name trv_adapter_name: Name(TrvCommand),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   let initial_state =
-    State(trv_adapter_name: trv_adapter_name, last_sent_targets: dict.new())
+    State(trv_adapter_name: trv_adapter_name, sent_trvs: dict.new())
 
   actor.new(initial_state)
   |> actor.on_message(handle_message)
@@ -59,7 +61,7 @@ pub fn start_named(
   trv_adapter_name trv_adapter_name: Name(TrvCommand),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   let initial_state =
-    State(trv_adapter_name: trv_adapter_name, last_sent_targets: dict.new())
+    State(trv_adapter_name: trv_adapter_name, sent_trvs: dict.new())
 
   actor.new(initial_state)
   |> actor.named(name)
@@ -80,10 +82,11 @@ fn evaluate_and_send_commands(
   state: State,
   room_state: room_actor.RoomState,
 ) -> State {
-  // For each TRV in the room, compute desired target and send command
+  // For each TRV in the room, compute desired target and send command if needed
   case room_state.target_temperature {
     option.None -> state
     option.Some(room_target) -> {
+      // Process all TRVs, accumulating state updates
       dict.fold(
         room_state.trv_states,
         state,
@@ -100,37 +103,37 @@ fn evaluate_and_send_commands(
                 )
 
               // Decide if we should send a command:
-              // 1. If TRV mode != HvacHeat, always send (to change mode to heat)
-              // 2. If TRV mode == HvacHeat, only send if target has changed
-              // This matches TypeScript behavior which checks mode AND target.
+              // 1. First contact (not in sent_trvs) → always send to take control
+              // 2. Mode != HvacHeat → send to change mode
+              // 3. HA-reported target differs from desired → send to correct
+              // This matches TypeScript: compare against HA state, retry until confirmed
+              let is_first_contact =
+                !dict.has_key(current_state.sent_trvs, entity_id)
               let mode_needs_change = trv_state.mode != mode.HvacHeat
-
-              let last_target =
-                dict.get(current_state.last_sent_targets, entity_id)
-              let target_needs_change = case last_target {
-                Ok(last) -> !temperature.eq(last, desired_target)
-                Error(_) -> True
+              let target_needs_change = case trv_state.target {
+                option.Some(ha_target) ->
+                  !temperature.eq(ha_target, desired_target)
+                option.None -> True
               }
 
-              let should_send = mode_needs_change || target_needs_change
+              let should_send =
+                is_first_contact || mode_needs_change || target_needs_change
 
               case should_send {
                 False -> current_state
                 True -> {
-                  // Mode or target changed, send command
-                  // Always set mode to HvacHeat (converts auto→heat)
-                  // Look up the TrvCommandAdapterActor by name (survives restarts)
+                  // Send command and mark TRV as contacted
                   let trv_commands: Subject(TrvCommand) =
                     process.named_subject(current_state.trv_adapter_name)
                   process.send(
                     trv_commands,
                     TrvCommand(entity_id, mode.HvacHeat, desired_target),
                   )
-                  // Update last sent target
+                  // Record that we've sent to this TRV
                   State(
                     ..current_state,
-                    last_sent_targets: dict.insert(
-                      current_state.last_sent_targets,
+                    sent_trvs: dict.insert(
+                      current_state.sent_trvs,
                       entity_id,
                       desired_target,
                     ),
