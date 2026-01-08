@@ -746,8 +746,7 @@ pub fn rounds_up_when_room_exactly_at_target_but_needs_heating_test() {
   // room_target=20, room_temp=20, trv_temp=20.7
   // Formula: 20 + 20.7 - 20 = 20.7
   // NOT heating required (20 >= 20), so round DOWN: 20.5
-  let #(trv_adapter_name, spy) =
-    make_mock_trv_adapter("rounds_at_target")
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("rounds_at_target")
 
   let assert Ok(started) =
     room_decision_actor.start_with_trv_adapter_name(

@@ -1,6 +1,8 @@
 import deep_heating/temperature.{type Temperature}
+import gleam/float
 import gleam/int
 import gleam/list
+import gleam/option.{type Option, None, Some}
 import gleam/order.{type Order}
 import gleam/string
 
@@ -129,8 +131,14 @@ pub fn previous_day(day: Weekday) -> Weekday {
   }
 }
 
-/// Get the scheduled temperature for a given day and time.
-/// If the time is before the first entry, uses the last entry from the previous day.
+/// Get the scheduled temperature for a given day and time using temperature ramping.
+///
+/// The ramping algorithm pre-heats before scheduled temperature increases:
+/// - For each schedule entry, calculate: effective = target - 0.5 × hours_until
+/// - Return the maximum of all effective temperatures
+///
+/// This creates gradual temperature transitions: as you approach an entry's
+/// start time, its contribution increases by 0.5°C per hour.
 pub fn get_scheduled_temperature(
   schedule: WeekSchedule,
   day: Weekday,
@@ -139,30 +147,129 @@ pub fn get_scheduled_temperature(
   let day_schedule = get_day_schedule(schedule, day)
   let now_minutes = time_of_day_to_minutes(time)
 
-  // Find the last entry that starts at or before the current time
-  let active_entry =
+  // Find the active entry: last entry with start <= now, or previous day's last
+  let active_entry_opt = find_active_entry(schedule, day, now_minutes)
+
+  // Calculate effective temperatures for all entries
+  let effective_temps =
+    day_schedule
+    |> list.map(fn(entry) {
+      let entry_minutes = time_of_day_to_minutes(entry.start)
+      let hours_until =
+        calculate_hours_until(
+          entry_minutes,
+          now_minutes,
+          is_active_entry(entry, active_entry_opt),
+        )
+      calculate_effective_temp(entry.target_temperature, hours_until)
+    })
+
+  // Include the active entry if it's from previous day
+  let all_effective_temps = case active_entry_opt {
+    Some(active) -> {
+      // Check if active entry is from today's schedule
+      let is_from_today =
+        list.any(day_schedule, fn(e) {
+          time_of_day_to_minutes(e.start)
+          == time_of_day_to_minutes(active.start)
+          && temperature.eq(e.target_temperature, active.target_temperature)
+        })
+      case is_from_today {
+        True -> effective_temps
+        False -> {
+          // Active entry is from previous day, add it with hours_until = 0
+          let active_effective =
+            calculate_effective_temp(active.target_temperature, 0.0)
+          [active_effective, ..effective_temps]
+        }
+      }
+    }
+    None -> effective_temps
+  }
+
+  // Return maximum effective temperature
+  case list.reduce(all_effective_temps, temperature.max) {
+    Ok(max_temp) -> max_temp
+    Error(_) -> temperature.min_room_target
+  }
+}
+
+/// Find the active schedule entry (last entry with start <= now).
+/// If current time is before first entry of day, returns previous day's last entry.
+fn find_active_entry(
+  schedule: WeekSchedule,
+  day: Weekday,
+  now_minutes: Int,
+) -> Option(ScheduleEntry) {
+  let day_schedule = get_day_schedule(schedule, day)
+
+  // Find last entry in today's schedule that started before or at now
+  let today_active =
     day_schedule
     |> list.filter(fn(entry) {
       time_of_day_to_minutes(entry.start) <= now_minutes
     })
     |> list.last
 
-  case active_entry {
-    Ok(entry) -> entry.target_temperature
+  case today_active {
+    Ok(entry) -> Some(entry)
     Error(_) -> {
       // Before first entry of day - use last entry from previous day
       let prev_day = previous_day(day)
       let prev_schedule = get_day_schedule(schedule, prev_day)
       case list.last(prev_schedule) {
-        Ok(entry) -> entry.target_temperature
-        // Fallback: no schedule at all, use first entry of current day
-        Error(_) ->
-          case list.first(day_schedule) {
-            Ok(entry) -> entry.target_temperature
-            // This shouldn't happen with a valid schedule
-            Error(_) -> temperature.min_room_target
-          }
+        Ok(entry) -> Some(entry)
+        Error(_) -> None
       }
     }
   }
+}
+
+/// Check if an entry matches the active entry.
+fn is_active_entry(
+  entry: ScheduleEntry,
+  active_opt: Option(ScheduleEntry),
+) -> Bool {
+  case active_opt {
+    Some(active) ->
+      time_of_day_to_minutes(entry.start)
+      == time_of_day_to_minutes(active.start)
+      && temperature.eq(entry.target_temperature, active.target_temperature)
+    None -> False
+  }
+}
+
+/// Calculate hours until an entry activates.
+/// - Active entry: 0
+/// - Future entry (entry_minutes > now_minutes): positive hours
+/// - Past non-active entry: wraps to tomorrow (24+ hours)
+fn calculate_hours_until(
+  entry_minutes: Int,
+  now_minutes: Int,
+  is_active: Bool,
+) -> Float {
+  case is_active {
+    True -> 0.0
+    False -> {
+      let diff = entry_minutes - now_minutes
+      case diff > 0 {
+        True -> int.to_float(diff) /. 60.0
+        False -> int.to_float(24 * 60 + diff) /. 60.0
+      }
+    }
+  }
+}
+
+/// Calculate effective temperature with ramping.
+/// effective = target - 0.5 × hours_until
+/// Result is rounded to 0.1°C.
+fn calculate_effective_temp(
+  target: Temperature,
+  hours_until: Float,
+) -> Temperature {
+  let target_value = temperature.unwrap(target)
+  let effective = target_value -. 0.5 *. hours_until
+  // Round to 0.1°C (same as TypeScript: Math.round(x * 10) / 10)
+  let rounded = int.to_float(float.round(effective *. 10.0)) /. 10.0
+  temperature.temperature(rounded)
 }

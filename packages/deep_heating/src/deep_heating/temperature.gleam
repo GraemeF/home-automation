@@ -111,6 +111,14 @@ pub fn clamp(
   }
 }
 
+/// Return the maximum of two temperatures.
+pub fn max(a: Temperature, b: Temperature) -> Temperature {
+  case gt(a, b) {
+    True -> a
+    False -> b
+  }
+}
+
 // =============================================================================
 // Formatting Functions (UI display)
 // =============================================================================

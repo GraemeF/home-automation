@@ -1212,9 +1212,13 @@ pub fn timer_triggers_target_recomputation_test() {
   // The actor should automatically recompute target temperature every timer interval.
   // This allows schedule changes to take effect without external triggers.
   //
-  // Scenario:
-  // 1. Start with time 08:59 (scheduled temp 18°C)
+  // Scenario (with ramping algorithm):
+  // 1. Start with time 06:00 (3 hours before 09:00→21°C)
+  //    - Active entry 00:00→18°C: effective = 18°C
+  //    - Future entry 09:00→21°C, 3 hours away: effective = 21 - 1.5 = 19.5°C
+  //    - max(18, 19.5) = 19.5°C
   // 2. After timer fires with time 09:01, target should update to 21°C
+  //    - Active entry 09:00→21°C: effective = 21°C
 
   // Use an atomic counter to track call count across process boundaries
   let counter = create_counter()
@@ -1222,9 +1226,9 @@ pub fn timer_triggers_target_recomputation_test() {
   let get_time = fn() {
     let count = increment_counter(counter)
     case count {
-      // First call (init) - return 08:59 (before schedule change)
+      // First call (init) - return 06:00 (3 hours before schedule change)
       1 -> {
-        let assert Ok(time) = schedule.time_of_day(8, 59)
+        let assert Ok(time) = schedule.time_of_day(6, 0)
         #(schedule.Monday, time)
       }
       // Subsequent calls - return 09:01 (after schedule change)
@@ -1250,12 +1254,12 @@ pub fn timer_triggers_target_recomputation_test() {
       initial_adjustment: 0.0,
     )
 
-  // Check initial state - should be 18°C (time is 08:59)
+  // Check initial state - should be 19.5°C (time is 06:00, ramping towards 09:00)
   let reply = process.new_subject()
   process.send(started.data, room_actor.GetState(reply))
   let assert Ok(initial_state) = process.receive(reply, 1000)
   initial_state.target_temperature
-  |> should.equal(option.Some(temperature.temperature(18.0)))
+  |> should.equal(option.Some(temperature.temperature(19.5)))
 
   // Wait for timer to fire (>100ms)
   process.sleep(150)
