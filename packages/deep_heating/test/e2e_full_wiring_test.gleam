@@ -129,8 +129,11 @@ pub fn full_system_wiring_responds_to_sleep_button_test() {
   // 5. Trigger another poll to detect the button press
   trigger_poll(system)
 
-  // 6. Wait for house mode to change to sleeping (poll with timeout)
-  // Event propagation: poll → HTTP → parse → EventRouter → HouseModeActor
+  // 6. Wait for events to propagate (consistent with other tests)
+  // Event chain: poll → HTTP → parse → EventRouter → HouseModeActor
+  process.sleep(200)
+
+  // 7. Verify house mode changed to sleeping
   let assert Ok(Nil) = wait_for_house_mode(system, mode.HouseModeSleeping, 2000)
 
   fake_ha_server.stop(fake_ha)
