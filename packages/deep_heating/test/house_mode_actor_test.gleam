@@ -125,6 +125,8 @@ pub fn house_mode_actor_broadcasts_sleeping_to_registered_rooms_test() {
 
   // Register the room actor - messages processed in FIFO order
   process.send(actor, house_mode_actor.RegisterRoomActor(room_listener))
+  // Consume the initial mode sent on registration (Auto at 9pm)
+  let assert Ok(_) = process.receive(room_listener, 1000)
 
   // Press sleep button
   process.send(actor, house_mode_actor.SleepButtonPressed)
@@ -145,6 +147,8 @@ pub fn house_mode_actor_broadcasts_auto_on_wakeup_test() {
 
   // Register the room actor - messages processed in FIFO order
   process.send(actor, house_mode_actor.RegisterRoomActor(room_listener))
+  // Consume the initial mode sent on registration (Auto at 9pm)
+  let assert Ok(_) = process.receive(room_listener, 1000)
 
   // Go to sleep first
   process.send(actor, house_mode_actor.SleepButtonPressed)
@@ -164,6 +168,54 @@ pub fn house_mode_actor_broadcasts_auto_on_wakeup_test() {
   }
 }
 
+pub fn house_mode_actor_sends_initial_mode_on_registration_test() {
+  // When a room actor registers, it should IMMEDIATELY receive the current
+  // house mode. This is critical for RoomActors to have correct state at startup.
+  // Without this, RoomActors operate with default mode until first mode change.
+
+  // Start actor at 2am (before 3am threshold) - mode should be Sleeping
+  let two_am = make_datetime(2026, 1, 3, 2, 0, 0)
+  let actor = make_test_actor_at_time(fn() { two_am })
+
+  // Verify actor is in Sleeping mode
+  let mode_check = process.new_subject()
+  process.send(actor, house_mode_actor.GetMode(mode_check))
+  let assert Ok(current_mode) = process.receive(mode_check, 1000)
+  current_mode |> should.equal(mode.HouseModeSleeping)
+
+  // Create and register a room listener
+  let room_listener = make_room_listener()
+  process.send(actor, house_mode_actor.RegisterRoomActor(room_listener))
+
+  // Room should IMMEDIATELY receive the current mode (Sleeping)
+  let assert Ok(msg) = process.receive(room_listener, 1000)
+  case msg {
+    room_actor.HouseModeChanged(received_mode) -> {
+      received_mode |> should.equal(mode.HouseModeSleeping)
+    }
+    _ -> should.fail()
+  }
+}
+
+pub fn house_mode_actor_sends_initial_auto_mode_on_registration_test() {
+  // Same test but when current mode is Auto
+  let ten_am = make_datetime(2026, 1, 3, 10, 0, 0)
+  let actor = make_test_actor_at_time(fn() { ten_am })
+
+  // Create and register a room listener
+  let room_listener = make_room_listener()
+  process.send(actor, house_mode_actor.RegisterRoomActor(room_listener))
+
+  // Room should IMMEDIATELY receive the current mode (Auto)
+  let assert Ok(msg) = process.receive(room_listener, 1000)
+  case msg {
+    room_actor.HouseModeChanged(received_mode) -> {
+      received_mode |> should.equal(mode.HouseModeAuto)
+    }
+    _ -> should.fail()
+  }
+}
+
 pub fn house_mode_actor_broadcasts_to_multiple_rooms_test() {
   let actor = make_test_actor_at_evening()
   let room1 = make_room_listener()
@@ -172,11 +224,14 @@ pub fn house_mode_actor_broadcasts_to_multiple_rooms_test() {
   // Register both - messages processed in FIFO order
   process.send(actor, house_mode_actor.RegisterRoomActor(room1))
   process.send(actor, house_mode_actor.RegisterRoomActor(room2))
+  // Consume the initial modes sent on registration (Auto at 9pm)
+  let assert Ok(_) = process.receive(room1, 1000)
+  let assert Ok(_) = process.receive(room2, 1000)
 
   // Press sleep button
   process.send(actor, house_mode_actor.SleepButtonPressed)
 
-  // Both rooms should receive the message
+  // Both rooms should receive the sleeping message
   let assert Ok(msg1) = process.receive(room1, 1000)
   let assert Ok(msg2) = process.receive(room2, 1000)
 

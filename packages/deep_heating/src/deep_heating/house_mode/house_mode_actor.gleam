@@ -327,6 +327,8 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
       actor.continue(new_state)
     }
     RegisterRoomActor(room_actor) -> {
+      // Send current mode immediately so the new room actor has correct state
+      process.send(room_actor, room_actor.HouseModeChanged(state.mode))
       actor.continue(
         State(..state, room_actors: [room_actor, ..state.room_actors]),
       )
