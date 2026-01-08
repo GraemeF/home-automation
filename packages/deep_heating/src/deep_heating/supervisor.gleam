@@ -80,6 +80,9 @@ pub opaque type SupervisorWithRooms {
     ha_poller_subject: Subject(ha_poller_actor.Message),
     ha_command_name: Name(ha_command_actor.Message),
     heating_control_name: Name(heating_control_actor.Message),
+    boiler_adapter_name: Name(heating_control_actor.BoilerCommand),
+    heating_adapter_name: Name(room_actor.HeatingControlMessage),
+    event_router_subject: Subject(ha_poller_actor.PollerEvent),
     rooms_supervisor: RoomsSupervisor,
   )
 }
@@ -231,6 +234,102 @@ pub fn shutdown(sup: Supervisor) -> Nil {
   // Unlink so the calling process doesn't receive the exit signal
   process.unlink(sup.pid)
   process.send_abnormal_exit(sup.pid, "shutdown")
+  // Give processes time to terminate and unregister names
+  process.sleep(50)
+}
+
+/// Shutdown the supervisor with rooms and ALL its actors.
+///
+/// This properly terminates all manually-started actors that are not
+/// directly supervised by the OTP supervisor. Without this, those actors
+/// would survive the supervisor termination (see dh-33jq.76).
+pub fn shutdown_with_rooms(sup: SupervisorWithRooms) -> Nil {
+  // 1. Send graceful Shutdown to actors that support it
+  process.send(sup.house_mode_subject, house_mode_actor.Shutdown)
+  process.send(
+    process.named_subject(sup.ha_command_name),
+    ha_command_actor.Shutdown,
+  )
+
+  // 2. Kill actors that don't have Shutdown message (unlink first to avoid crash propagation)
+  // HaPollerActor
+  case process.subject_owner(sup.ha_poller_subject) {
+    Ok(pid) -> {
+      process.unlink(pid)
+      process.send_abnormal_exit(pid, "shutdown")
+    }
+    Error(_) -> Nil
+  }
+
+  // HeatingControlActor
+  case process.named(sup.heating_control_name) {
+    Ok(pid) -> {
+      process.unlink(pid)
+      process.send_abnormal_exit(pid, "shutdown")
+    }
+    Error(_) -> Nil
+  }
+
+  // BoilerCommandAdapterActor
+  case process.named(sup.boiler_adapter_name) {
+    Ok(pid) -> {
+      process.unlink(pid)
+      process.send_abnormal_exit(pid, "shutdown")
+    }
+    Error(_) -> Nil
+  }
+
+  // HeatingControlAdapterActor
+  case process.named(sup.heating_adapter_name) {
+    Ok(pid) -> {
+      process.unlink(pid)
+      process.send_abnormal_exit(pid, "shutdown")
+    }
+    Error(_) -> Nil
+  }
+
+  // EventRouterActor
+  case process.subject_owner(sup.event_router_subject) {
+    Ok(pid) -> {
+      process.unlink(pid)
+      process.send_abnormal_exit(pid, "shutdown")
+    }
+    Error(_) -> Nil
+  }
+
+  // 3. Kill all room actors
+  rooms_supervisor.get_room_supervisors(sup.rooms_supervisor)
+  |> list.each(fn(room_sup) {
+    // Kill room actor
+    case rooms_supervisor.get_room_actor(room_sup) {
+      Ok(ref) -> {
+        process.unlink(ref.pid)
+        process.send_abnormal_exit(ref.pid, "shutdown")
+      }
+      Error(_) -> Nil
+    }
+
+    // Kill decision actor
+    case rooms_supervisor.get_decision_actor(room_sup) {
+      Ok(ref) -> {
+        process.unlink(ref.pid)
+        process.send_abnormal_exit(ref.pid, "shutdown")
+      }
+      Error(_) -> Nil
+    }
+
+    // Kill TRV actors
+    rooms_supervisor.get_trv_actors(room_sup)
+    |> list.each(fn(trv_ref) {
+      process.unlink(trv_ref.pid)
+      process.send_abnormal_exit(trv_ref.pid, "shutdown")
+    })
+  })
+
+  // 4. Finally kill the OTP supervisor (this will also kill StateAggregatorActor)
+  process.unlink(sup.pid)
+  process.send_abnormal_exit(sup.pid, "shutdown")
+
   // Give processes time to terminate and unregister names
   process.sleep(50)
 }
@@ -455,6 +554,9 @@ pub fn start_with_home_config(
                                           ha_poller_subject: poller_started.data,
                                           ha_command_name: ha_command_name,
                                           heating_control_name: heating_control_name,
+                                          boiler_adapter_name: boiler_adapter_name,
+                                          heating_adapter_name: heating_control_adapter_name,
+                                          event_router_subject: event_router_subject,
                                           rooms_supervisor: rooms_sup,
                                         )
                                       Ok(actor.Started(
