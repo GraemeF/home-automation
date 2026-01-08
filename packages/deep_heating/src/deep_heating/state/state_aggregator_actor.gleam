@@ -10,7 +10,7 @@
 import deep_heating/rooms/room_actor
 import deep_heating/rooms/room_adjustments
 import deep_heating/state.{type DeepHeatingState, type RoomState}
-import deep_heating/timer.{type SendAfter}
+import deep_heating/timer.{type SendAfter, type TimerHandle}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/list
@@ -36,6 +36,8 @@ pub type Message {
   RegisterRoomActor(name: String, actor: Subject(room_actor.Message))
   /// Adjust a room's temperature (forwarded to RoomActor)
   AdjustRoom(name: String, adjustment: Float)
+  /// Gracefully stop the actor, cancelling any pending broadcast timer
+  Shutdown
 }
 
 /// Internal state of the aggregator
@@ -53,6 +55,8 @@ pub type State {
     previous_adjustments: Dict(String, Float),
     /// Injectable timer function
     send_after: SendAfter(Message),
+    /// Handle to the current broadcast timer (for cancellation on shutdown)
+    timer_handle: Result(TimerHandle, Nil),
   )
 }
 
@@ -88,6 +92,7 @@ pub fn start_link_with_options(
       adjustments_path: adjustments_path,
       previous_adjustments: dict.new(),
       send_after: send_after,
+      timer_handle: Error(Nil),
     ))
     |> actor.returning(self_subject)
     |> Ok
@@ -126,6 +131,7 @@ pub fn start_with_options(
       adjustments_path: adjustments_path,
       previous_adjustments: dict.new(),
       send_after: send_after,
+      timer_handle: Error(Nil),
     ))
     |> actor.returning(self_subject)
     |> Ok
@@ -233,7 +239,10 @@ fn handle_message(
       list.each(actor_state.subscribers, fn(subscriber) {
         process.send(subscriber, actor_state.current)
       })
-      actor.continue(State(..actor_state, broadcast_pending: False))
+      // Clear pending flag and timer handle (timer already fired)
+      actor.continue(
+        State(..actor_state, broadcast_pending: False, timer_handle: Error(Nil)),
+      )
     }
     RegisterRoomActor(name, room_actor_subject) -> {
       let new_room_actors =
@@ -255,6 +264,16 @@ fn handle_message(
         }
       }
       actor.continue(actor_state)
+    }
+
+    Shutdown -> {
+      // Cancel the timer if present
+      case actor_state.timer_handle {
+        Ok(handle) -> timer.cancel_handle(handle)
+        Error(_) -> Nil
+      }
+      // Stop the actor
+      actor.stop()
     }
   }
 }
@@ -295,10 +314,12 @@ fn schedule_broadcast_if_needed(
       actor.continue(actor_state)
     }
     False -> {
-      // Schedule a broadcast after throttle period
-      let _ =
+      // Schedule a broadcast after throttle period and capture handle
+      let handle =
         actor_state.send_after(actor_state.self_subject, throttle_ms, Broadcast)
-      actor.continue(State(..actor_state, broadcast_pending: True))
+      actor.continue(
+        State(..actor_state, broadcast_pending: True, timer_handle: Ok(handle)),
+      )
     }
   }
 }

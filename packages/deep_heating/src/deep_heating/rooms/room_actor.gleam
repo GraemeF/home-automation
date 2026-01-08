@@ -134,6 +134,8 @@ pub type Message {
   ExternalTempChanged(temperature: Temperature)
   /// Internal: timer fired, recompute target from schedule
   ReComputeTarget
+  /// Gracefully stop the actor, cancelling any pending timer
+  Shutdown
 }
 
 /// Internal actor state including dependencies
@@ -454,6 +456,16 @@ fn handle_message(
       // Reschedule the timer for the next evaluation and store handle
       let new_timer_handle = reschedule_timer(new_state)
       actor.continue(ActorState(..new_state, timer_handle: new_timer_handle))
+    }
+
+    Shutdown -> {
+      // Cancel the timer if present
+      case state.timer_handle {
+        Ok(handle) -> timer.cancel_handle(handle)
+        Error(_) -> Nil
+      }
+      // Stop the actor
+      actor.stop()
     }
   }
 }

@@ -591,3 +591,35 @@ pub fn state_aggregator_start_with_options_uses_injected_timer_test() {
   let assert Ok(received_state) = process.receive(subscriber, 100)
   list.length(received_state.rooms) |> should.equal(1)
 }
+
+// =============================================================================
+// Graceful Shutdown Tests
+// =============================================================================
+
+pub fn shutdown_cancels_pending_broadcast_timer_test() {
+  // When Shutdown is called, any pending broadcast timer should be cancelled
+  // and the actor should stop
+  let assert Ok(actor) =
+    state_aggregator_actor.start_link_with_options(
+      adjustments_path: "/tmp/test_shutdown.json",
+      send_after: timer.real_send_after,
+    )
+
+  // Send a room update to trigger broadcast scheduling
+  let room_state = make_room_state("test_room")
+  process.send(actor, state_aggregator_actor.RoomUpdated("test_room", room_state))
+
+  // Immediately send Shutdown (before the 100ms throttle fires)
+  process.send(actor, state_aggregator_actor.Shutdown)
+
+  // Wait longer than the throttle interval
+  process.sleep(200)
+
+  // Actor should be stopped - sending a message should not get a response
+  let reply_subject = process.new_subject()
+  process.send(actor, state_aggregator_actor.GetState(reply_subject))
+
+  // The message should timeout because the actor is dead
+  let result = process.receive(reply_subject, 100)
+  result |> should.be_error
+}

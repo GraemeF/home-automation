@@ -2,6 +2,7 @@ import deep_heating/entity_id
 import deep_heating/home_assistant/client as home_assistant
 import deep_heating/home_assistant/ha_poller_actor
 import deep_heating/temperature
+import deep_heating/timer
 import gleam/erlang/process
 import gleam/list
 import gleam/option.{Some}
@@ -901,4 +902,39 @@ pub fn heating_status_changed_emits_false_when_not_heating_test() {
     })
 
   has_heating_status_false |> should.be_true
+}
+
+// =============================================================================
+// Graceful Shutdown Tests
+// =============================================================================
+
+pub fn shutdown_stops_actor_test() {
+  // When Shutdown is called, the actor should stop
+  let event_spy: process.Subject(ha_poller_actor.PollerEvent) =
+    process.new_subject()
+  let config = create_test_config()
+
+  let assert Ok(started) =
+    ha_poller_actor.start_with_send_after(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      config: config,
+      event_spy: event_spy,
+      send_after: timer.real_send_after,
+    )
+
+  // Send Shutdown immediately
+  process.send(started.data, ha_poller_actor.Shutdown)
+
+  // Wait for actor to process Shutdown
+  process.sleep(50)
+
+  // Actor should be stopped - sending StartPolling should not produce events
+  process.send(started.data, ha_poller_actor.StartPolling)
+
+  // If the actor is alive, we'd see PollingStarted event
+  // If dead, we won't receive anything
+  let result = process.receive(event_spy, 100)
+
+  // We expect no response because the actor should be dead
+  result |> should.be_error
 }

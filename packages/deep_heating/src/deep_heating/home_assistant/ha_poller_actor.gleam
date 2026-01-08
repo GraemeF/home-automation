@@ -13,7 +13,7 @@ import deep_heating/home_assistant/client.{type HaClient} as home_assistant
 import deep_heating/log
 import deep_heating/rooms/trv_actor.{type TrvUpdate, TrvUpdate}
 import deep_heating/temperature.{type Temperature}
-import deep_heating/timer.{type SendAfter}
+import deep_heating/timer.{type SendAfter, type TimerHandle}
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/int
 import gleam/list
@@ -36,6 +36,8 @@ pub type Message {
   InjectMockResponse(json: String)
   /// For testing: inject a mock error for the next poll
   InjectMockError(error: home_assistant.HaError)
+  /// Gracefully stop the actor, cancelling any pending poll timer
+  Shutdown
 }
 
 /// Configuration for the poller
@@ -101,6 +103,8 @@ type State {
     backoff_multiplier: Int,
     /// Injectable send_after function for deterministic timer testing
     send_after: SendAfter(Message),
+    /// Handle to the current poll timer (for cancellation on shutdown)
+    timer_handle: Result(TimerHandle, Nil),
   )
 }
 
@@ -138,6 +142,7 @@ pub fn start_with_send_after(
         mock_error: None,
         backoff_multiplier: 1,
         send_after: send_after,
+        timer_handle: Error(Nil),
       )
     actor.initialised(initial_state)
     |> actor.returning(self_subject)
@@ -186,6 +191,7 @@ pub fn start_named_with_send_after(
         mock_error: None,
         backoff_multiplier: 1,
         send_after: send_after,
+        timer_handle: Error(Nil),
       )
     actor.initialised(initial_state)
     |> actor.returning(self_subject)
@@ -373,8 +379,8 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
         }
       }
 
-      // Schedule next poll if still polling
-      case state.is_polling {
+      // Schedule next poll if still polling and capture timer handle
+      let new_timer_handle = case state.is_polling {
         True -> {
           let delay_ms = case poll_succeeded {
             True -> state.config.poll_interval_ms
@@ -384,10 +390,11 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
                 max_backoff_ms,
               )
           }
-          let _ = state.send_after(state.self_subject, delay_ms, PollNow)
-          Nil
+          let handle =
+            state.send_after(state.self_subject, delay_ms, PollNow)
+          Ok(handle)
         }
-        False -> Nil
+        False -> Error(Nil)
       }
 
       // Clear mock response/error and update state
@@ -398,6 +405,7 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
           mock_error: None,
           last_sleep_button_state: new_sleep_button_state,
           backoff_multiplier: new_backoff_multiplier,
+          timer_handle: new_timer_handle,
         ),
       )
     }
@@ -411,6 +419,16 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
     }
     InjectMockError(error) -> {
       actor.continue(State(..state, mock_error: Some(error)))
+    }
+
+    Shutdown -> {
+      // Cancel the timer if present
+      case state.timer_handle {
+        Ok(handle) -> timer.cancel_handle(handle)
+        Error(_) -> Nil
+      }
+      // Stop the actor
+      actor.stop()
     }
   }
 }

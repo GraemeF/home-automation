@@ -1435,6 +1435,45 @@ pub fn room_actor_reschedules_timer_after_firing_test() {
 }
 
 // =============================================================================
+// Graceful Shutdown Tests
+// =============================================================================
+
+pub fn shutdown_cancels_pending_timer_test() {
+  // When Shutdown is called, the timer should be cancelled
+  // and no more ReComputeTarget messages should be processed
+  let ctx = make_test_context("shutdown_test")
+  let assert Ok(time) = schedule.time_of_day(10, 0)
+
+  // Start actor with real timer (200ms interval)
+  let assert Ok(started) =
+    room_actor.start_with_options(
+      name: "ShutdownTest",
+      schedule: make_test_schedule(),
+      decision_actor_name: ctx.decision_name,
+      state_aggregator: ctx.aggregator_spy,
+      heating_control: option.None,
+      get_time: fn() { #(schedule.Monday, time) },
+      timer_interval_ms: 200,
+      initial_adjustment: 0.0,
+      send_after: timer.real_send_after,
+    )
+
+  // Immediately send Shutdown (before the 200ms timer fires)
+  process.send(started.data, room_actor.Shutdown)
+
+  // Wait longer than the timer interval
+  process.sleep(300)
+
+  // Actor should be stopped - sending a message should not get a response
+  let reply_subject = process.new_subject()
+  process.send(started.data, room_actor.GetState(reply_subject))
+
+  // The message should timeout because the actor is dead
+  let result = process.receive(reply_subject, 100)
+  result |> should.be_error
+}
+
+// =============================================================================
 // Atomics Counter Helpers for Cross-Process State
 // =============================================================================
 
