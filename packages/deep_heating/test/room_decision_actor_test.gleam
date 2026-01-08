@@ -10,6 +10,7 @@ import gleam/list
 import gleam/option
 import gleam/otp/actor
 import gleeunit/should
+import test_helpers
 
 // =============================================================================
 // FFI for unique integer generation
@@ -118,7 +119,8 @@ pub fn sends_room_target_when_room_at_temperature_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should receive command to set TRV target
-  let assert Ok(cmd) = process.receive(spy, 1000)
+  let cmd =
+    test_helpers.expect_receive(spy, 1000, "TRV command when room at target")
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -150,7 +152,8 @@ pub fn pushes_trv_target_higher_when_room_is_cold_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(spy, 1000)
+  let cmd =
+    test_helpers.expect_receive(spy, 1000, "TRV command when room is cold")
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -183,7 +186,8 @@ pub fn backs_off_trv_when_room_is_hot_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(spy, 1000)
+  let cmd =
+    test_helpers.expect_receive(spy, 1000, "TRV command when room is hot")
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -226,7 +230,8 @@ pub fn uses_room_target_when_no_external_sensor_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(spy, 1000)
+  let cmd =
+    test_helpers.expect_receive(spy, 1000, "TRV command with no external sensor")
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -256,7 +261,8 @@ pub fn only_sends_command_when_target_differs_test() {
 
   // First update - should send command
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
-  let assert Ok(_cmd) = process.receive(spy, 1000)
+  let _cmd =
+    test_helpers.expect_receive(spy, 1000, "First TRV command before dedup test")
 
   // Second update with same state - should NOT send command
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
@@ -310,8 +316,8 @@ pub fn handles_multiple_trvs_in_room_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should receive two commands - one for each TRV
-  let assert Ok(cmd1) = process.receive(spy, 1000)
-  let assert Ok(cmd2) = process.receive(spy, 1000)
+  let cmd1 = test_helpers.expect_receive(spy, 1000, "First TRV command")
+  let cmd2 = test_helpers.expect_receive(spy, 1000, "Second TRV command")
 
   // Collect the entity IDs that received commands
   let room_decision_actor.TrvCommand(id1, _, _) = cmd1
@@ -362,7 +368,8 @@ pub fn handles_trv_with_missing_temperature_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should still receive a command (system degrades gracefully)
-  let assert Ok(cmd) = process.receive(spy, 1000)
+  let cmd =
+    test_helpers.expect_receive(spy, 1000, "TRV command with missing temp")
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -404,7 +411,8 @@ pub fn handles_trv_with_missing_target_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should still send a command to set the target
-  let assert Ok(cmd) = process.receive(spy, 1000)
+  let cmd =
+    test_helpers.expect_receive(spy, 1000, "TRV command with missing target")
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, _target) = cmd
   entity_id |> should.equal(trv_id)
@@ -446,7 +454,7 @@ pub fn handles_completely_unknown_trv_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should still receive a command
-  let assert Ok(cmd) = process.receive(spy, 1000)
+  let cmd = test_helpers.expect_receive(spy, 1000, "TRV command for unknown TRV")
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -485,7 +493,8 @@ pub fn offset_formula_accounts_for_trv_temperature_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(spy, 1000)
+  let cmd =
+    test_helpers.expect_receive(spy, 1000, "TRV command with offset formula")
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -525,7 +534,8 @@ pub fn clamps_trv_target_to_minimum_7c_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(spy, 1000)
+  let cmd =
+    test_helpers.expect_receive(spy, 1000, "TRV command clamped to min 7C")
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -561,7 +571,8 @@ pub fn clamps_trv_target_to_maximum_32c_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(spy, 1000)
+  let cmd =
+    test_helpers.expect_receive(spy, 1000, "TRV command clamped to max 32C")
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -656,7 +667,8 @@ pub fn sends_mode_change_when_trv_in_auto_mode_test() {
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
   // Should receive command with mode set to Heat
-  let assert Ok(cmd) = process.receive(spy, 1000)
+  let cmd =
+    test_helpers.expect_receive(spy, 1000, "TRV command for auto->heat mode")
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -705,7 +717,8 @@ pub fn sends_command_when_mode_changes_from_heat_to_auto_test() {
 
   // First command - initializes last_sent_targets to 20.0
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state_1))
-  let assert Ok(_first_cmd) = process.receive(spy, 1000)
+  let _first_cmd =
+    test_helpers.expect_receive(spy, 1000, "First TRV command in mode test")
 
   // Step 2: User changes TRV to AUTO mode (same target 20°C)
   let trv_state_auto =
@@ -731,7 +744,11 @@ pub fn sends_command_when_mode_changes_from_heat_to_auto_test() {
 
   // Step 3: Should receive a SECOND command to change mode back to heat
   // Even though the target is the same (20°C), the mode changed.
-  let assert Ok(cmd) = process.receive(spy, 1000)
+  let cmd = test_helpers.expect_receive(
+    spy,
+    1000,
+    "TRV command to restore heat mode",
+  )
 
   let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -770,7 +787,7 @@ pub fn rounds_up_to_nearest_half_when_heating_required_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(spy, 1000)
+  let cmd = test_helpers.expect_receive(spy, 1000, "TRV command rounded up")
 
   let room_decision_actor.TrvCommand(entity_id, _cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -805,7 +822,7 @@ pub fn rounds_down_to_nearest_half_when_not_heating_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(spy, 1000)
+  let cmd = test_helpers.expect_receive(spy, 1000, "TRV command rounded down")
 
   let room_decision_actor.TrvCommand(entity_id, _cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -840,7 +857,8 @@ pub fn rounds_up_when_room_exactly_at_target_but_needs_heating_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(spy, 1000)
+  let cmd =
+    test_helpers.expect_receive(spy, 1000, "TRV command at exact target")
 
   let room_decision_actor.TrvCommand(entity_id, _cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
@@ -874,10 +892,243 @@ pub fn rounding_applies_after_clamping_test() {
 
   process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
 
-  let assert Ok(cmd) = process.receive(spy, 1000)
+  let cmd =
+    test_helpers.expect_receive(spy, 1000, "TRV command after clamping")
 
   let room_decision_actor.TrvCommand(entity_id, _cmd_mode, target) = cmd
   entity_id |> should.equal(trv_id)
   // 36 clamped to 32, then 32 rounded stays 32
   temperature.unwrap(target) |> should.equal(32.0)
+}
+
+// =============================================================================
+// HA State Comparison Tests - compare against HA-reported state, not last-sent
+// =============================================================================
+
+pub fn resends_command_when_ha_reports_different_target_test() {
+  // BUG FIX: Compare against HA-reported target, not last-sent target.
+  // This matches TypeScript behaviour: keeps retrying until HA confirms the value.
+  //
+  // Scenario:
+  // 1. Room wants 22°C, TRV reports target 20°C (from HA)
+  // 2. We send command to set TRV to 22°C
+  // 3. Command fails (TRV offline, timeout, etc.)
+  // 4. HA still reports TRV target as 20°C
+  // 5. Room state update arrives again (same desired target 22°C)
+  // 6. We MUST resend command because HA target (20°C) != desired (22°C)
+  //
+  // Current bug: compares against last_sent_targets (22°C == 22°C → no resend)
+  // Correct: compares against HA state (20°C != 22°C → resend)
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("ha_reports_different")
+
+  let assert Ok(started) =
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // Step 1: Room at 20°C wants 22°C, TRV reports target 20°C (HA state)
+  // Formula: 22 + 20 - 20 = 22°C
+  let trv_state_1 =
+    room_actor.TrvState(
+      temperature: option.Some(temperature.temperature(20.0)),
+      target: option.Some(temperature.temperature(20.0)),
+      // HA reports 20°C
+      mode: mode.HvacHeat,
+      is_heating: False,
+    )
+  let room_state_1 =
+    room_actor.RoomState(
+      name: "lounge",
+      temperature: option.Some(temperature.temperature(20.0)),
+      target_temperature: option.Some(temperature.temperature(22.0)),
+      // Want 22°C
+      house_mode: mode.HouseModeAuto,
+      room_mode: mode.RoomModeAuto,
+      adjustment: 0.0,
+      trv_states: dict.from_list([#(trv_id, trv_state_1)]),
+    )
+
+  // First command - should send 22°C
+  process.send(started.data, room_decision_actor.RoomStateChanged(room_state_1))
+  let cmd1 =
+    test_helpers.expect_receive(spy, 1000, "First TRV command to set 22C")
+
+  let room_decision_actor.TrvCommand(_, _, target1) = cmd1
+  temperature.unwrap(target1) |> should.equal(22.0)
+
+  // Step 2: HA STILL reports target 20°C (command failed/wasn't applied)
+  // Same room state arrives again - HA target still 20°C
+  process.send(started.data, room_decision_actor.RoomStateChanged(room_state_1))
+
+  // Step 3: Should resend command because HA target (20°C) != desired (22°C)
+  let cmd2 =
+    test_helpers.expect_receive(spy, 1000, "Resent TRV command (HA mismatch)")
+
+  let room_decision_actor.TrvCommand(entity_id2, cmd_mode2, target2) = cmd2
+  entity_id2 |> should.equal(trv_id)
+  cmd_mode2 |> should.equal(mode.HvacHeat)
+  // Should resend 22°C because HA still shows 20°C
+  temperature.unwrap(target2) |> should.equal(22.0)
+}
+
+pub fn stops_sending_when_ha_confirms_target_test() {
+  // Verify we stop sending commands once HA confirms the target we wanted.
+  //
+  // Scenario:
+  // 1. Room wants 22°C, TRV reports target 20°C
+  // 2. We send command to set TRV to 22°C
+  // 3. HA updates - TRV target now 22°C (command succeeded!)
+  // 4. Room state update arrives with same desired target
+  // 5. Should NOT resend command because HA target (22°C) == desired (22°C)
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("ha_confirms_target")
+
+  let assert Ok(started) =
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // Step 1: TRV reports target 20°C, we want 22°C
+  let trv_state_before =
+    room_actor.TrvState(
+      temperature: option.Some(temperature.temperature(20.0)),
+      target: option.Some(temperature.temperature(20.0)),
+      // HA reports 20°C
+      mode: mode.HvacHeat,
+      is_heating: False,
+    )
+  let room_state_before =
+    room_actor.RoomState(
+      name: "lounge",
+      temperature: option.Some(temperature.temperature(20.0)),
+      target_temperature: option.Some(temperature.temperature(22.0)),
+      house_mode: mode.HouseModeAuto,
+      room_mode: mode.RoomModeAuto,
+      adjustment: 0.0,
+      trv_states: dict.from_list([#(trv_id, trv_state_before)]),
+    )
+
+  process.send(
+    started.data,
+    room_decision_actor.RoomStateChanged(room_state_before),
+  )
+  let _cmd1 =
+    test_helpers.expect_receive(spy, 1000, "Initial TRV command before confirm")
+
+  // Step 2: HA now reports target 22°C (command succeeded)
+  let trv_state_after =
+    room_actor.TrvState(
+      temperature: option.Some(temperature.temperature(20.0)),
+      target: option.Some(temperature.temperature(22.0)),
+      // HA now reports 22°C!
+      mode: mode.HvacHeat,
+      is_heating: False,
+    )
+  let room_state_after =
+    room_actor.RoomState(
+      name: "lounge",
+      temperature: option.Some(temperature.temperature(20.0)),
+      target_temperature: option.Some(temperature.temperature(22.0)),
+      // Still want 22°C
+      house_mode: mode.HouseModeAuto,
+      room_mode: mode.RoomModeAuto,
+      adjustment: 0.0,
+      trv_states: dict.from_list([#(trv_id, trv_state_after)]),
+    )
+
+  process.send(
+    started.data,
+    room_decision_actor.RoomStateChanged(room_state_after),
+  )
+
+  // Give actor time to process
+  process.sleep(50)
+
+  // Should NOT receive another command - HA confirmed the target
+  let result = process.receive(spy, 100)
+  result |> should.be_error
+}
+
+pub fn corrects_manual_trv_changes_test() {
+  // When user manually changes TRV target in Home Assistant,
+  // the system should correct it to the desired value.
+  //
+  // Scenario:
+  // 1. System sets TRV to 22°C, HA confirms
+  // 2. User manually changes TRV to 18°C via HA UI
+  // 3. HA reports new target 18°C
+  // 4. System should send command to restore 22°C
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("corrects_manual")
+
+  let assert Ok(started) =
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  // Step 1: TRV at 22°C (matches what we want)
+  let trv_state_correct =
+    room_actor.TrvState(
+      temperature: option.Some(temperature.temperature(20.0)),
+      target: option.Some(temperature.temperature(22.0)),
+      mode: mode.HvacHeat,
+      is_heating: False,
+    )
+  let room_state_correct =
+    room_actor.RoomState(
+      name: "lounge",
+      temperature: option.Some(temperature.temperature(20.0)),
+      target_temperature: option.Some(temperature.temperature(22.0)),
+      house_mode: mode.HouseModeAuto,
+      room_mode: mode.RoomModeAuto,
+      adjustment: 0.0,
+      trv_states: dict.from_list([#(trv_id, trv_state_correct)]),
+    )
+
+  // Initial state - sends command (first time seeing this TRV)
+  process.send(
+    started.data,
+    room_decision_actor.RoomStateChanged(room_state_correct),
+  )
+  let _initial =
+    test_helpers.expect_receive(spy, 1000, "Initial TRV command (correct)")
+
+  // Step 2: User manually changes TRV to 18°C
+  let trv_state_manual =
+    room_actor.TrvState(
+      temperature: option.Some(temperature.temperature(20.0)),
+      target: option.Some(temperature.temperature(18.0)),
+      // User changed to 18°C!
+      mode: mode.HvacHeat,
+      is_heating: False,
+    )
+  let room_state_manual =
+    room_actor.RoomState(
+      name: "lounge",
+      temperature: option.Some(temperature.temperature(20.0)),
+      target_temperature: option.Some(temperature.temperature(22.0)),
+      // Still want 22°C
+      house_mode: mode.HouseModeAuto,
+      room_mode: mode.RoomModeAuto,
+      adjustment: 0.0,
+      trv_states: dict.from_list([#(trv_id, trv_state_manual)]),
+    )
+
+  process.send(
+    started.data,
+    room_decision_actor.RoomStateChanged(room_state_manual),
+  )
+
+  // Should send command to correct back to 22°C
+  let cmd =
+    test_helpers.expect_receive(spy, 1000, "TRV command correcting manual")
+
+  let room_decision_actor.TrvCommand(entity_id, cmd_mode, target) = cmd
+  entity_id |> should.equal(trv_id)
+  cmd_mode |> should.equal(mode.HvacHeat)
+  temperature.unwrap(target) |> should.equal(22.0)
 }
