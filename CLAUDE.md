@@ -9,15 +9,20 @@ Deep Heating is a Home Assistant add-on that combines TRVs (Thermostatic Radiato
 ## Commands
 
 ```bash
-# Development
-turbo build            # Build all packages
-turbo test             # Run all tests
-turbo lint             # Lint all packages
+# TypeScript Development (monorepo root)
+turbo build            # Build all TypeScript packages
+turbo test             # Run all TypeScript tests
+turbo lint             # Lint all TypeScript packages
 bun run format         # Format code with Prettier
 
-# Single package testing
+# Single TypeScript package testing
 bun test --filter deep-heating-rx
 bun test --filter deep-heating-rx -- --testNamePattern="pattern"
+
+# Gleam Development (from packages/deep_heating/)
+gleam build            # Build the Gleam package
+gleam test             # Run all Gleam tests
+gleam format           # Format Gleam code
 
 # Docker image (via Nix)
 nix build .#dockerImage              # Build Docker image
@@ -242,8 +247,13 @@ When adding new features to the Gleam codebase:
 
 ## Testing
 
-- **Bun native test runner**: All packages use `bun test`
+**TypeScript packages:**
+- Use `bun test` via Turborepo
 - Tests run after lint and depend on building dependencies first (see turbo.json)
+
+**Gleam package** (`packages/deep_heating/`):
+- Use `gleam test` from within the package directory
+- No Turborepo integration - run directly with `gleam`
 
 ## Tooling
 
