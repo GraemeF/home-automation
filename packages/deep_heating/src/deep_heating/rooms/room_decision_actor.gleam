@@ -139,17 +139,28 @@ fn evaluate_and_send_commands(
 }
 
 /// Compute the desired TRV target using offset-based compensation.
-/// Formula: trvTarget = clamp(roomTarget + trvTemp - roomTemp, 7°C, 32°C)
+/// Formula: trvTarget = round(clamp(roomTarget + trvTemp - roomTemp, 7°C, 32°C))
 ///
 /// This compensates for TRVs that read differently from the external room sensor.
 /// If TRV reads higher than room, we set a lower target on the TRV.
 /// If TRV reads lower than room, we set a higher target on the TRV.
-/// The result is clamped to TRV-safe bounds (7-32°C).
+/// The result is clamped to TRV-safe bounds (7-32°C), then rounded to nearest 0.5°C.
+///
+/// Rounding direction depends on whether heating is required:
+/// - Heating required (room < target): round UP (bias toward more heating)
+/// - Heating NOT required (room >= target): round DOWN (prevent overshooting)
 fn compute_desired_trv_target(
   room_target: Temperature,
   room_temp: option.Option(Temperature),
   trv_temp: option.Option(Temperature),
 ) -> Temperature {
+  // Determine if heating is required (for rounding direction)
+  // If room_temp unknown, assume heating required (conservative - round up)
+  let heating_required = case room_temp {
+    option.Some(room) -> temperature.lt(room, room_target)
+    option.None -> True
+  }
+
   let unclamped = case room_temp, trv_temp {
     // Both temperatures available - use offset formula
     option.Some(room), option.Some(trv) -> {
@@ -162,9 +173,17 @@ fn compute_desired_trv_target(
     // Missing room or TRV temp - fall back to room target
     _, _ -> room_target
   }
-  temperature.clamp(
-    unclamped,
-    temperature.min_trv_command_target,
-    temperature.max_trv_command_target,
-  )
+
+  let clamped =
+    temperature.clamp(
+      unclamped,
+      temperature.min_trv_command_target,
+      temperature.max_trv_command_target,
+    )
+
+  // Round to nearest 0.5°C based on heating requirement
+  case heating_required {
+    True -> temperature.round_up_half(clamped)
+    False -> temperature.round_down_half(clamped)
+  }
 }

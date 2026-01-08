@@ -663,3 +663,147 @@ pub fn sends_mode_change_when_trv_in_auto_mode_test() {
   cmd_mode |> should.equal(mode.HvacHeat)
   temperature.unwrap(target) |> should.equal(20.0)
 }
+
+// =============================================================================
+// Temperature Rounding Tests
+// =============================================================================
+
+pub fn rounds_up_to_nearest_half_when_heating_required_test() {
+  // When heating is required (room_temp < room_target), round UP to nearest 0.5
+  // This biases toward more heating (safer - room won't underheat)
+  //
+  // room_target=20, room_temp=18, trv_temp=21.3
+  // Formula: 20 + 21.3 - 18 = 23.3
+  // Heating required (18 < 20), so round UP: 23.5
+  let #(trv_adapter_name, spy) =
+    make_mock_trv_adapter("rounds_up_heating_required")
+
+  let assert Ok(started) =
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  let room_state =
+    make_room_state_with_trv(
+      room_temp: temperature.temperature(18.0),
+      target_temp: temperature.temperature(20.0),
+      trv_id: trv_id,
+      trv_temp: temperature.temperature(21.3),
+    )
+
+  process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
+
+  let assert Ok(cmd) = process.receive(spy, 1000)
+
+  let room_decision_actor.TrvCommand(entity_id, _cmd_mode, target) = cmd
+  entity_id |> should.equal(trv_id)
+  // 20 + 21.3 - 18 = 23.3, round UP to 23.5
+  temperature.unwrap(target) |> should.equal(23.5)
+}
+
+pub fn rounds_down_to_nearest_half_when_not_heating_test() {
+  // When heating is NOT required (room_temp >= room_target), round DOWN to nearest 0.5
+  // This prevents overshooting the target
+  //
+  // room_target=20, room_temp=21, trv_temp=20.3
+  // Formula: 20 + 20.3 - 21 = 19.3
+  // NOT heating required (21 >= 20), so round DOWN: 19.0
+  let #(trv_adapter_name, spy) =
+    make_mock_trv_adapter("rounds_down_not_heating")
+
+  let assert Ok(started) =
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  let room_state =
+    make_room_state_with_trv(
+      room_temp: temperature.temperature(21.0),
+      target_temp: temperature.temperature(20.0),
+      trv_id: trv_id,
+      trv_temp: temperature.temperature(20.3),
+    )
+
+  process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
+
+  let assert Ok(cmd) = process.receive(spy, 1000)
+
+  let room_decision_actor.TrvCommand(entity_id, _cmd_mode, target) = cmd
+  entity_id |> should.equal(trv_id)
+  // 20 + 20.3 - 21 = 19.3, round DOWN to 19.0
+  temperature.unwrap(target) |> should.equal(19.0)
+}
+
+pub fn rounds_up_when_room_exactly_at_target_but_needs_heating_test() {
+  // Edge case: room is exactly at target (20°C), but TRV reads higher
+  // Formula produces non-half value. Since room_temp == room_target,
+  // heating is NOT required, so round DOWN.
+  //
+  // room_target=20, room_temp=20, trv_temp=20.7
+  // Formula: 20 + 20.7 - 20 = 20.7
+  // NOT heating required (20 >= 20), so round DOWN: 20.5
+  let #(trv_adapter_name, spy) =
+    make_mock_trv_adapter("rounds_at_target")
+
+  let assert Ok(started) =
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  let room_state =
+    make_room_state_with_trv(
+      room_temp: temperature.temperature(20.0),
+      target_temp: temperature.temperature(20.0),
+      trv_id: trv_id,
+      trv_temp: temperature.temperature(20.7),
+    )
+
+  process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
+
+  let assert Ok(cmd) = process.receive(spy, 1000)
+
+  let room_decision_actor.TrvCommand(entity_id, _cmd_mode, target) = cmd
+  entity_id |> should.equal(trv_id)
+  // 20 + 20.7 - 20 = 20.7, NOT heating (20 >= 20), round DOWN: 20.5
+  temperature.unwrap(target) |> should.equal(20.5)
+}
+
+pub fn rounding_applies_after_clamping_test() {
+  // Verify that rounding happens AFTER clamping, matching TypeScript behaviour.
+  // If the unclamped value would be clamped, the clamped value should be rounded.
+  //
+  // room_target=25, room_temp=14, trv_temp=25
+  // Formula: 25 + 25 - 14 = 36 → clamp to 32
+  // Heating required (14 < 25), but 32.0 is already on 0.5 boundary
+  let #(trv_adapter_name, spy) = make_mock_trv_adapter("rounding_after_clamp")
+
+  let assert Ok(started) =
+    room_decision_actor.start_with_trv_adapter_name(
+      trv_adapter_name: trv_adapter_name,
+    )
+
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
+
+  let room_state =
+    make_room_state_with_trv(
+      room_temp: temperature.temperature(14.0),
+      target_temp: temperature.temperature(25.0),
+      trv_id: trv_id,
+      trv_temp: temperature.temperature(25.0),
+    )
+
+  process.send(started.data, room_decision_actor.RoomStateChanged(room_state))
+
+  let assert Ok(cmd) = process.receive(spy, 1000)
+
+  let room_decision_actor.TrvCommand(entity_id, _cmd_mode, target) = cmd
+  entity_id |> should.equal(trv_id)
+  // 36 clamped to 32, then 32 rounded stays 32
+  temperature.unwrap(target) |> should.equal(32.0)
+}
