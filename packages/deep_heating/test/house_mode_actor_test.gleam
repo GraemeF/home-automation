@@ -333,11 +333,17 @@ pub fn timer_triggers_automatic_mode_reevaluation_test() {
   // The actor should automatically re-evaluate mode every timer interval.
   // We test this by:
   // 1. Starting at 2:59am (Sleeping)
-  // 2. Time provider returns 3:01am after some time has passed
-  // 3. After timer fires, mode should automatically transition to Auto
+  // 2. Manually trigger timer fire (simulating time passing)
+  // 3. Time provider now returns 3:01am
+  // 4. Mode should transition to Auto
+  //
+  // Uses spy_send_after for DETERMINISTIC testing - we manually trigger
+  // the timer "fire" by sending ReEvaluateMode. This eliminates race
+  // conditions from real timers.
 
-  // Use an ETS counter to track call count across process boundaries
   let counter = create_counter()
+  let spy: process.Subject(timer.TimerRequest(house_mode_actor.Message)) =
+    process.new_subject()
 
   let get_time = fn() {
     let count = increment_counter(counter)
@@ -349,9 +355,15 @@ pub fn timer_triggers_automatic_mode_reevaluation_test() {
     }
   }
 
-  // Start actor with short timer interval (100ms for testing)
   let assert Ok(actor) =
-    house_mode_actor.start_with_timer_interval(get_time, 100)
+    house_mode_actor.start_with_options(
+      get_now: get_time,
+      timer_interval_ms: 100,
+      send_after: timer.spy_send_after(spy),
+    )
+
+  // Consume the initial timer request (scheduled during init)
+  let assert Ok(_initial_request) = process.receive(spy, 100)
 
   // Initially should be Sleeping (2:59am on first call)
   let reply1 = process.new_subject()
@@ -359,8 +371,11 @@ pub fn timer_triggers_automatic_mode_reevaluation_test() {
   let assert Ok(mode1) = process.receive(reply1, 1000)
   mode1 |> should.equal(mode.HouseModeSleeping)
 
-  // Wait for timer to fire (>100ms)
-  process.sleep(150)
+  // Manually "fire" the timer by sending ReEvaluateMode directly
+  process.send(actor, house_mode_actor.ReEvaluateMode)
+
+  // Consume the rescheduled timer request (proves timer reschedules)
+  let assert Ok(_second_request) = process.receive(spy, 100)
 
   // Now mode should be Auto (3:01am on timer re-evaluation)
   let reply2 = process.new_subject()
