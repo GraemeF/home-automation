@@ -24,6 +24,7 @@ import deep_heating/temperature
 import deep_heating/timer
 import fake_ha_server.{ClimateEntityState, SensorEntityState}
 import gleam/erlang/process.{type Subject}
+import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/set
@@ -449,13 +450,13 @@ fn start_deep_heating_with_options(
   time_provider: Option(house_mode_actor.TimeProvider),
 ) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
   let ha_client =
-    HaClient("http://127.0.0.1:" <> int_to_string(port), test_token)
+    HaClient("http://127.0.0.1:" <> int.to_string(port), test_token)
 
   let home_config = make_test_home_config()
   let poller_config = make_poller_config(home_config)
 
   // Use port as a unique prefix for actor names to avoid conflicts in parallel tests
-  let name_prefix = "e2e_" <> int_to_string(port)
+  let name_prefix = "e2e_" <> int.to_string(port)
 
   case
     supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
@@ -656,23 +657,6 @@ fn make_all_day_schedule(target: Float) -> schedule.WeekSchedule {
   )
 }
 
-fn int_to_string(n: Int) -> String {
-  case n {
-    _ if n < 0 -> "-" <> int_to_string(-n)
-    0 -> "0"
-    1 -> "1"
-    2 -> "2"
-    3 -> "3"
-    4 -> "4"
-    5 -> "5"
-    6 -> "6"
-    7 -> "7"
-    8 -> "8"
-    9 -> "9"
-    _ -> int_to_string(n / 10) <> int_to_string(n % 10)
-  }
-}
-
 // =============================================================================
 // Multi-room test helpers
 // =============================================================================
@@ -802,13 +786,13 @@ fn start_deep_heating_multi_room(
   port: Int,
 ) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
   let ha_client =
-    HaClient("http://127.0.0.1:" <> int_to_string(port), test_token)
+    HaClient("http://127.0.0.1:" <> int.to_string(port), test_token)
 
   let home_config = make_multi_room_home_config()
   let poller_config = make_poller_config(home_config)
 
   // Use port as a unique prefix for actor names to avoid conflicts in parallel tests
-  let name_prefix = "e2e_multi_" <> int_to_string(port)
+  let name_prefix = "e2e_multi_" <> int.to_string(port)
 
   case
     supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
