@@ -1,10 +1,8 @@
 import deep_heating/config/home_config.{type HomeConfig, HomeConfig, RoomConfig}
 import deep_heating/entity_id
 import deep_heating/home_assistant/client as home_assistant
-import deep_heating/home_assistant/ha_command_actor
 import deep_heating/home_assistant/ha_poller_actor
 import deep_heating/house_mode/house_mode_actor
-import deep_heating/mode
 import deep_heating/rooms/room_actor
 import deep_heating/rooms/rooms_supervisor
 import deep_heating/scheduling/schedule
@@ -83,118 +81,8 @@ fn make_test_supervisor_config_full(
   )
 }
 
-// Supervisor startup tests
-
-pub fn supervisor_starts_successfully_test() {
-  // The top-level supervisor should start and return Ok with a Started record
-  let assert Ok(started) = supervisor.start_with_prefix(Some("starts_ok"))
-  supervisor.shutdown(started.data)
-}
-
-pub fn supervisor_returns_valid_pid_test() {
-  // The started supervisor should have a valid PID
-  let assert Ok(started) = supervisor.start_with_prefix(Some("valid_pid"))
-  // Verify the PID is alive
-  process.is_alive(started.pid) |> should.be_true
-  supervisor.shutdown(started.data)
-}
-
-// Child supervisor tests
-
-pub fn supervisor_has_house_mode_actor_test() {
-  // The supervisor should have started a HouseModeActor child
-  let assert Ok(started) = supervisor.start_with_prefix(Some("has_house_mode"))
-
-  // Get the house mode actor from the supervisor
-  let result = supervisor.get_house_mode_actor(started.data)
-  should.be_ok(result)
-  supervisor.shutdown(started.data)
-}
-
-pub fn supervisor_has_state_aggregator_actor_test() {
-  // The supervisor should have started a StateAggregatorActor child
-  let assert Ok(started) = supervisor.start_with_prefix(Some("has_state_agg"))
-
-  // Get the state aggregator from the supervisor
-  let result = supervisor.get_state_aggregator(started.data)
-  should.be_ok(result)
-  supervisor.shutdown(started.data)
-}
-
-pub fn house_mode_actor_is_alive_test() {
-  // The house mode actor should be running
-  let assert Ok(started) = supervisor.start_with_prefix(Some("hm_alive"))
-  let assert Ok(house_mode) = supervisor.get_house_mode_actor(started.data)
-  process.is_alive(house_mode.pid) |> should.be_true
-  supervisor.shutdown(started.data)
-}
-
-pub fn state_aggregator_actor_is_alive_test() {
-  // The state aggregator actor should be running
-  let assert Ok(started) = supervisor.start_with_prefix(Some("sa_alive"))
-  let assert Ok(aggregator) = supervisor.get_state_aggregator(started.data)
-  process.is_alive(aggregator.pid) |> should.be_true
-  supervisor.shutdown(started.data)
-}
-
-// Restart behaviour tests
-
-pub fn supervisor_restarts_crashed_house_mode_actor_test() {
-  // When the house mode actor crashes, the supervisor should restart it
-  let assert Ok(started) = supervisor.start_with_prefix(Some("hm_restart"))
-
-  // Get the house mode actor's PID
-  let assert Ok(house_mode) = supervisor.get_house_mode_actor(started.data)
-  let original_pid = house_mode.pid
-
-  // Verify it's alive
-  process.is_alive(original_pid) |> should.be_true
-
-  // Crash the actor by sending an abnormal exit signal
-  process.send_abnormal_exit(original_pid, "test_crash")
-
-  // Give supervisor time to restart the child
-  process.sleep(100)
-
-  // The original PID should be dead
-  process.is_alive(original_pid) |> should.be_false
-
-  // Get the house mode actor again - should be a new process
-  let assert Ok(new_house_mode) = supervisor.get_house_mode_actor(started.data)
-
-  // The new actor should be alive
-  process.is_alive(new_house_mode.pid) |> should.be_true
-
-  // The new PID should be different from the original
-  should.not_equal(new_house_mode.pid, original_pid)
-  supervisor.shutdown(started.data)
-}
-
-pub fn supervisor_restarts_crashed_state_aggregator_test() {
-  // When the state aggregator crashes, the supervisor should restart it
-  let assert Ok(started) = supervisor.start_with_prefix(Some("sa_restart"))
-
-  // Get the aggregator's PID
-  let assert Ok(aggregator) = supervisor.get_state_aggregator(started.data)
-  let original_pid = aggregator.pid
-
-  // Crash the actor
-  process.send_abnormal_exit(original_pid, "test_crash")
-
-  // Give supervisor time to restart
-  process.sleep(100)
-
-  // Get the aggregator again
-  let assert Ok(new_aggregator) = supervisor.get_state_aggregator(started.data)
-
-  // Should be alive with a new PID
-  process.is_alive(new_aggregator.pid) |> should.be_true
-  should.not_equal(new_aggregator.pid, original_pid)
-  supervisor.shutdown(started.data)
-}
-
 // =============================================================================
-// HaPollerActor tests
+// Helper functions
 // =============================================================================
 
 fn create_test_poller_config() -> ha_poller_actor.PollerConfig {
@@ -208,142 +96,6 @@ fn create_test_poller_config() -> ha_poller_actor.PollerConfig {
     managed_sensor_ids: set.new(),
   )
 }
-
-pub fn supervisor_has_ha_poller_actor_test() {
-  // When started with config, supervisor should have HaPollerActor child
-  let assert Ok(started) =
-    supervisor.start_with_config(supervisor.SupervisorConfig(
-      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
-      poller_config: create_test_poller_config(),
-      adjustments_path: test_adjustments_path,
-      name_prefix: Some("has_ha_poller"),
-    ))
-
-  // Get the ha poller actor from the supervisor
-  let result = supervisor.get_ha_poller(started.data)
-  should.be_ok(result)
-  supervisor.shutdown(started.data)
-}
-
-pub fn ha_poller_actor_is_alive_test() {
-  // The HaPollerActor should be running
-  let assert Ok(started) =
-    supervisor.start_with_config(supervisor.SupervisorConfig(
-      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
-      poller_config: create_test_poller_config(),
-      adjustments_path: test_adjustments_path,
-      name_prefix: Some("ha_poller_alive"),
-    ))
-
-  let assert Ok(ha_poller) = supervisor.get_ha_poller(started.data)
-  process.is_alive(ha_poller.pid) |> should.be_true
-  supervisor.shutdown(started.data)
-}
-
-pub fn supervisor_restarts_crashed_ha_poller_actor_test() {
-  // When the HaPollerActor crashes, the supervisor should restart it
-  let assert Ok(started) =
-    supervisor.start_with_config(supervisor.SupervisorConfig(
-      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
-      poller_config: create_test_poller_config(),
-      adjustments_path: test_adjustments_path,
-      name_prefix: Some("ha_poller_restart"),
-    ))
-
-  // Get the HaPollerActor's PID
-  let assert Ok(ha_poller) = supervisor.get_ha_poller(started.data)
-  let original_pid = ha_poller.pid
-
-  // Verify it's alive
-  process.is_alive(original_pid) |> should.be_true
-
-  // Crash the actor by sending an abnormal exit signal
-  process.send_abnormal_exit(original_pid, "test_crash")
-
-  // Give supervisor time to restart the child
-  process.sleep(100)
-
-  // The original PID should be dead
-  process.is_alive(original_pid) |> should.be_false
-
-  // Get the HaPollerActor again - should be a new process
-  let assert Ok(new_ha_poller) = supervisor.get_ha_poller(started.data)
-
-  // The new actor should be alive
-  process.is_alive(new_ha_poller.pid) |> should.be_true
-
-  // The new PID should be different from the original
-  should.not_equal(new_ha_poller.pid, original_pid)
-  supervisor.shutdown(started.data)
-}
-
-// =============================================================================
-// HaCommandActor tests
-// =============================================================================
-
-pub fn supervisor_has_ha_command_actor_test() {
-  // When started with config, supervisor should have HaCommandActor child
-  let assert Ok(started) =
-    supervisor.start_with_config(supervisor.SupervisorConfig(
-      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
-      poller_config: create_test_poller_config(),
-      adjustments_path: test_adjustments_path,
-      name_prefix: Some("has_ha_cmd"),
-    ))
-
-  // Get the ha command actor from the supervisor
-  let result = supervisor.get_ha_command_actor(started.data)
-  should.be_ok(result)
-  supervisor.shutdown(started.data)
-}
-
-pub fn ha_command_actor_is_alive_test() {
-  // The HaCommandActor should be running
-  let assert Ok(started) =
-    supervisor.start_with_config(supervisor.SupervisorConfig(
-      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
-      poller_config: create_test_poller_config(),
-      adjustments_path: test_adjustments_path,
-      name_prefix: Some("ha_cmd_alive"),
-    ))
-
-  let assert Ok(ha_command) = supervisor.get_ha_command_actor(started.data)
-  process.is_alive(ha_command.pid) |> should.be_true
-  supervisor.shutdown(started.data)
-}
-
-pub fn ha_command_actor_responds_to_messages_test() {
-  // The HaCommandActor should process messages
-  let assert Ok(started) =
-    supervisor.start_with_config(supervisor.SupervisorConfig(
-      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
-      poller_config: create_test_poller_config(),
-      adjustments_path: test_adjustments_path,
-      name_prefix: Some("ha_cmd_msg"),
-    ))
-
-  let assert Ok(ha_command) = supervisor.get_ha_command_actor(started.data)
-  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.lounge_trv")
-
-  // Send a message to the actor (it won't actually call HA since we're in test)
-  process.send(
-    ha_command.subject,
-    ha_command_actor.SetTrvAction(
-      entity_id: trv_id,
-      mode: mode.HvacHeat,
-      target: temperature.temperature(21.0),
-    ),
-  )
-
-  // Just verify the actor didn't crash - still alive after message
-  process.sleep(10)
-  process.is_alive(ha_command.pid) |> should.be_true
-  supervisor.shutdown(started.data)
-}
-
-// =============================================================================
-// RoomsSupervisor wiring tests
-// =============================================================================
 
 fn make_test_schedule() -> schedule.WeekSchedule {
   // Simple schedule: 20°C all day every day
@@ -385,6 +137,10 @@ fn make_test_home_config() -> HomeConfig {
     heating_id: heating_id,
   )
 }
+
+// =============================================================================
+// RoomsSupervisor wiring tests
+// =============================================================================
 
 pub fn supervisor_starts_rooms_with_home_config_test() {
   // When started with config including HomeConfig, rooms should be created

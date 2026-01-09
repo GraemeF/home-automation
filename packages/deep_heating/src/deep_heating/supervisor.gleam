@@ -3,10 +3,12 @@
 //// Supervision tree structure:
 //// ```
 //// DeepHeatingSupervisor (one_for_one)
+//// ├── StateAggregatorActor (OTP supervised)
 //// ├── HouseModeActor
-//// ├── StateAggregatorActor
-//// ├── HaPollerActor (when started with config)
-//// └── RoomsSupervisor (when started with home_config)
+//// ├── HaCommandActor
+//// ├── HeatingControlActor
+//// ├── HaPollerActor
+//// └── RoomsSupervisor (per-room actor trees)
 //// ```
 
 import deep_heating/config/home_config.{type HomeConfig}
@@ -31,29 +33,6 @@ import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
 import gleam/otp/static_supervisor as supervisor
 import gleam/result
-
-/// Handle to the running supervisor and its children
-pub opaque type Supervisor {
-  Supervisor(
-    pid: Pid,
-    house_mode_name: Name(house_mode_actor.Message),
-    state_aggregator_name: Name(state_aggregator_actor.Message),
-    ha_poller_name: Option(Name(ha_poller_actor.Message)),
-    ha_command_name: Option(Name(ha_command_actor.Message)),
-  )
-}
-
-/// Configuration for starting the supervisor with HaPollerActor
-pub type SupervisorConfig {
-  SupervisorConfig(
-    ha_client: HaClient,
-    poller_config: ha_poller_actor.PollerConfig,
-    /// Path to persist room adjustments
-    adjustments_path: String,
-    /// Optional prefix for actor names (for test isolation)
-    name_prefix: Option(String),
-  )
-}
 
 // =============================================================================
 // Actor Dependencies - injectable for testing
@@ -164,173 +143,8 @@ pub type ActorRef(msg) {
   ActorRef(pid: Pid, subject: Subject(msg))
 }
 
-/// Start the Deep Heating supervision tree without HaPollerActor.
-///
-/// Returns a Started record containing the supervisor PID and a handle
-/// for querying child actors.
-///
-/// Use `start_with_prefix` for test isolation.
-pub fn start() -> Result(actor.Started(Supervisor), actor.StartError) {
-  start_with_prefix(None)
-}
-
-/// Start the Deep Heating supervision tree with optional name prefix.
-///
-/// The prefix is used to isolate test instances from each other.
-pub fn start_with_prefix(
-  name_prefix: Option(String),
-) -> Result(actor.Started(Supervisor), actor.StartError) {
-  let prefix = case name_prefix {
-    Some(p) -> p <> "_"
-    None -> ""
-  }
-  // Create names for our actors so we can look them up later
-  let house_mode_name = process.new_name(prefix <> "deep_heating_house_mode")
-  let state_aggregator_name =
-    process.new_name(prefix <> "deep_heating_state_aggregator")
-
-  // Build and start the supervision tree
-  supervisor.new(supervisor.OneForOne)
-  |> supervisor.add(house_mode_actor.child_spec(house_mode_name))
-  |> supervisor.add(state_aggregator_actor.child_spec(
-    state_aggregator_name,
-    room_adjustments.default_path,
-  ))
-  |> supervisor.start
-  |> wrap_result(house_mode_name, state_aggregator_name, None, None)
-}
-
 /// Default debounce interval for HA commands in milliseconds
 const default_ha_command_debounce_ms = 5000
-
-/// Start the Deep Heating supervision tree with HaPollerActor.
-///
-/// This variant includes the HaPollerActor for polling Home Assistant.
-/// Note: Events are discarded in this mode (no rooms to route to).
-pub fn start_with_config(
-  config: SupervisorConfig,
-) -> Result(actor.Started(Supervisor), actor.StartError) {
-  // Use prefix for actor name isolation (for tests)
-  let prefix = case config.name_prefix {
-    Some(p) -> p <> "_"
-    None -> ""
-  }
-  // Create names for our actors so we can look them up later
-  let house_mode_name = process.new_name(prefix <> "deep_heating_house_mode")
-  let state_aggregator_name =
-    process.new_name(prefix <> "deep_heating_state_aggregator")
-  let ha_poller_name = process.new_name(prefix <> "deep_heating_ha_poller")
-  let ha_command_name = process.new_name(prefix <> "deep_heating_ha_command")
-
-  // Create an orphaned event spy - events are discarded in this mode
-  // (This mode is primarily for testing without full room configuration)
-  let event_spy: Subject(ha_poller_actor.PollerEvent) = process.new_subject()
-
-  // Build and start the supervision tree
-  supervisor.new(supervisor.OneForOne)
-  |> supervisor.add(house_mode_actor.child_spec(house_mode_name))
-  |> supervisor.add(state_aggregator_actor.child_spec(
-    state_aggregator_name,
-    config.adjustments_path,
-  ))
-  |> supervisor.add(ha_poller_actor.child_spec(
-    ha_poller_name,
-    config.ha_client,
-    config.poller_config,
-    event_spy,
-  ))
-  |> supervisor.add(ha_command_actor.child_spec(
-    ha_command_name,
-    config.ha_client,
-    default_ha_command_debounce_ms,
-  ))
-  |> supervisor.start
-  |> wrap_result(
-    house_mode_name,
-    state_aggregator_name,
-    Some(ha_poller_name),
-    Some(ha_command_name),
-  )
-}
-
-/// Get a reference to the HouseModeActor
-pub fn get_house_mode_actor(
-  sup: Supervisor,
-) -> Result(ActorRef(house_mode_actor.Message), Nil) {
-  case process.named(sup.house_mode_name) {
-    Ok(pid) -> {
-      let subject = process.named_subject(sup.house_mode_name)
-      Ok(ActorRef(pid: pid, subject: subject))
-    }
-    Error(_) -> Error(Nil)
-  }
-}
-
-/// Get a reference to the StateAggregatorActor
-pub fn get_state_aggregator(
-  sup: Supervisor,
-) -> Result(ActorRef(state_aggregator_actor.Message), Nil) {
-  case process.named(sup.state_aggregator_name) {
-    Ok(pid) -> {
-      let subject = process.named_subject(sup.state_aggregator_name)
-      Ok(ActorRef(pid: pid, subject: subject))
-    }
-    Error(_) -> Error(Nil)
-  }
-}
-
-/// Get a reference to the HaPollerActor (only available if started with config)
-pub fn get_ha_poller(
-  sup: Supervisor,
-) -> Result(ActorRef(ha_poller_actor.Message), Nil) {
-  case sup.ha_poller_name {
-    Some(name) -> {
-      case process.named(name) {
-        Ok(pid) -> {
-          let subject = process.named_subject(name)
-          Ok(ActorRef(pid: pid, subject: subject))
-        }
-        Error(_) -> Error(Nil)
-      }
-    }
-    None -> Error(Nil)
-  }
-}
-
-/// Get a reference to the HaCommandActor (only available if started with config)
-pub fn get_ha_command_actor(
-  sup: Supervisor,
-) -> Result(ActorRef(ha_command_actor.Message), Nil) {
-  case sup.ha_command_name {
-    Some(name) -> {
-      case process.named(name) {
-        Ok(pid) -> {
-          let subject = process.named_subject(name)
-          Ok(ActorRef(pid: pid, subject: subject))
-        }
-        Error(_) -> Error(Nil)
-      }
-    }
-    None -> Error(Nil)
-  }
-}
-
-/// Get the supervisor's PID
-pub fn pid(sup: Supervisor) -> Pid {
-  sup.pid
-}
-
-/// Shutdown the supervisor and all its children.
-///
-/// Unlinks from the supervisor then sends a shutdown exit signal.
-/// All children under OTP supervision will be terminated gracefully.
-pub fn shutdown(sup: Supervisor) -> Nil {
-  // Unlink so the calling process doesn't receive the exit signal
-  process.unlink(sup.pid)
-  process.send_abnormal_exit(sup.pid, "shutdown")
-  // Give processes time to terminate and unregister names
-  process.sleep(50)
-}
 
 /// Shutdown the supervisor with rooms and ALL its actors.
 ///
@@ -428,31 +242,8 @@ pub fn shutdown_with_rooms(sup: SupervisorWithRooms) -> Nil {
   process.sleep(50)
 }
 
-fn wrap_result(
-  result: Result(actor.Started(supervisor.Supervisor), actor.StartError),
-  house_mode_name: Name(house_mode_actor.Message),
-  state_aggregator_name: Name(state_aggregator_actor.Message),
-  ha_poller_name: Option(Name(ha_poller_actor.Message)),
-  ha_command_name: Option(Name(ha_command_actor.Message)),
-) -> Result(actor.Started(Supervisor), actor.StartError) {
-  case result {
-    Ok(started) -> {
-      let sup =
-        Supervisor(
-          pid: started.pid,
-          house_mode_name: house_mode_name,
-          state_aggregator_name: state_aggregator_name,
-          ha_poller_name: ha_poller_name,
-          ha_command_name: ha_command_name,
-        )
-      Ok(actor.Started(pid: started.pid, data: sup))
-    }
-    Error(e) -> Error(e)
-  }
-}
-
 // =============================================================================
-// Supervisor with Rooms
+// Start with Home Config
 // =============================================================================
 
 /// Error type for starting supervisor with rooms

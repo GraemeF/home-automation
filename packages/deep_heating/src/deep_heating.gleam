@@ -24,11 +24,18 @@ pub fn main() -> Nil {
   log.configure()
   log.info("Deep Heating starting...")
 
-  // Try to start with HA integration and rooms, fall back to dev mode
+  // Build config from environment and start supervision tree
   case build_supervisor_config_with_rooms() {
+    Error(reason) -> {
+      log.error(
+        "Failed to build config from environment: " <> string.inspect(reason),
+      )
+    }
     Ok(config) -> {
-      log.info("Starting with Home Assistant integration...")
       case supervisor.start_with_home_config(config) {
+        Error(e) -> {
+          log.error("Failed to start supervision tree: " <> string.inspect(e))
+        }
         Ok(started) -> {
           log.info("Supervision tree started")
 
@@ -44,30 +51,6 @@ pub fn main() -> Nil {
 
           // Start the server
           start_server(state_aggregator_subject)
-        }
-        Error(e) -> {
-          log.error("Failed to start supervision tree: " <> string.inspect(e))
-        }
-      }
-    }
-    Error(reason) -> {
-      log.info(
-        "Starting in dev mode (no HA integration): " <> string.inspect(reason),
-      )
-      case supervisor.start() {
-        Ok(started) -> {
-          log.info("Supervision tree started (dev mode)")
-          case supervisor.get_state_aggregator(started.data) {
-            Ok(aggregator_ref) -> {
-              start_server(aggregator_ref.subject)
-            }
-            Error(Nil) -> {
-              log.error("Failed to get state aggregator reference")
-            }
-          }
-        }
-        Error(e) -> {
-          log.error("Failed to start supervision tree: " <> string.inspect(e))
         }
       }
     }
