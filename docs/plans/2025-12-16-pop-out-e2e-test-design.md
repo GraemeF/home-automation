@@ -1,5 +1,7 @@
 # Pop-Out E2E Acceptance Test Design
 
+> **Historical Document**: This was a planning document for the TypeScript implementation created before the Gleam port. The pop-out feature was not ported to Gleam. This document is retained for reference only.
+
 ## Overview
 
 GOOS-style (Growing Object-Oriented Software) outer acceptance test for the "Popping Out" feature. The test describes the complete user flow and will fail repeatedly as we build, with each failure guiding what to implement next.

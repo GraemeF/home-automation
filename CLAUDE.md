@@ -193,8 +193,6 @@ When adding new features to the Gleam codebase:
 
 ## Branch Info
 
-- This is the `feature/gleam-port` branch - a Gleam rewrite of the TypeScript codebase
-- The original TypeScript implementation is on the `main` branch (in a separate worktree)
 - The main branch is protected; changes must be made via a pull request
 
 ## Issue Tracking with Beads
