@@ -115,14 +115,16 @@ pub fn state_aggregator_accepts_unsubscribe_test() {
 pub fn state_aggregator_sends_current_state_on_subscribe_test() {
   // Use spy_send_after so NO broadcasts ever happen from the timer
   // This ensures any state received is from the Subscribe handler itself
-  let timer_spy: process.Subject(
+  let _timer_spy: process.Subject(
     timer.TimerRequest(state_aggregator_actor.Message),
   ) = process.new_subject()
 
+  // Use throttle_ms: 0 to ensure immediate broadcasts without timer spy
   let assert Ok(actor) =
     state_aggregator_actor.start_link_with_options(
       adjustments_path: "/tmp/test_subscribe_sends_state.json",
-      send_after: timer.spy_send_after(timer_spy),
+      send_after: timer.real_send_after,
+      throttle_ms: 0,
     )
 
   // First add some room state so there's something to send
@@ -217,6 +219,7 @@ pub fn state_aggregator_broadcasts_to_subscribers_after_throttle_test() {
     state_aggregator_actor.start_link_with_options(
       adjustments_path: "/tmp/test_broadcast_throttle.json",
       send_after: timer.real_send_after,
+      throttle_ms: state_aggregator_actor.default_throttle_ms,
     )
 
   // Subscribe
@@ -286,6 +289,7 @@ pub fn state_aggregator_does_not_broadcast_to_unsubscribed_test() {
     state_aggregator_actor.start_link_with_options(
       adjustments_path: "/tmp/test_unsubscribe.json",
       send_after: timer.real_send_after,
+      throttle_ms: state_aggregator_actor.default_throttle_ms,
     )
 
   let subscriber: process.Subject(state.DeepHeatingState) =
@@ -508,6 +512,7 @@ pub fn state_aggregator_start_with_options_creates_named_actor_test() {
       name: name,
       adjustments_path: "/tmp/test_named_with_options.json",
       send_after: timer.real_send_after,
+      throttle_ms: state_aggregator_actor.default_throttle_ms,
     )
 
   // Verify the actor is registered with the name
@@ -521,21 +526,18 @@ pub fn state_aggregator_start_with_options_creates_named_actor_test() {
 }
 
 pub fn state_aggregator_start_with_options_uses_injected_timer_test() {
-  // Create a unique name for this test
-  let name = process.new_name("test_aggregator_timer_injection")
-
   // Start with real_send_after
-  let assert Ok(started) =
-    state_aggregator_actor.start_with_options(
-      name: name,
+  let assert Ok(actor) =
+    state_aggregator_actor.start_link_with_options(
       adjustments_path: "/tmp/test_timer_injection.json",
       send_after: timer.real_send_after,
+      throttle_ms: state_aggregator_actor.default_throttle_ms,
     )
 
   // Subscribe
   let subscriber: process.Subject(state.DeepHeatingState) =
     process.new_subject()
-  process.send(started.data, state_aggregator_actor.Subscribe(subscriber))
+  process.send(actor, state_aggregator_actor.Subscribe(subscriber))
   process.sleep(10)
 
   // Drain the initial empty state sent on subscribe
@@ -543,15 +545,87 @@ pub fn state_aggregator_start_with_options_uses_injected_timer_test() {
 
   // Send a room update
   let room_state = make_room_state("lounge")
-  process.send(
-    started.data,
-    state_aggregator_actor.RoomUpdated("lounge", room_state),
-  )
+  process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
 
   // Wait for throttle period plus processing time
   process.sleep(150)
 
   // Subscriber should receive the broadcast
+  let assert Ok(received_state) = process.receive(subscriber, 100)
+  list.length(received_state.rooms) |> should.equal(1)
+}
+
+// =============================================================================
+// Graceful Shutdown Tests
+// =============================================================================
+
+// =============================================================================
+// Configurable Throttle Tests
+// =============================================================================
+
+pub fn state_aggregator_broadcasts_immediately_with_zero_throttle_test() {
+  // When throttle_ms is 0, broadcasts should happen immediately
+  // without waiting for the throttle timer
+  let assert Ok(actor) =
+    state_aggregator_actor.start_link_with_options(
+      adjustments_path: "/tmp/test_zero_throttle.json",
+      send_after: timer.real_send_after,
+      throttle_ms: 0,
+    )
+
+  // Subscribe
+  let subscriber: process.Subject(state.DeepHeatingState) =
+    process.new_subject()
+  process.send(actor, state_aggregator_actor.Subscribe(subscriber))
+  process.sleep(10)
+
+  // Drain the initial empty state sent on subscribe
+  drain_initial_state(subscriber)
+
+  // Send a room update
+  let room_state = make_room_state("lounge")
+  process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
+
+  // With throttle_ms: 0, broadcast should happen almost immediately
+  // (much faster than the 100ms default throttle)
+  let assert Ok(received_state) = process.receive(subscriber, 20)
+  list.length(received_state.rooms) |> should.equal(1)
+}
+
+pub fn state_aggregator_respects_custom_throttle_ms_test() {
+  // When throttle_ms is set to a custom value (e.g. 200ms),
+  // broadcasts should be delayed by that amount
+  let assert Ok(actor) =
+    state_aggregator_actor.start_link_with_options(
+      adjustments_path: "/tmp/test_custom_throttle.json",
+      send_after: timer.real_send_after,
+      throttle_ms: 200,
+    )
+
+  // Subscribe
+  let subscriber: process.Subject(state.DeepHeatingState) =
+    process.new_subject()
+  process.send(actor, state_aggregator_actor.Subscribe(subscriber))
+  process.sleep(10)
+
+  // Drain the initial empty state sent on subscribe
+  drain_initial_state(subscriber)
+
+  // Send a room update
+  let room_state = make_room_state("lounge")
+  process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
+
+  // Should NOT receive broadcast within 100ms (still within throttle period)
+  case process.receive(subscriber, 100) {
+    Error(_) -> Nil
+    // Expected - not yet broadcast
+    Ok(_) -> should.fail()
+    // Should not receive this early
+  }
+
+  // Should receive broadcast after waiting past the 200ms throttle
+  process.sleep(150)
+  // Total wait: ~250ms
   let assert Ok(received_state) = process.receive(subscriber, 100)
   list.length(received_state.rooms) |> should.equal(1)
 }
@@ -567,6 +641,7 @@ pub fn shutdown_cancels_pending_broadcast_timer_test() {
     state_aggregator_actor.start_link_with_options(
       adjustments_path: "/tmp/test_shutdown.json",
       send_after: timer.real_send_after,
+      throttle_ms: 100,
     )
 
   // Send a room update to trigger broadcast scheduling

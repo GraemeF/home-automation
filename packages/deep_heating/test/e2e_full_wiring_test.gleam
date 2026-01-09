@@ -620,8 +620,10 @@ fn start_deep_heating_with_options(
         send_after: timer.spy_send_after(spies.ha_command),
         debounce_ms: 5000,
       ),
+      // Use throttle_ms: 0 for immediate broadcasts - eliminates need to flush timer spy
       state_aggregator_deps: supervisor.StateAggregatorDeps(
         send_after: timer.spy_send_after(spies.state_aggregator),
+        throttle_ms: 0,
       ),
     ))
   {
@@ -977,8 +979,10 @@ fn start_deep_heating_multi_room(
         send_after: timer.spy_send_after(spies.ha_command),
         debounce_ms: 5000,
       ),
+      // Use throttle_ms: 0 for immediate broadcasts - eliminates need to flush timer spy
       state_aggregator_deps: supervisor.StateAggregatorDeps(
         send_after: timer.spy_send_after(spies.state_aggregator),
+        throttle_ms: 0,
       ),
     ))
   {
@@ -1050,8 +1054,10 @@ fn start_deep_heating_with_zero_debounce(
         send_after: timer.real_send_after,
         debounce_ms: 0,
       ),
+      // Also use throttle_ms: 0 for immediate broadcasts
       state_aggregator_deps: supervisor.StateAggregatorDeps(
         send_after: timer.spy_send_after(spies.state_aggregator),
+        throttle_ms: 0,
       ),
     ))
   {

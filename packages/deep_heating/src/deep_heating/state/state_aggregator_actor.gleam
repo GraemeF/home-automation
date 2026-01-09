@@ -17,8 +17,8 @@ import gleam/list
 import gleam/otp/actor
 import gleam/otp/supervision
 
-/// Throttle period in milliseconds
-const throttle_ms: Int = 100
+/// Default throttle period in milliseconds
+pub const default_throttle_ms: Int = 100
 
 /// Messages handled by the StateAggregatorActor
 pub type Message {
@@ -57,6 +57,8 @@ pub type State {
     send_after: SendAfter(Message),
     /// Handle to the current broadcast timer (for cancellation on shutdown)
     timer_handle: Result(TimerHandle, Nil),
+    /// Throttle period in milliseconds (0 = immediate broadcast)
+    throttle_ms: Int,
   )
 }
 
@@ -73,14 +75,17 @@ pub fn start_link_with_persistence(
   start_link_with_options(
     adjustments_path: adjustments_path,
     send_after: timer.real_send_after,
+    throttle_ms: default_throttle_ms,
   )
 }
 
 /// Start the StateAggregatorActor with all options (for testing)
 /// Allows injection of send_after for deterministic timer testing
+/// and throttle_ms for controlling broadcast timing (0 = immediate)
 pub fn start_link_with_options(
   adjustments_path adjustments_path: String,
   send_after send_after: SendAfter(Message),
+  throttle_ms throttle_ms: Int,
 ) -> Result(Subject(Message), actor.StartError) {
   actor.new_with_initialiser(1000, fn(self_subject) {
     actor.initialised(State(
@@ -93,6 +98,7 @@ pub fn start_link_with_options(
       previous_adjustments: dict.new(),
       send_after: send_after,
       timer_handle: Error(Nil),
+      throttle_ms: throttle_ms,
     ))
     |> actor.returning(self_subject)
     |> Ok
@@ -111,15 +117,18 @@ pub fn start(
     name: name,
     adjustments_path: adjustments_path,
     send_after: timer.real_send_after,
+    throttle_ms: default_throttle_ms,
   )
 }
 
 /// Start the StateAggregatorActor with a name and all options (for testing)
 /// Allows injection of send_after for deterministic timer testing
+/// and throttle_ms for controlling broadcast timing (0 = immediate)
 pub fn start_with_options(
   name name: Name(Message),
   adjustments_path adjustments_path: String,
   send_after send_after: SendAfter(Message),
+  throttle_ms throttle_ms: Int,
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   actor.new_with_initialiser(1000, fn(self_subject) {
     actor.initialised(State(
@@ -132,6 +141,7 @@ pub fn start_with_options(
       previous_adjustments: dict.new(),
       send_after: send_after,
       timer_handle: Error(Nil),
+      throttle_ms: throttle_ms,
     ))
     |> actor.returning(self_subject)
     |> Ok
@@ -146,20 +156,27 @@ pub fn child_spec(
   name: Name(Message),
   adjustments_path: String,
 ) -> supervision.ChildSpecification(Subject(Message)) {
-  child_spec_with_options(name, adjustments_path, timer.real_send_after)
+  child_spec_with_options(
+    name,
+    adjustments_path,
+    timer.real_send_after,
+    default_throttle_ms,
+  )
 }
 
-/// Create a child specification for supervision with injectable timer
+/// Create a child specification for supervision with injectable timer and throttle
 pub fn child_spec_with_options(
   name: Name(Message),
   adjustments_path: String,
   send_after: SendAfter(Message),
+  throttle_ms: Int,
 ) -> supervision.ChildSpecification(Subject(Message)) {
   supervision.worker(fn() {
     start_with_options(
       name: name,
       adjustments_path: adjustments_path,
       send_after: send_after,
+      throttle_ms: throttle_ms,
     )
   })
 }
@@ -314,12 +331,30 @@ fn schedule_broadcast_if_needed(
       actor.continue(actor_state)
     }
     False -> {
-      // Schedule a broadcast after throttle period and capture handle
-      let handle =
-        actor_state.send_after(actor_state.self_subject, throttle_ms, Broadcast)
-      actor.continue(
-        State(..actor_state, broadcast_pending: True, timer_handle: Ok(handle)),
-      )
+      case actor_state.throttle_ms {
+        0 -> {
+          // Zero throttle: broadcast immediately to self
+          // This avoids timer overhead and makes tests deterministic
+          process.send(actor_state.self_subject, Broadcast)
+          actor.continue(State(..actor_state, broadcast_pending: True))
+        }
+        _ -> {
+          // Schedule a broadcast after throttle period and capture handle
+          let handle =
+            actor_state.send_after(
+              actor_state.self_subject,
+              actor_state.throttle_ms,
+              Broadcast,
+            )
+          actor.continue(
+            State(
+              ..actor_state,
+              broadcast_pending: True,
+              timer_handle: Ok(handle),
+            ),
+          )
+        }
+      }
     }
   }
 }

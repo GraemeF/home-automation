@@ -111,8 +111,10 @@ fn make_test_supervisor_config_full(
       send_after: timer.spy_send_after(ha_command_spy),
       debounce_ms: 5000,
     ),
+    // Use throttle_ms: 0 for immediate broadcasts in tests
     state_aggregator_deps: supervisor.StateAggregatorDeps(
       send_after: timer.spy_send_after(state_aggregator_spy),
+      throttle_ms: 0,
     ),
   )
 }

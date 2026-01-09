@@ -81,6 +81,9 @@ pub type HaCommandDeps {
 pub type StateAggregatorDeps {
   StateAggregatorDeps(
     send_after: timer.SendAfter(state_aggregator_actor.Message),
+    /// Throttle period for broadcasts in milliseconds.
+    /// Use 0 to disable throttling (broadcasts happen immediately).
+    throttle_ms: Int,
   )
 }
 
@@ -128,7 +131,10 @@ pub fn default_ha_command_deps() -> HaCommandDeps {
 }
 
 pub fn default_state_aggregator_deps() -> StateAggregatorDeps {
-  StateAggregatorDeps(send_after: timer.real_send_after)
+  StateAggregatorDeps(
+    send_after: timer.real_send_after,
+    throttle_ms: state_aggregator_actor.default_throttle_ms,
+  )
 }
 
 pub fn default_ha_poller_deps() -> HaPollerDeps {
@@ -471,6 +477,7 @@ pub fn start_with_home_config(
       state_aggregator_name,
       config.adjustments_path,
       config.state_aggregator_deps.send_after,
+      config.state_aggregator_deps.throttle_ms,
     ))
     |> supervisor.start
 
