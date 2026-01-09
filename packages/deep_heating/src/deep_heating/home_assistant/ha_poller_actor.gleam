@@ -390,8 +390,7 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
                 max_backoff_ms,
               )
           }
-          let handle =
-            state.send_after(state.self_subject, delay_ms, PollNow)
+          let handle = state.send_after(state.self_subject, delay_ms, PollNow)
           Ok(handle)
         }
         False -> Error(Nil)

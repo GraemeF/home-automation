@@ -55,7 +55,9 @@ type TestSpies {
     house_mode: Subject(timer.TimerRequest(house_mode_actor.Message)),
     room_actor: Subject(timer.TimerRequest(room_actor.Message)),
     ha_command: Subject(timer.TimerRequest(ha_command_actor.Message)),
-    state_aggregator: Subject(timer.TimerRequest(state_aggregator_actor.Message)),
+    state_aggregator: Subject(
+      timer.TimerRequest(state_aggregator_actor.Message),
+    ),
     ha_poller: Subject(timer.TimerRequest(ha_poller_actor.Message)),
   )
 }
@@ -78,7 +80,10 @@ fn flush_timer_spy(spy: Subject(timer.TimerRequest(msg))) -> Int {
   flush_timer_spy_loop(spy, 0)
 }
 
-fn flush_timer_spy_loop(spy: Subject(timer.TimerRequest(msg)), count: Int) -> Int {
+fn flush_timer_spy_loop(
+  spy: Subject(timer.TimerRequest(msg)),
+  count: Int,
+) -> Int {
   case process.receive(spy, 0) {
     Ok(timer.TimerRequest(subject, _delay, msg)) -> {
       process.send(subject, msg)
@@ -230,7 +235,9 @@ fn wait_for_house_mode_loop(
 /// Repeatedly flushes the state aggregator timer to trigger broadcasts.
 fn wait_for_ui_state_with_rooms(
   ui_subscriber: Subject(DeepHeatingState),
-  state_aggregator_spy: Subject(timer.TimerRequest(state_aggregator_actor.Message)),
+  state_aggregator_spy: Subject(
+    timer.TimerRequest(state_aggregator_actor.Message),
+  ),
   expected_room_count: Int,
   timeout_ms: Int,
 ) -> Result(DeepHeatingState, Nil) {
@@ -245,7 +252,9 @@ fn wait_for_ui_state_with_rooms(
 
 fn wait_for_ui_state_loop(
   ui_subscriber: Subject(DeepHeatingState),
-  state_aggregator_spy: Subject(timer.TimerRequest(state_aggregator_actor.Message)),
+  state_aggregator_spy: Subject(
+    timer.TimerRequest(state_aggregator_actor.Message),
+  ),
   expected_room_count: Int,
   remaining_ms: Int,
   poll_interval_ms: Int,
@@ -601,14 +610,15 @@ fn start_deep_heating_with_options(
       house_mode_deps: supervisor.HouseModeDeps(
         send_after: timer.spy_send_after(spies.house_mode),
       ),
-      ha_poller_deps: supervisor.HaPollerDeps(
-        send_after: timer.spy_send_after(spies.ha_poller),
-      ),
+      ha_poller_deps: supervisor.HaPollerDeps(send_after: timer.spy_send_after(
+        spies.ha_poller,
+      )),
       room_actor_deps: supervisor.RoomActorDeps(
         send_after: timer.spy_send_after(spies.room_actor),
       ),
       ha_command_deps: supervisor.HaCommandDeps(
         send_after: timer.spy_send_after(spies.ha_command),
+        debounce_ms: 5000,
       ),
       state_aggregator_deps: supervisor.StateAggregatorDeps(
         send_after: timer.spy_send_after(spies.state_aggregator),
@@ -957,14 +967,88 @@ fn start_deep_heating_multi_room(
       house_mode_deps: supervisor.HouseModeDeps(
         send_after: timer.spy_send_after(spies.house_mode),
       ),
-      ha_poller_deps: supervisor.HaPollerDeps(
-        send_after: timer.spy_send_after(spies.ha_poller),
-      ),
+      ha_poller_deps: supervisor.HaPollerDeps(send_after: timer.spy_send_after(
+        spies.ha_poller,
+      )),
       room_actor_deps: supervisor.RoomActorDeps(
         send_after: timer.spy_send_after(spies.room_actor),
       ),
       ha_command_deps: supervisor.HaCommandDeps(
         send_after: timer.spy_send_after(spies.ha_command),
+        debounce_ms: 5000,
+      ),
+      state_aggregator_deps: supervisor.StateAggregatorDeps(
+        send_after: timer.spy_send_after(spies.state_aggregator),
+      ),
+    ))
+  {
+    Ok(started) -> Ok(TestSystem(supervisor: started.data, spies: spies))
+    Error(e) -> Error(e)
+  }
+}
+
+// =============================================================================
+// Zero debounce tests - commands fire immediately without timer spy
+// =============================================================================
+
+/// Test that commands fire immediately when debounce_ms is set to 0.
+/// This allows tests to work without needing to manually trigger ha_command timers.
+pub fn commands_fire_immediately_with_zero_debounce_test() {
+  let port = base_port + 7
+
+  // 1. Start fake HA with cold rooms
+  let assert Ok(fake_ha) = start_fake_ha_with_cold_rooms(port)
+  process.sleep(500)
+
+  // 2. Start Deep Heating with debounce_ms: 0 - no timer spy needed!
+  let assert Ok(TestSystem(supervisor: system, spies: _spies)) =
+    start_deep_heating_with_zero_debounce(port)
+
+  // 3. Trigger a poll to get initial state
+  trigger_poll(system)
+
+  // 4. Wait for observable outcome WITHOUT triggering ha_command timers!
+  //    With debounce_ms: 0, commands should fire immediately.
+  let assert Ok(_) = wait_for_heating_command(fake_ha, mode.HvacHeat, 5000)
+
+  // Cleanup
+  supervisor.shutdown_with_rooms(system)
+  fake_ha_server.stop(fake_ha)
+}
+
+/// Start Deep Heating with zero debounce - commands fire immediately
+fn start_deep_heating_with_zero_debounce(
+  port: Int,
+) -> Result(TestSystem, supervisor.StartWithRoomsError) {
+  let ha_client =
+    HaClient("http://127.0.0.1:" <> int_to_string(port), test_token)
+
+  let home_config = make_test_home_config()
+  let poller_config = make_poller_config(home_config)
+  let name_prefix = "e2e_zero_debounce_" <> int_to_string(port)
+  let spies = create_test_spies()
+
+  case
+    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
+      ha_client: ha_client,
+      poller_config: poller_config,
+      adjustments_path: test_adjustments_path,
+      home_config: home_config,
+      name_prefix: Some(name_prefix),
+      time_provider: None,
+      house_mode_deps: supervisor.HouseModeDeps(
+        send_after: timer.spy_send_after(spies.house_mode),
+      ),
+      ha_poller_deps: supervisor.HaPollerDeps(send_after: timer.spy_send_after(
+        spies.ha_poller,
+      )),
+      room_actor_deps: supervisor.RoomActorDeps(
+        send_after: timer.spy_send_after(spies.room_actor),
+      ),
+      // This is the key change - add debounce_ms: 0 to eliminate timer dependency
+      ha_command_deps: supervisor.HaCommandDeps(
+        send_after: timer.real_send_after,
+        debounce_ms: 0,
       ),
       state_aggregator_deps: supervisor.StateAggregatorDeps(
         send_after: timer.spy_send_after(spies.state_aggregator),

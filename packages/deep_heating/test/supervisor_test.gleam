@@ -98,17 +98,18 @@ fn make_test_supervisor_config_full(
     home_config: home_config,
     name_prefix: name_prefix,
     time_provider: time_provider,
-    house_mode_deps: supervisor.HouseModeDeps(
-      send_after: timer.spy_send_after(house_mode_spy),
-    ),
-    ha_poller_deps: supervisor.HaPollerDeps(
-      send_after: timer.spy_send_after(ha_poller_spy),
-    ),
-    room_actor_deps: supervisor.RoomActorDeps(
-      send_after: timer.spy_send_after(room_actor_spy),
-    ),
+    house_mode_deps: supervisor.HouseModeDeps(send_after: timer.spy_send_after(
+      house_mode_spy,
+    )),
+    ha_poller_deps: supervisor.HaPollerDeps(send_after: timer.spy_send_after(
+      ha_poller_spy,
+    )),
+    room_actor_deps: supervisor.RoomActorDeps(send_after: timer.spy_send_after(
+      room_actor_spy,
+    )),
     ha_command_deps: supervisor.HaCommandDeps(
       send_after: timer.spy_send_after(ha_command_spy),
+      debounce_ms: 5000,
     ),
     state_aggregator_deps: supervisor.StateAggregatorDeps(
       send_after: timer.spy_send_after(state_aggregator_spy),

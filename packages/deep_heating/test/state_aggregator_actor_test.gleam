@@ -571,7 +571,10 @@ pub fn shutdown_cancels_pending_broadcast_timer_test() {
 
   // Send a room update to trigger broadcast scheduling
   let room_state = make_room_state("test_room")
-  process.send(actor, state_aggregator_actor.RoomUpdated("test_room", room_state))
+  process.send(
+    actor,
+    state_aggregator_actor.RoomUpdated("test_room", room_state),
+  )
 
   // Immediately send Shutdown (before the 100ms throttle fires)
   process.send(actor, state_aggregator_actor.Shutdown)

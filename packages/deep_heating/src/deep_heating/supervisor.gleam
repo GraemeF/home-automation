@@ -69,12 +69,19 @@ pub type RoomActorDeps {
 
 /// Dependencies for HaCommandActor
 pub type HaCommandDeps {
-  HaCommandDeps(send_after: timer.SendAfter(ha_command_actor.Message))
+  HaCommandDeps(
+    send_after: timer.SendAfter(ha_command_actor.Message),
+    /// Debounce delay for HA commands in milliseconds.
+    /// Use 0 to disable debouncing (commands fire immediately).
+    debounce_ms: Int,
+  )
 }
 
 /// Dependencies for StateAggregatorActor
 pub type StateAggregatorDeps {
-  StateAggregatorDeps(send_after: timer.SendAfter(state_aggregator_actor.Message))
+  StateAggregatorDeps(
+    send_after: timer.SendAfter(state_aggregator_actor.Message),
+  )
 }
 
 /// Dependencies for HaPollerActor
@@ -114,7 +121,10 @@ pub fn default_room_actor_deps() -> RoomActorDeps {
 }
 
 pub fn default_ha_command_deps() -> HaCommandDeps {
-  HaCommandDeps(send_after: timer.real_send_after)
+  HaCommandDeps(
+    send_after: timer.real_send_after,
+    debounce_ms: default_ha_command_debounce_ms,
+  )
 }
 
 pub fn default_state_aggregator_deps() -> StateAggregatorDeps {
@@ -495,7 +505,7 @@ pub fn start_with_home_config(
               name: ha_command_name,
               ha_client: config.ha_client,
               api_spy: process.new_subject(),
-              debounce_ms: default_ha_command_debounce_ms,
+              debounce_ms: config.ha_command_deps.debounce_ms,
               skip_http: False,
               send_after: config.ha_command_deps.send_after,
             )
@@ -736,4 +746,3 @@ pub fn get_state_aggregator_subject(
 ) -> Subject(state_aggregator_actor.Message) {
   process.named_subject(sup.state_aggregator_name)
 }
-
