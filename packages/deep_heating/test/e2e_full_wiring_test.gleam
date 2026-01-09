@@ -17,7 +17,6 @@ import deep_heating/home_assistant/ha_command_actor
 import deep_heating/home_assistant/ha_poller_actor
 import deep_heating/house_mode/house_mode_actor
 import deep_heating/mode
-import deep_heating/rooms/room_actor
 import deep_heating/scheduling/schedule
 import deep_heating/state.{type DeepHeatingState}
 import deep_heating/state/state_aggregator_actor
@@ -50,26 +49,23 @@ const test_adjustments_path = "/tmp/deep_heating_e2e_adjustments.json"
 
 /// Spy subjects for capturing timer requests.
 /// Tests can receive from these to trigger timer messages manually.
+/// Only includes spies that are actually used in tests:
+/// - ha_command: to bypass debounce and trigger commands immediately
+/// - state_aggregator: to flush broadcast throttle
 type TestSpies {
   TestSpies(
-    house_mode: Subject(timer.TimerRequest(house_mode_actor.Message)),
-    room_actor: Subject(timer.TimerRequest(room_actor.Message)),
     ha_command: Subject(timer.TimerRequest(ha_command_actor.Message)),
     state_aggregator: Subject(
       timer.TimerRequest(state_aggregator_actor.Message),
     ),
-    ha_poller: Subject(timer.TimerRequest(ha_poller_actor.Message)),
   )
 }
 
-/// Create spy subjects for all actor types
+/// Create spy subjects for actors that need controlled timing in tests
 fn create_test_spies() -> TestSpies {
   TestSpies(
-    house_mode: process.new_subject(),
-    room_actor: process.new_subject(),
     ha_command: process.new_subject(),
     state_aggregator: process.new_subject(),
-    ha_poller: process.new_subject(),
   )
 }
 
@@ -596,7 +592,10 @@ fn start_deep_heating_with_options(
   // Use port as a unique prefix for actor names to avoid conflicts in parallel tests
   let name_prefix = "e2e_" <> int_to_string(port)
 
-  // Create spy subjects for all actors - gives complete control over timing
+  // Create spy subjects only for actors where we need to control timing:
+  // - ha_command: to bypass debounce and trigger commands immediately
+  // - state_aggregator: to flush broadcast throttle (though with throttle_ms: 0 this is mostly unused)
+  // Other actors use real timers - we don't need to control their timing in e2e tests.
   let spies = create_test_spies()
 
   case
@@ -607,15 +606,15 @@ fn start_deep_heating_with_options(
       home_config: home_config,
       name_prefix: Some(name_prefix),
       time_provider: time_provider,
+      // Use real timers for actors where we don't need to control timing
       house_mode_deps: supervisor.HouseModeDeps(
-        send_after: timer.spy_send_after(spies.house_mode),
+        send_after: timer.real_send_after,
       ),
-      ha_poller_deps: supervisor.HaPollerDeps(send_after: timer.spy_send_after(
-        spies.ha_poller,
-      )),
+      ha_poller_deps: supervisor.HaPollerDeps(send_after: timer.real_send_after),
       room_actor_deps: supervisor.RoomActorDeps(
-        send_after: timer.spy_send_after(spies.room_actor),
+        send_after: timer.real_send_after,
       ),
+      // Use spy for ha_command to bypass debounce and trigger commands immediately
       ha_command_deps: supervisor.HaCommandDeps(
         send_after: timer.spy_send_after(spies.ha_command),
         debounce_ms: 5000,
@@ -955,7 +954,7 @@ fn start_deep_heating_multi_room(
   // Use port as a unique prefix for actor names to avoid conflicts in parallel tests
   let name_prefix = "e2e_multi_" <> int_to_string(port)
 
-  // Create spy subjects for all actors - gives complete control over timing
+  // Create spy subjects only for actors where we need to control timing
   let spies = create_test_spies()
 
   case
@@ -966,15 +965,15 @@ fn start_deep_heating_multi_room(
       home_config: home_config,
       name_prefix: Some(name_prefix),
       time_provider: None,
+      // Use real timers for actors where we don't need to control timing
       house_mode_deps: supervisor.HouseModeDeps(
-        send_after: timer.spy_send_after(spies.house_mode),
+        send_after: timer.real_send_after,
       ),
-      ha_poller_deps: supervisor.HaPollerDeps(send_after: timer.spy_send_after(
-        spies.ha_poller,
-      )),
+      ha_poller_deps: supervisor.HaPollerDeps(send_after: timer.real_send_after),
       room_actor_deps: supervisor.RoomActorDeps(
-        send_after: timer.spy_send_after(spies.room_actor),
+        send_after: timer.real_send_after,
       ),
+      // Use spy for ha_command to bypass debounce and trigger commands immediately
       ha_command_deps: supervisor.HaCommandDeps(
         send_after: timer.spy_send_after(spies.ha_command),
         debounce_ms: 5000,
@@ -1040,21 +1039,20 @@ fn start_deep_heating_with_zero_debounce(
       home_config: home_config,
       name_prefix: Some(name_prefix),
       time_provider: None,
+      // Use real timers for actors where we don't need to control timing
       house_mode_deps: supervisor.HouseModeDeps(
-        send_after: timer.spy_send_after(spies.house_mode),
+        send_after: timer.real_send_after,
       ),
-      ha_poller_deps: supervisor.HaPollerDeps(send_after: timer.spy_send_after(
-        spies.ha_poller,
-      )),
+      ha_poller_deps: supervisor.HaPollerDeps(send_after: timer.real_send_after),
       room_actor_deps: supervisor.RoomActorDeps(
-        send_after: timer.spy_send_after(spies.room_actor),
+        send_after: timer.real_send_after,
       ),
-      // This is the key change - add debounce_ms: 0 to eliminate timer dependency
+      // Zero debounce - commands fire immediately without timer spy
       ha_command_deps: supervisor.HaCommandDeps(
         send_after: timer.real_send_after,
         debounce_ms: 0,
       ),
-      // Also use throttle_ms: 0 for immediate broadcasts
+      // Use throttle_ms: 0 for immediate broadcasts
       state_aggregator_deps: supervisor.StateAggregatorDeps(
         send_after: timer.spy_send_after(spies.state_aggregator),
         throttle_ms: 0,
