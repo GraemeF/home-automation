@@ -732,3 +732,168 @@ pub fn room_supervisor_registers_room_actor_with_house_mode_actor_test() {
   let assert Ok(state2) = process.receive(reply2, 1000)
   state2.house_mode |> should.equal(mode.HouseModeSleeping)
 }
+
+// =============================================================================
+// Sensor-Only Room Tests (dh-yosk)
+// =============================================================================
+
+fn make_sensor_only_room_config() -> RoomConfig {
+  // Room with a temperature sensor but no TRVs and no schedule
+  let assert Ok(sensor_id) = entity_id.sensor_entity_id("sensor.garden_temp")
+
+  RoomConfig(
+    name: "garden",
+    temperature_sensor_entity_id: Some(sensor_id),
+    climate_entity_ids: [],
+    schedule: None,
+  )
+}
+
+pub fn rooms_supervisor_starts_sensor_only_room_test() {
+  // Sensor-only rooms (no schedule) should still have actors created
+  // so they can track temperature and appear in the UI.
+  let assert Ok(sleep_switch) =
+    entity_id.goodnight_entity_id("input_button.goodnight")
+  let assert Ok(heating_id) = entity_id.climate_entity_id("climate.heating")
+
+  let config =
+    HomeConfig(
+      rooms: [make_single_room_config(), make_sensor_only_room_config()],
+      sleep_switch_id: sleep_switch,
+      heating_id: heating_id,
+    )
+
+  let state_aggregator: process.Subject(state_aggregator_actor.Message) =
+    process.new_subject()
+  let #(ha_command_name, _spy) = make_mock_ha_command("sensor_only")
+
+  let assert Ok(rooms_sup) =
+    rooms_supervisor.start(
+      config: config,
+      state_aggregator: state_aggregator,
+      ha_command_name: ha_command_name,
+      house_mode: make_dummy_house_mode(),
+      heating_control: None,
+      initial_adjustments: [],
+      room_send_after: timer.real_send_after,
+    )
+
+  // Should have supervisors for both rooms (lounge with TRV AND garden with sensor only)
+  let room_supervisors = rooms_supervisor.get_room_supervisors(rooms_sup)
+  list.length(room_supervisors) |> should.equal(2)
+}
+
+pub fn sensor_only_room_can_be_found_by_name_test() {
+  let assert Ok(sleep_switch) =
+    entity_id.goodnight_entity_id("input_button.goodnight")
+  let assert Ok(heating_id) = entity_id.climate_entity_id("climate.heating")
+
+  let config =
+    HomeConfig(
+      rooms: [make_single_room_config(), make_sensor_only_room_config()],
+      sleep_switch_id: sleep_switch,
+      heating_id: heating_id,
+    )
+
+  let state_aggregator: process.Subject(state_aggregator_actor.Message) =
+    process.new_subject()
+  let #(ha_command_name, _spy) = make_mock_ha_command("sensor_by_name")
+
+  let assert Ok(rooms_sup) =
+    rooms_supervisor.start(
+      config: config,
+      state_aggregator: state_aggregator,
+      ha_command_name: ha_command_name,
+      house_mode: make_dummy_house_mode(),
+      heating_control: None,
+      initial_adjustments: [],
+      room_send_after: timer.real_send_after,
+    )
+
+  // Should be able to find sensor-only room by name
+  let garden_result = rooms_supervisor.get_room_by_name(rooms_sup, "garden")
+  should.be_ok(garden_result)
+}
+
+pub fn sensor_only_room_tracks_temperature_test() {
+  let assert Ok(sleep_switch) =
+    entity_id.goodnight_entity_id("input_button.goodnight")
+  let assert Ok(heating_id) = entity_id.climate_entity_id("climate.heating")
+
+  let config =
+    HomeConfig(
+      rooms: [make_sensor_only_room_config()],
+      sleep_switch_id: sleep_switch,
+      heating_id: heating_id,
+    )
+
+  let state_aggregator: process.Subject(state_aggregator_actor.Message) =
+    process.new_subject()
+  let #(ha_command_name, _spy) = make_mock_ha_command("sensor_tracks_temp")
+
+  let assert Ok(rooms_sup) =
+    rooms_supervisor.start(
+      config: config,
+      state_aggregator: state_aggregator,
+      ha_command_name: ha_command_name,
+      house_mode: make_dummy_house_mode(),
+      heating_control: None,
+      initial_adjustments: [],
+      room_send_after: timer.real_send_after,
+    )
+
+  // Get the garden room actor
+  let assert Ok(garden_sup) =
+    rooms_supervisor.get_room_by_name(rooms_sup, "garden")
+  let assert Ok(room_actor_ref) = rooms_supervisor.get_room_actor(garden_sup)
+
+  // Send temperature update
+  let temp = temperature.temperature(18.5)
+  process.send(room_actor_ref.subject, room_actor.ExternalTempChanged(temp))
+  process.sleep(50)
+
+  // Query room actor state - should have temperature but no target
+  let reply = process.new_subject()
+  process.send(room_actor_ref.subject, room_actor.GetState(reply))
+  let assert Ok(state) = process.receive(reply, 1000)
+
+  state.name |> should.equal("garden")
+  state.temperature |> should.equal(Some(temp))
+  state.target_temperature |> should.equal(None)
+}
+
+pub fn sensor_only_room_has_no_trvs_test() {
+  let assert Ok(sleep_switch) =
+    entity_id.goodnight_entity_id("input_button.goodnight")
+  let assert Ok(heating_id) = entity_id.climate_entity_id("climate.heating")
+
+  let config =
+    HomeConfig(
+      rooms: [make_sensor_only_room_config()],
+      sleep_switch_id: sleep_switch,
+      heating_id: heating_id,
+    )
+
+  let state_aggregator: process.Subject(state_aggregator_actor.Message) =
+    process.new_subject()
+  let #(ha_command_name, _spy) = make_mock_ha_command("sensor_no_trvs")
+
+  let assert Ok(rooms_sup) =
+    rooms_supervisor.start(
+      config: config,
+      state_aggregator: state_aggregator,
+      ha_command_name: ha_command_name,
+      house_mode: make_dummy_house_mode(),
+      heating_control: None,
+      initial_adjustments: [],
+      room_send_after: timer.real_send_after,
+    )
+
+  // Get the garden room
+  let assert Ok(garden_sup) =
+    rooms_supervisor.get_room_by_name(rooms_sup, "garden")
+
+  // Should have no TRV actors
+  let trv_refs = rooms_supervisor.get_trv_actors(garden_sup)
+  list.length(trv_refs) |> should.equal(0)
+}

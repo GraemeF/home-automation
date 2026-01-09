@@ -62,8 +62,10 @@ pub opaque type RoomSupervisor {
   RoomSupervisor(
     room_name: String,
     room_actor: ActorRef(room_actor.Message),
+    /// TRV actors for this room (empty list for sensor-only rooms)
     trv_actors: List(ActorRef(trv_actor.Message)),
-    decision_actor: ActorRef(room_decision_actor.Message),
+    /// Decision actor - None for sensor-only rooms
+    decision_actor: Option(ActorRef(room_decision_actor.Message)),
   )
 }
 
@@ -220,7 +222,7 @@ pub fn start_room(
     room_name: room_config.name,
     room_actor: room_ref,
     trv_actors: trv_refs,
-    decision_actor: decision_ref,
+    decision_actor: Some(decision_ref),
   ))
 }
 
@@ -289,11 +291,62 @@ pub fn get_trv_actors(sup: RoomSupervisor) -> List(ActorRef(trv_actor.Message)) 
   sup.trv_actors
 }
 
-/// Get the RoomDecisionActor reference from a RoomSupervisor
+/// Get the RoomDecisionActor reference from a RoomSupervisor.
+/// Returns Error(Nil) for sensor-only rooms which have no decision actor.
 pub fn get_decision_actor(
   sup: RoomSupervisor,
 ) -> Result(ActorRef(room_decision_actor.Message), Nil) {
-  Ok(sup.decision_actor)
+  option.to_result(sup.decision_actor, Nil)
+}
+
+// =============================================================================
+// Sensor-Only Room
+// =============================================================================
+
+/// Start a sensor-only room.
+///
+/// Creates only a RoomActor that tracks external temperature.
+/// No TRVs, no decision actor, no schedule.
+///
+/// The room actor is still registered with the state aggregator so
+/// it can appear in the UI and receive temperature updates.
+pub fn start_sensor_only_room(
+  room_config room_config: RoomConfig,
+  state_aggregator state_aggregator: Subject(state_aggregator_actor.Message),
+) -> Result(RoomSupervisor, StartError) {
+  // Create a name for the room actor
+  let room_actor_name = process.new_name("room_actor_" <> room_config.name)
+
+  // Start the sensor-only RoomActor
+  use room_started <- result.try(
+    room_actor.start_sensor_only(
+      actor_name: room_actor_name,
+      room_name: room_config.name,
+      state_aggregator: coerce_subject(state_aggregator),
+    )
+    |> result.map_error(ActorStartError),
+  )
+
+  let room_subject = room_started.data
+  let room_ref =
+    ActorRef(
+      pid: room_started.pid,
+      subject: room_subject,
+      name: room_actor_name,
+    )
+
+  // Register the room actor with the state aggregator for adjustment forwarding
+  process.send(
+    state_aggregator,
+    state_aggregator_actor.RegisterRoomActor(room_config.name, room_subject),
+  )
+
+  Ok(RoomSupervisor(
+    room_name: room_config.name,
+    room_actor: room_ref,
+    trv_actors: [],
+    decision_actor: None,
+  ))
 }
 
 // =============================================================================
@@ -301,7 +354,8 @@ pub fn get_decision_actor(
 // =============================================================================
 
 /// Start room supervision trees for all rooms in the configuration.
-/// Rooms without schedules are skipped (sensor-only rooms don't need actors).
+/// Starts full supervision trees for rooms with schedules, and
+/// sensor-only actors for rooms without schedules.
 pub fn start(
   config config: HomeConfig,
   state_aggregator state_aggregator: Subject(state_aggregator_actor.Message),
@@ -313,20 +367,28 @@ pub fn start(
   initial_adjustments initial_adjustments: List(RoomAdjustment),
   room_send_after room_send_after: SendAfter(room_actor.Message),
 ) -> Result(RoomsSupervisor, StartError) {
-  // Only start actors for rooms with schedules (controllable rooms)
-  // Sensor-only rooms (no schedule) are skipped
+  // Start all rooms - scheduled rooms get full actors, sensor-only rooms get minimal actors
   config.rooms
-  |> list.filter(fn(room_config) { option.is_some(room_config.schedule) })
   |> list.try_map(fn(room_config) {
-    start_room(
-      room_config: room_config,
-      state_aggregator: state_aggregator,
-      ha_command_name: ha_command_name,
-      house_mode: house_mode,
-      heating_control: heating_control,
-      initial_adjustments: initial_adjustments,
-      room_send_after: room_send_after,
-    )
+    case room_config.schedule {
+      Some(_) ->
+        // Room with schedule - start full supervision tree
+        start_room(
+          room_config: room_config,
+          state_aggregator: state_aggregator,
+          ha_command_name: ha_command_name,
+          house_mode: house_mode,
+          heating_control: heating_control,
+          initial_adjustments: initial_adjustments,
+          room_send_after: room_send_after,
+        )
+      None ->
+        // Sensor-only room - start minimal actor
+        start_sensor_only_room(
+          room_config: room_config,
+          state_aggregator: state_aggregator,
+        )
+    }
     |> result.map(fn(room_sup) { #(room_config.name, room_sup) })
   })
   |> result.map(fn(pairs) { RoomsSupervisor(rooms: dict.from_list(pairs)) })

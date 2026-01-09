@@ -142,9 +142,10 @@ pub type Message {
 type ActorState {
   ActorState(
     room: RoomState,
-    schedule: WeekSchedule,
-    /// Name of the RoomDecisionActor - looked up via named_subject() on each notification
-    decision_actor_name: Name(DecisionMessage),
+    /// Optional schedule - sensor-only rooms have no schedule
+    schedule: Option(WeekSchedule),
+    /// Optional RoomDecisionActor name - sensor-only rooms have no decision actor
+    decision_actor_name: Option(Name(DecisionMessage)),
     state_aggregator: Subject(AggregatorMessage),
     /// Optional heating control actor for boiler demand updates
     heating_control: Option(Subject(HeatingControlMessage)),
@@ -311,6 +312,28 @@ pub fn start_named_with_options(
   )
 }
 
+/// Start a named sensor-only RoomActor.
+/// Sensor-only rooms have no schedule, no TRVs, and no decision actor.
+/// They track only the external temperature sensor.
+pub fn start_sensor_only(
+  actor_name actor_name: Name(Message),
+  room_name room_name: String,
+  state_aggregator state_aggregator: Subject(AggregatorMessage),
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  start_internal_with_optional_schedule(
+    room_name: room_name,
+    actor_name: Some(actor_name),
+    schedule: None,
+    decision_actor_name: None,
+    state_aggregator: state_aggregator,
+    heating_control: None,
+    get_time: get_current_datetime,
+    timer_interval_ms: 0,
+    initial_adjustment: 0.0,
+    send_after: timer.real_send_after,
+  )
+}
+
 /// Internal start function that handles both named and unnamed variants
 fn start_internal(
   room_name room_name: String,
@@ -324,19 +347,50 @@ fn start_internal(
   initial_adjustment initial_adjustment: Float,
   send_after send_after: SendAfter(Message),
 ) -> Result(actor.Started(Subject(Message)), actor.StartError) {
+  start_internal_with_optional_schedule(
+    room_name: room_name,
+    actor_name: actor_name,
+    schedule: Some(schedule),
+    decision_actor_name: Some(decision_actor_name),
+    state_aggregator: state_aggregator,
+    heating_control: heating_control,
+    get_time: get_time,
+    timer_interval_ms: timer_interval_ms,
+    initial_adjustment: initial_adjustment,
+    send_after: send_after,
+  )
+}
+
+/// Internal start function that supports optional schedule and decision actor.
+/// Used for sensor-only rooms which have no schedule or decision actor.
+fn start_internal_with_optional_schedule(
+  room_name room_name: String,
+  actor_name actor_name: Option(Name(Message)),
+  schedule schedule: Option(WeekSchedule),
+  decision_actor_name decision_actor_name: Option(Name(DecisionMessage)),
+  state_aggregator state_aggregator: Subject(AggregatorMessage),
+  heating_control heating_control: Option(Subject(HeatingControlMessage)),
+  get_time get_time: GetDateTime,
+  timer_interval_ms timer_interval_ms: Int,
+  initial_adjustment initial_adjustment: Float,
+  send_after send_after: SendAfter(Message),
+) -> Result(actor.Started(Subject(Message)), actor.StartError) {
   // Clamp initial adjustment to valid range
   let clamped_adjustment = clamp_adjustment(initial_adjustment)
 
   // Compute initial target temperature based on schedule and current time
   let #(weekday, time) = get_time()
-  let initial_target =
-    compute_target_temperature(
-      schedule: schedule,
-      house_mode: HouseModeAuto,
-      adjustment: clamped_adjustment,
-      day: weekday,
-      time: time,
-    )
+  let initial_target = case schedule {
+    Some(sched) ->
+      compute_target_temperature(
+        schedule: sched,
+        house_mode: HouseModeAuto,
+        adjustment: clamped_adjustment,
+        day: weekday,
+        time: time,
+      )
+    None -> None
+  }
 
   let initial_trv_states = dict.new()
   let initial_room =
@@ -352,14 +406,14 @@ fn start_internal(
 
   let builder =
     actor.new_with_initialiser(1000, fn(self_subject) {
-      // Schedule initial timer if interval > 0 and capture handle
-      let initial_timer_handle = case timer_interval_ms > 0 {
-        True -> {
+      // Schedule initial timer only if we have a schedule and interval > 0
+      let initial_timer_handle = case schedule, timer_interval_ms > 0 {
+        Some(_), True -> {
           let handle =
             send_after(self_subject, timer_interval_ms, ReComputeTarget)
           Ok(handle)
         }
-        False -> Error(Nil)
+        _, _ -> Error(Nil)
       }
 
       let initial_state =
@@ -605,10 +659,16 @@ fn synthesize_is_heating(trv: TrvState) -> TrvState {
 }
 
 fn notify_state_changed(actor_state: ActorState) -> Nil {
-  // Look up RoomDecisionActor by name (survives restarts under OTP supervision)
-  let decision_actor: Subject(DecisionMessage) =
-    process.named_subject(actor_state.decision_actor_name)
-  process.send(decision_actor, RoomStateChanged(actor_state.room))
+  // Only notify decision actor if we have one (sensor-only rooms don't)
+  case actor_state.decision_actor_name {
+    Some(decision_name) -> {
+      // Look up RoomDecisionActor by name (survives restarts under OTP supervision)
+      let decision_actor: Subject(DecisionMessage) =
+        process.named_subject(decision_name)
+      process.send(decision_actor, RoomStateChanged(actor_state.room))
+    }
+    None -> Nil
+  }
   // Convert internal RoomState to state.RoomState for the aggregator
   let aggregator_state = to_aggregator_state(actor_state.room)
   process.send(
@@ -667,17 +727,23 @@ fn to_aggregator_state(room: RoomState) -> state.RoomState {
 
 /// Recompute the target temperature for the room based on current state and time
 fn recompute_room_target(state: ActorState) -> ActorState {
-  let #(weekday, time) = { state.get_time }()
-  let new_target =
-    compute_target_temperature(
-      schedule: state.schedule,
-      house_mode: state.room.house_mode,
-      adjustment: state.room.adjustment,
-      day: weekday,
-      time: time,
-    )
-  let new_room = RoomState(..state.room, target_temperature: new_target)
-  ActorState(..state, room: new_room)
+  // Only recompute if we have a schedule (sensor-only rooms have no target)
+  case state.schedule {
+    Some(sched) -> {
+      let #(weekday, time) = { state.get_time }()
+      let new_target =
+        compute_target_temperature(
+          schedule: sched,
+          house_mode: state.room.house_mode,
+          adjustment: state.room.adjustment,
+          day: weekday,
+          time: time,
+        )
+      let new_room = RoomState(..state.room, target_temperature: new_target)
+      ActorState(..state, room: new_room)
+    }
+    None -> state
+  }
 }
 
 /// Reschedule the timer for the next evaluation cycle.
