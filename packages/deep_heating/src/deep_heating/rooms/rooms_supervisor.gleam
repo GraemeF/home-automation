@@ -301,6 +301,7 @@ pub fn get_decision_actor(
 // =============================================================================
 
 /// Start room supervision trees for all rooms in the configuration.
+/// Rooms without schedules are skipped (sensor-only rooms don't need actors).
 pub fn start(
   config config: HomeConfig,
   state_aggregator state_aggregator: Subject(state_aggregator_actor.Message),
@@ -312,7 +313,10 @@ pub fn start(
   initial_adjustments initial_adjustments: List(RoomAdjustment),
   room_send_after room_send_after: SendAfter(room_actor.Message),
 ) -> Result(RoomsSupervisor, StartError) {
+  // Only start actors for rooms with schedules (controllable rooms)
+  // Sensor-only rooms (no schedule) are skipped
   config.rooms
+  |> list.filter(fn(room_config) { option.is_some(room_config.schedule) })
   |> list.try_map(fn(room_config) {
     start_room(
       room_config: room_config,

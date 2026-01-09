@@ -24,72 +24,90 @@ pub fn main() -> Nil {
   log.configure()
   log.info("Deep Heating starting...")
 
-  // Try to start with HA integration, fall back to dev mode
-  let start_result = case build_supervisor_config() {
+  // Try to start with HA integration and rooms, fall back to dev mode
+  case build_supervisor_config_with_rooms() {
     Ok(config) -> {
       log.info("Starting with Home Assistant integration...")
-      supervisor.start_with_config(config)
+      case supervisor.start_with_home_config(config) {
+        Ok(started) -> {
+          log.info("Supervision tree started")
+
+          // Start polling - get the actual Subject (not via named lookup)
+          let poller_subject = supervisor.get_ha_poller_subject(started.data)
+          process.send(poller_subject, ha_poller_actor.StartPolling)
+          log.debug("Started HA polling")
+
+          // Get state aggregator subject
+          let state_aggregator_subject =
+            supervisor.get_state_aggregator_subject(started.data)
+          log.debug("Got state aggregator reference")
+
+          // Start the server
+          start_server(state_aggregator_subject)
+        }
+        Error(e) -> {
+          log.error("Failed to start supervision tree: " <> string.inspect(e))
+        }
+      }
     }
     Error(reason) -> {
       log.info(
         "Starting in dev mode (no HA integration): " <> string.inspect(reason),
       )
-      supervisor.start()
-    }
-  }
-
-  // Continue with server startup
-  case start_result {
-    Ok(started) -> {
-      log.info("Supervision tree started")
-
-      // Get the state aggregator actor
-      case supervisor.get_state_aggregator(started.data) {
-        Ok(aggregator_ref) -> {
-          log.debug("Got state aggregator reference")
-
-          // Create room adjuster callback that forwards to StateAggregatorActor
-          let room_adjuster = fn(room_name: String, adjustment: Float) {
-            process.send(
-              aggregator_ref.subject,
-              state_aggregator_actor.AdjustRoom(room_name, adjustment),
-            )
-          }
-
-          // Use PORT env var if set, otherwise default
-          let port = server.port_from_env()
-          let config =
-            server.ServerConfig(
-              port:,
-              host: server.default_host,
-              state_aggregator: aggregator_ref.subject,
-              room_adjuster:,
-            )
-
-          // Start the HTTP/WebSocket server
-          case server.start(config) {
-            Ok(Nil) -> {
-              log.info(
-                "Server started on http://localhost:" <> int.to_string(port),
-              )
+      case supervisor.start() {
+        Ok(started) -> {
+          log.info("Supervision tree started (dev mode)")
+          case supervisor.get_state_aggregator(started.data) {
+            Ok(aggregator_ref) -> {
+              start_server(aggregator_ref.subject)
             }
-            Error(e) -> {
-              log.error("Failed to start server: " <> e)
+            Error(Nil) -> {
+              log.error("Failed to get state aggregator reference")
             }
           }
         }
-        Error(Nil) -> {
-          log.error("Failed to get state aggregator reference")
+        Error(e) -> {
+          log.error("Failed to start supervision tree: " <> string.inspect(e))
         }
       }
-    }
-    Error(e) -> {
-      log.error("Failed to start supervision tree: " <> string.inspect(e))
     }
   }
 
   // Keep the process alive
   process.sleep_forever()
+}
+
+/// Start the HTTP/WebSocket server
+fn start_server(
+  state_aggregator: process.Subject(state_aggregator_actor.Message),
+) -> Nil {
+  // Create room adjuster callback that forwards to StateAggregatorActor
+  let room_adjuster = fn(room_name: String, adjustment: Float) {
+    process.send(
+      state_aggregator,
+      state_aggregator_actor.AdjustRoom(room_name, adjustment),
+    )
+  }
+
+  // Use PORT env var if set, otherwise default
+  let port = server.port_from_env()
+  let config =
+    server.ServerConfig(
+      port:,
+      host: server.default_host,
+      state_aggregator:,
+      room_adjuster:,
+    )
+
+  // Start the HTTP/WebSocket server
+  case server.start(config) {
+    Ok(Nil) -> {
+      log.info("Server started on http://localhost:" <> int.to_string(port))
+    }
+    Error(e) -> {
+      log.error("Failed to start server: " <> e)
+    }
+  }
 }
 
 /// Error type for supervisor config building
@@ -98,11 +116,10 @@ pub type ConfigBuildError {
   HomeConfigError(home_config.ConfigError)
 }
 
-/// Build SupervisorConfig from environment variables and home config file.
-/// Returns Error if SUPERVISOR_URL or SUPERVISOR_TOKEN are not set,
-/// or if HOME_CONFIG_PATH is not set or the config file cannot be loaded.
-fn build_supervisor_config() -> Result(
-  supervisor.SupervisorConfig,
+/// Build SupervisorConfigWithRooms from environment variables and home config file.
+/// Returns Error if required env vars are not set or config cannot be loaded.
+fn build_supervisor_config_with_rooms() -> Result(
+  supervisor.SupervisorConfigWithRooms,
   ConfigBuildError,
 ) {
   // Try to get HaClient from env vars
@@ -119,11 +136,18 @@ fn build_supervisor_config() -> Result(
           // Get adjustments path from env, or use default
           let adjustments_path = room_adjustments.path_from_env_with_default()
 
-          Ok(supervisor.SupervisorConfig(
+          Ok(supervisor.SupervisorConfigWithRooms(
             ha_client: ha_client,
             poller_config: poller_config,
             adjustments_path: adjustments_path,
+            home_config: config,
             name_prefix: option.None,
+            time_provider: option.None,
+            house_mode_deps: supervisor.default_house_mode_deps(),
+            room_actor_deps: supervisor.default_room_actor_deps(),
+            ha_command_deps: supervisor.default_ha_command_deps(),
+            state_aggregator_deps: supervisor.default_state_aggregator_deps(),
+            ha_poller_deps: supervisor.default_ha_poller_deps(),
           ))
         }
       }
