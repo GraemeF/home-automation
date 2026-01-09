@@ -25,14 +25,14 @@ pub fn main() -> Nil {
   log.info("Deep Heating starting...")
 
   // Build config from environment and start supervision tree
-  case build_supervisor_config_with_rooms() {
+  case build_config() {
     Error(reason) -> {
       log.error(
         "Failed to build config from environment: " <> string.inspect(reason),
       )
     }
     Ok(config) -> {
-      case supervisor.start_with_home_config(config) {
+      case supervisor.start(config) {
         Error(e) -> {
           log.error("Failed to start supervision tree: " <> string.inspect(e))
         }
@@ -99,10 +99,10 @@ pub type ConfigBuildError {
   HomeConfigError(home_config.ConfigError)
 }
 
-/// Build SupervisorConfigWithRooms from environment variables and home config file.
+/// Build Config from environment variables and home config file.
 /// Returns Error if required env vars are not set or config cannot be loaded.
-fn build_supervisor_config_with_rooms() -> Result(
-  supervisor.SupervisorConfigWithRooms,
+fn build_config() -> Result(
+  supervisor.Config,
   ConfigBuildError,
 ) {
   // Try to get HaClient from env vars
@@ -119,7 +119,7 @@ fn build_supervisor_config_with_rooms() -> Result(
           // Get adjustments path from env, or use default
           let adjustments_path = room_adjustments.path_from_env_with_default()
 
-          Ok(supervisor.SupervisorConfigWithRooms(
+          Ok(supervisor.Config(
             ha_client: ha_client,
             poller_config: poller_config,
             adjustments_path: adjustments_path,

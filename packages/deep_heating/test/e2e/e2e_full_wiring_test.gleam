@@ -96,7 +96,7 @@ fn has_heating_command(
 
 /// Wait until house mode matches the expected mode, or timeout.
 fn wait_for_house_mode(
-  system: supervisor.SupervisorWithRooms,
+  system: supervisor.Supervisor,
   expected_mode: mode.HouseMode,
   timeout_ms: Int,
 ) -> Result(mode.HouseMode, Nil) {
@@ -104,7 +104,7 @@ fn wait_for_house_mode(
 }
 
 fn wait_for_house_mode_loop(
-  system: supervisor.SupervisorWithRooms,
+  system: supervisor.Supervisor,
   expected_mode: mode.HouseMode,
   remaining_ms: Int,
   poll_interval_ms: Int,
@@ -203,7 +203,7 @@ pub fn full_system_wiring_turns_on_heating_when_cold_test() {
   let assert Ok(_) = wait_for_heating_command(fake_ha, mode.HvacHeat, 5000)
 
   // Cleanup
-  supervisor.shutdown_with_rooms(system)
+  supervisor.shutdown(system)
   fake_ha_server.stop(fake_ha)
 }
 
@@ -227,7 +227,7 @@ pub fn full_system_wiring_turns_off_heating_when_warm_test() {
   let assert Ok(_) = wait_for_heating_command(fake_ha, mode.HvacOff, 5000)
 
   // Cleanup
-  supervisor.shutdown_with_rooms(system)
+  supervisor.shutdown(system)
   fake_ha_server.stop(fake_ha)
 }
 
@@ -262,7 +262,7 @@ pub fn full_system_wiring_responds_to_sleep_button_test() {
   let assert Ok(_) = wait_for_house_mode(system, mode.HouseModeSleeping, 5000)
 
   // Cleanup
-  supervisor.shutdown_with_rooms(system)
+  supervisor.shutdown(system)
   fake_ha_server.stop(fake_ha)
 }
 
@@ -304,7 +304,7 @@ pub fn full_system_wiring_broadcasts_state_to_ui_subscribers_test() {
     state_aggregator,
     state_aggregator_actor.Unsubscribe(ui_subscriber),
   )
-  supervisor.shutdown_with_rooms(system)
+  supervisor.shutdown(system)
   fake_ha_server.stop(fake_ha)
 }
 
@@ -432,7 +432,7 @@ fn start_fake_ha_with_warm_rooms(
 /// Start the Deep Heating supervisor pointing at the fake HA
 fn start_deep_heating(
   port: Int,
-) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
+) -> Result(supervisor.Supervisor, supervisor.StartError) {
   start_deep_heating_with_options(port, None)
 }
 
@@ -440,7 +440,7 @@ fn start_deep_heating(
 fn start_deep_heating_with_time_provider(
   port: Int,
   time_provider: Option(house_mode_actor.TimeProvider),
-) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
+) -> Result(supervisor.Supervisor, supervisor.StartError) {
   start_deep_heating_with_options(port, time_provider)
 }
 
@@ -448,7 +448,7 @@ fn start_deep_heating_with_time_provider(
 fn start_deep_heating_with_options(
   port: Int,
   time_provider: Option(house_mode_actor.TimeProvider),
-) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
+) -> Result(supervisor.Supervisor, supervisor.StartError) {
   let ha_client =
     HaClient("http://127.0.0.1:" <> int.to_string(port), test_token)
 
@@ -459,7 +459,7 @@ fn start_deep_heating_with_options(
   let name_prefix = "e2e_" <> int.to_string(port)
 
   case
-    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
+    supervisor.start(supervisor.Config(
       ha_client: ha_client,
       poller_config: poller_config,
       adjustments_path: test_adjustments_path,
@@ -492,7 +492,7 @@ fn start_deep_heating_with_options(
 }
 
 /// Trigger an immediate poll on the system
-fn trigger_poll(system: supervisor.SupervisorWithRooms) -> Nil {
+fn trigger_poll(system: supervisor.Supervisor) -> Nil {
   let poller_subject = supervisor.get_ha_poller_subject(system)
   process.send(poller_subject, ha_poller_actor.PollNow)
 }
@@ -533,7 +533,7 @@ pub fn full_system_wiring_multi_room_demand_aggregation_test() {
   let assert Ok(_) = wait_for_heating_command(fake_ha, mode.HvacHeat, 5000)
 
   // Cleanup
-  supervisor.shutdown_with_rooms(system)
+  supervisor.shutdown(system)
   fake_ha_server.stop(fake_ha)
 }
 
@@ -578,7 +578,7 @@ pub fn full_system_wiring_multi_room_broadcasts_all_rooms_to_ui_test() {
     state_aggregator,
     state_aggregator_actor.Unsubscribe(ui_subscriber),
   )
-  supervisor.shutdown_with_rooms(system)
+  supervisor.shutdown(system)
   fake_ha_server.stop(fake_ha)
 }
 
@@ -784,7 +784,7 @@ fn make_multi_room_home_config() -> HomeConfig {
 /// Start the Deep Heating supervisor with multi-room config
 fn start_deep_heating_multi_room(
   port: Int,
-) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
+) -> Result(supervisor.Supervisor, supervisor.StartError) {
   let ha_client =
     HaClient("http://127.0.0.1:" <> int.to_string(port), test_token)
 
@@ -795,7 +795,7 @@ fn start_deep_heating_multi_room(
   let name_prefix = "e2e_multi_" <> int.to_string(port)
 
   case
-    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
+    supervisor.start(supervisor.Config(
       ha_client: ha_client,
       poller_config: poller_config,
       adjustments_path: test_adjustments_path,

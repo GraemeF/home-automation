@@ -26,7 +26,7 @@ fn make_test_supervisor_config(
   poller_config: ha_poller_actor.PollerConfig,
   home_config: HomeConfig,
   name_prefix: String,
-) -> supervisor.SupervisorConfigWithRooms {
+) -> supervisor.Config {
   make_test_supervisor_config_full(
     ha_client,
     poller_config,
@@ -45,7 +45,7 @@ fn make_test_supervisor_config_full(
   time_provider: Option(house_mode_actor.TimeProvider),
   adjustments_path: String,
   name_prefix: Option(String),
-) -> supervisor.SupervisorConfigWithRooms {
+) -> supervisor.Config {
   // Create spy subjects that capture timer requests (never fire them)
   let house_mode_spy = process.new_subject()
   let ha_poller_spy = process.new_subject()
@@ -53,7 +53,7 @@ fn make_test_supervisor_config_full(
   let ha_command_spy = process.new_subject()
   let state_aggregator_spy = process.new_subject()
 
-  supervisor.SupervisorConfigWithRooms(
+  supervisor.Config(
     ha_client: ha_client,
     poller_config: poller_config,
     adjustments_path: adjustments_path,
@@ -142,8 +142,8 @@ fn make_test_home_config() -> HomeConfig {
 // RoomsSupervisor wiring tests
 // =============================================================================
 
-pub fn supervisor_starts_rooms_with_home_config_test() {
-  // When started with config including HomeConfig, rooms should be created
+pub fn supervisor_starts_rooms_test() {
+  // When started, rooms should be created from the HomeConfig
   let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
@@ -156,7 +156,7 @@ pub fn supervisor_starts_rooms_with_home_config_test() {
       "starts_rooms",
     )
 
-  let assert Ok(started) = supervisor.start_with_home_config(config)
+  let assert Ok(started) = supervisor.start(config)
 
   // Get the rooms supervisor from the main supervisor
   let assert Ok(rooms_sup) = supervisor.get_rooms_supervisor(started.data)
@@ -166,7 +166,7 @@ pub fn supervisor_starts_rooms_with_home_config_test() {
   list.length(room_supervisors) |> should.equal(1)
 
   // Cleanup
-  supervisor.shutdown_with_rooms(started.data)
+  supervisor.shutdown(started.data)
 }
 
 pub fn supervisor_rooms_are_accessible_by_name_test() {
@@ -182,7 +182,7 @@ pub fn supervisor_rooms_are_accessible_by_name_test() {
       "rooms_by_name",
     )
 
-  let assert Ok(started) = supervisor.start_with_home_config(config)
+  let assert Ok(started) = supervisor.start(config)
 
   // Get the rooms supervisor
   let assert Ok(rooms_sup) = supervisor.get_rooms_supervisor(started.data)
@@ -192,7 +192,7 @@ pub fn supervisor_rooms_are_accessible_by_name_test() {
   should.be_ok(lounge_result)
 
   // Cleanup
-  supervisor.shutdown_with_rooms(started.data)
+  supervisor.shutdown(started.data)
 }
 
 pub fn supervisor_room_actors_are_alive_test() {
@@ -208,7 +208,7 @@ pub fn supervisor_room_actors_are_alive_test() {
       "room_alive",
     )
 
-  let assert Ok(started) = supervisor.start_with_home_config(config)
+  let assert Ok(started) = supervisor.start(config)
 
   // Get the rooms supervisor and lounge room
   let assert Ok(rooms_sup) = supervisor.get_rooms_supervisor(started.data)
@@ -224,7 +224,7 @@ pub fn supervisor_room_actors_are_alive_test() {
   state.name |> should.equal("lounge")
 
   // Cleanup
-  supervisor.shutdown_with_rooms(started.data)
+  supervisor.shutdown(started.data)
 }
 
 // =============================================================================
@@ -254,7 +254,7 @@ pub fn supervisor_loads_room_adjustments_from_env_test() {
       Some("load_adj"),
     )
 
-  let assert Ok(started) = supervisor.start_with_home_config(config)
+  let assert Ok(started) = supervisor.start(config)
 
   // Get the lounge room actor and query its state
   let assert Ok(rooms_sup) = supervisor.get_rooms_supervisor(started.data)
@@ -267,7 +267,7 @@ pub fn supervisor_loads_room_adjustments_from_env_test() {
   // Cleanup
   envoy.unset("ROOM_ADJUSTMENTS_PATH")
   let _ = simplifile.delete(test_path)
-  supervisor.shutdown_with_rooms(started.data)
+  supervisor.shutdown(started.data)
 
   // The room should have the adjustment from the persisted file
   state.adjustment |> should.equal(1.5)
@@ -277,25 +277,25 @@ pub fn supervisor_loads_room_adjustments_from_env_test() {
 // HeatingControlActor wiring tests
 // =============================================================================
 
-pub fn supervisor_has_heating_control_actor_when_started_with_home_config_test() {
-  // When started with home config, supervisor should have HeatingControlActor
+pub fn supervisor_has_heating_control_actor_test() {
+  // When started, supervisor should have HeatingControlActor
   let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
   let config =
     make_test_supervisor_config(ha_client, poller_config, home_config, "has_hc")
 
-  let assert Ok(started) = supervisor.start_with_home_config(config)
+  let assert Ok(started) = supervisor.start(config)
 
   // Get the heating control actor from the supervisor
   let result = supervisor.get_heating_control_actor(started.data)
   should.be_ok(result)
 
   // Cleanup
-  supervisor.shutdown_with_rooms(started.data)
+  supervisor.shutdown(started.data)
 }
 
-pub fn heating_control_actor_is_alive_when_started_with_home_config_test() {
+pub fn heating_control_actor_is_alive_test() {
   // The HeatingControlActor should be running
   let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
   let home_config = make_test_home_config()
@@ -308,14 +308,14 @@ pub fn heating_control_actor_is_alive_when_started_with_home_config_test() {
       "hc_alive",
     )
 
-  let assert Ok(started) = supervisor.start_with_home_config(config)
+  let assert Ok(started) = supervisor.start(config)
 
   let assert Ok(heating_control) =
     supervisor.get_heating_control_actor(started.data)
   process.is_alive(heating_control.pid) |> should.be_true
 
   // Cleanup
-  supervisor.shutdown_with_rooms(started.data)
+  supervisor.shutdown(started.data)
 }
 
 // =============================================================================
@@ -335,7 +335,7 @@ pub fn supervisor_accepts_timer_deps_config_test() {
       "timer_deps_test",
     )
 
-  let assert Ok(started) = supervisor.start_with_home_config(config)
+  let assert Ok(started) = supervisor.start(config)
 
   // Verify all actors are alive
   let assert Ok(rooms_sup) = supervisor.get_rooms_supervisor(started.data)
@@ -343,14 +343,14 @@ pub fn supervisor_accepts_timer_deps_config_test() {
   list.length(room_supervisors) |> should.equal(1)
 
   // Cleanup
-  supervisor.shutdown_with_rooms(started.data)
+  supervisor.shutdown(started.data)
 }
 
 // =============================================================================
 // Graceful shutdown tests (dh-33jq.66)
 //
-// shutdown_with_rooms properly terminates ALL actors started by
-// start_with_home_config, not just the OTP-supervised ones.
+// shutdown properly terminates ALL actors started by
+// start, not just the OTP-supervised ones.
 // This was fixed as part of dh-33jq.76.
 // =============================================================================
 
@@ -367,7 +367,7 @@ pub fn shutdown_terminates_otp_supervisor_test() {
       "shutdown_test_1",
     )
 
-  let assert Ok(started) = supervisor.start_with_home_config(config)
+  let assert Ok(started) = supervisor.start(config)
 
   let supervisor_pid = started.pid
 
@@ -375,15 +375,15 @@ pub fn shutdown_terminates_otp_supervisor_test() {
   process.is_alive(supervisor_pid) |> should.be_true
 
   // Shutdown using the proper shutdown function
-  supervisor.shutdown_with_rooms(started.data)
+  supervisor.shutdown(started.data)
   process.sleep(100)
 
   // The OTP supervisor PID should be dead
   process.is_alive(supervisor_pid) |> should.be_false
 }
 
-pub fn shutdown_with_rooms_terminates_all_actors_test() {
-  // All actors should be properly terminated when shutdown_with_rooms is called.
+pub fn shutdown_terminates_all_actors_test() {
+  // All actors should be properly terminated when shutdown is called.
   // This verifies the fix for dh-33jq.76.
   let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
   let home_config = make_test_home_config()
@@ -396,7 +396,7 @@ pub fn shutdown_with_rooms_terminates_all_actors_test() {
       "shutdown_test_2",
     )
 
-  let assert Ok(started) = supervisor.start_with_home_config(config)
+  let assert Ok(started) = supervisor.start(config)
 
   let supervisor_pid = started.pid
 
@@ -423,7 +423,7 @@ pub fn shutdown_with_rooms_terminates_all_actors_test() {
   process.is_alive(state_agg_pid) |> should.be_true
 
   // Call the proper shutdown function
-  supervisor.shutdown_with_rooms(started.data)
+  supervisor.shutdown(started.data)
   process.sleep(100)
 
   // ALL actors should be dead after proper shutdown
@@ -451,10 +451,10 @@ pub fn shutdown_allows_restart_with_same_names_test() {
       home_config,
       name_prefix,
     )
-  let assert Ok(started1) = supervisor.start_with_home_config(config1)
+  let assert Ok(started1) = supervisor.start(config1)
 
   // Shutdown first instance using proper shutdown function
-  supervisor.shutdown_with_rooms(started1.data)
+  supervisor.shutdown(started1.data)
   process.sleep(100)
 
   // Second instance with same prefix should start successfully
@@ -465,14 +465,14 @@ pub fn shutdown_allows_restart_with_same_names_test() {
       home_config,
       name_prefix,
     )
-  let result2 = supervisor.start_with_home_config(config2)
+  let result2 = supervisor.start(config2)
 
   should.be_ok(result2)
 
   // Cleanup
   case result2 {
     Ok(started2) -> {
-      supervisor.shutdown_with_rooms(started2.data)
+      supervisor.shutdown(started2.data)
     }
     Error(_) -> Nil
   }
@@ -493,12 +493,12 @@ pub fn shutdown_is_fast_test() {
       "shutdown_timing_test",
     )
 
-  let assert Ok(started) = supervisor.start_with_home_config(config)
+  let assert Ok(started) = supervisor.start(config)
 
   let supervisor_pid = started.pid
 
   // Now shutdown using proper shutdown function
-  supervisor.shutdown_with_rooms(started.data)
+  supervisor.shutdown(started.data)
 
   // Shutdown should complete within 200ms even though actors have 63s timers
   // This proves timers don't block process termination

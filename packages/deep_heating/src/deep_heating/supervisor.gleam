@@ -73,9 +73,9 @@ pub type HaPollerDeps {
   HaPollerDeps(send_after: timer.SendAfter(ha_poller_actor.Message))
 }
 
-/// Configuration for starting the supervisor with HaPollerActor and rooms
-pub type SupervisorConfigWithRooms {
-  SupervisorConfigWithRooms(
+/// Configuration for starting the supervisor
+pub type Config {
+  Config(
     ha_client: HaClient,
     poller_config: ha_poller_actor.PollerConfig,
     /// Path to persist room adjustments
@@ -122,9 +122,9 @@ pub fn default_ha_poller_deps() -> HaPollerDeps {
   HaPollerDeps(send_after: timer.real_send_after)
 }
 
-/// Handle to the running supervisor including rooms
-pub opaque type SupervisorWithRooms {
-  SupervisorWithRooms(
+/// Handle to the running supervisor
+pub opaque type Supervisor {
+  Supervisor(
     pid: Pid,
     house_mode_subject: Subject(house_mode_actor.Message),
     state_aggregator_name: Name(state_aggregator_actor.Message),
@@ -146,12 +146,12 @@ pub type ActorRef(msg) {
 /// Default debounce interval for HA commands in milliseconds
 const default_ha_command_debounce_ms = 5000
 
-/// Shutdown the supervisor with rooms and ALL its actors.
+/// Shutdown the supervisor and ALL its actors.
 ///
 /// This properly terminates all manually-started actors that are not
 /// directly supervised by the OTP supervisor. Without this, those actors
 /// would survive the supervisor termination (see dh-33jq.76).
-pub fn shutdown_with_rooms(sup: SupervisorWithRooms) -> Nil {
+pub fn shutdown(sup: Supervisor) -> Nil {
   // 1. Send graceful Shutdown to actors that support it
   process.send(sup.house_mode_subject, house_mode_actor.Shutdown)
   process.send(
@@ -243,18 +243,18 @@ pub fn shutdown_with_rooms(sup: SupervisorWithRooms) -> Nil {
 }
 
 // =============================================================================
-// Start with Home Config
+// Start
 // =============================================================================
 
-/// Error type for starting supervisor with rooms
-pub type StartWithRoomsError {
+/// Error type for starting the supervisor
+pub type StartError {
   SupervisorStartError(actor.StartError)
   RoomsStartError(rooms_supervisor.StartError)
 }
 
-/// Start the Deep Heating supervision tree with HaPollerActor and rooms.
+/// Start the Deep Heating supervision tree.
 ///
-/// This variant includes:
+/// Starts the following actors:
 /// - HouseModeActor (manages house mode state)
 /// - StateAggregatorActor (aggregates room states for UI)
 /// - HaCommandActor (sends commands to Home Assistant)
@@ -262,9 +262,7 @@ pub type StartWithRoomsError {
 /// - RoomsSupervisor (creates per-room actor trees from HomeConfig)
 /// - EventRouterActor (routes poller events to appropriate actors)
 /// - HaPollerActor (polls Home Assistant for updates)
-pub fn start_with_home_config(
-  config: SupervisorConfigWithRooms,
-) -> Result(actor.Started(SupervisorWithRooms), StartWithRoomsError) {
+pub fn start(config: Config) -> Result(actor.Started(Supervisor), StartError) {
   // Create names for our actors so we can look them up later
   // Use prefix if provided (for test isolation)
   let prefix = case config.name_prefix {
@@ -429,7 +427,7 @@ pub fn start_with_home_config(
                                     Error(e) -> Error(SupervisorStartError(e))
                                     Ok(poller_started) -> {
                                       let sup =
-                                        SupervisorWithRooms(
+                                        Supervisor(
                                           pid: started.pid,
                                           house_mode_subject: house_mode_subject,
                                           state_aggregator_name: state_aggregator_name,
@@ -529,14 +527,14 @@ fn build_sensor_registry(
 
 /// Get the rooms supervisor
 pub fn get_rooms_supervisor(
-  sup: SupervisorWithRooms,
+  sup: Supervisor,
 ) -> Result(RoomsSupervisor, Nil) {
   Ok(sup.rooms_supervisor)
 }
 
-/// Get a reference to the HeatingControlActor (only available with home config)
+/// Get a reference to the HeatingControlActor
 pub fn get_heating_control_actor(
-  sup: SupervisorWithRooms,
+  sup: Supervisor,
 ) -> Result(ActorRef(heating_control_actor.Message), Nil) {
   case process.named(sup.heating_control_name) {
     Ok(pid) -> {
@@ -549,13 +547,13 @@ pub fn get_heating_control_actor(
 
 /// Get the HaPollerActor's subject for sending messages (e.g., PollNow)
 pub fn get_ha_poller_subject(
-  sup: SupervisorWithRooms,
+  sup: Supervisor,
 ) -> Subject(ha_poller_actor.Message) {
   sup.ha_poller_subject
 }
 
 /// Get the current house mode by querying the HouseModeActor
-pub fn get_current_house_mode(sup: SupervisorWithRooms) -> mode.HouseMode {
+pub fn get_current_house_mode(sup: Supervisor) -> mode.HouseMode {
   let reply = process.new_subject()
   process.send(sup.house_mode_subject, house_mode_actor.GetMode(reply))
   let assert Ok(current_mode) = process.receive(reply, 1000)
@@ -564,7 +562,7 @@ pub fn get_current_house_mode(sup: SupervisorWithRooms) -> mode.HouseMode {
 
 /// Get the StateAggregatorActor's subject for subscribing to state updates
 pub fn get_state_aggregator_subject(
-  sup: SupervisorWithRooms,
+  sup: Supervisor,
 ) -> Subject(state_aggregator_actor.Message) {
   process.named_subject(sup.state_aggregator_name)
 }
