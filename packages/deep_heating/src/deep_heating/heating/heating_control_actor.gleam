@@ -8,11 +8,13 @@
 //// - Emit domain BoilerCommand messages (decoupled from HA infrastructure)
 
 import deep_heating/entity_id.{type ClimateEntityId}
+import deep_heating/log
 import deep_heating/mode.{type HvacMode}
 import deep_heating/rooms/room_actor
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Name, type Subject}
+import gleam/int
 import gleam/list
 import gleam/option
 import gleam/otp/actor
@@ -137,15 +139,28 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
 /// Evaluate heating demand and send command if boiler state needs to change
 fn evaluate_and_send_command(state: State) -> State {
   let any_room_needs_heating = does_any_room_need_heating(state.room_states)
+  let rooms_needing_heat = count_rooms_needing_heating(state.room_states)
 
   case any_room_needs_heating, state.boiler_is_heating {
     // Room needs heating, boiler is off → turn on
     True, False -> {
+      log.actor_debug(
+        "HeatingControl",
+        "Boiler demand: "
+          <> log.state_change("off", "on")
+          <> " ("
+          <> int.to_string(rooms_needing_heat)
+          <> " rooms need heat)",
+      )
       send_boiler_command(state, mode.HvacHeat)
       State(..state, boiler_is_heating: True)
     }
     // No rooms need heating, boiler is on → turn off
     False, True -> {
+      log.actor_debug(
+        "HeatingControl",
+        "Boiler demand: " <> log.state_change("on", "off") <> " (no rooms need heat)",
+      )
       send_boiler_command(state, mode.HvacOff)
       State(..state, boiler_is_heating: False)
     }
@@ -161,6 +176,16 @@ fn does_any_room_need_heating(
   room_states
   |> dict.values
   |> list.any(room_needs_heating)
+}
+
+/// Count how many rooms need heating (for logging)
+fn count_rooms_needing_heating(
+  room_states: Dict(String, room_actor.RoomState),
+) -> Int {
+  room_states
+  |> dict.values
+  |> list.filter(room_needs_heating)
+  |> list.length
 }
 
 /// Check if a single room needs heating

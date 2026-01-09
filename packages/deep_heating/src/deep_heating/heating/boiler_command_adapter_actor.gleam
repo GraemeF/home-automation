@@ -10,10 +10,14 @@
 //// The actor looks up HaCommandActor by name on each message, ensuring it always
 //// has a fresh reference even after restarts.
 
+import deep_heating/entity_id
 import deep_heating/heating/heating_control_actor.{
   type BoilerCommand, BoilerCommand,
 }
 import deep_heating/home_assistant/ha_command_actor
+import deep_heating/log
+import deep_heating/mode
+import deep_heating/temperature
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/otp/actor
 
@@ -44,7 +48,15 @@ fn handle_message(
   state: State,
   cmd: BoilerCommand,
 ) -> actor.Next(State, BoilerCommand) {
-  let BoilerCommand(entity_id, hvac_mode, target) = cmd
+  let BoilerCommand(boiler_entity_id, hvac_mode, target) = cmd
+
+  log.entity_debug(
+    entity_id.climate_entity_id_to_string(boiler_entity_id),
+    "Boiler command: mode="
+      <> mode.hvac_mode_to_string(hvac_mode)
+      <> ", target="
+      <> temperature.format(target),
+  )
 
   // Look up HA command actor by name (fresh reference on each call)
   let ha_subject: Subject(ha_command_actor.Message) =
@@ -53,7 +65,7 @@ fn handle_message(
   // Convert domain command to infrastructure command
   process.send(
     ha_subject,
-    ha_command_actor.SetHeatingAction(entity_id, hvac_mode, target),
+    ha_command_actor.SetHeatingAction(boiler_entity_id, hvac_mode, target),
   )
 
   actor.continue(state)

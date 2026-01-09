@@ -8,6 +8,7 @@
 
 import deep_heating/entity_id.{type ClimateEntityId}
 import deep_heating/home_assistant/client.{type HaClient} as home_assistant
+import deep_heating/log
 import deep_heating/mode.{type HvacMode}
 import deep_heating/temperature.{type Temperature}
 import deep_heating/timer.{type SendAfter, type TimerHandle}
@@ -226,6 +227,15 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
       // Timer fired - execute the pending action
       case dict.get(state.pending_trv_actions, entity_id) {
         Ok(PendingAction(hvac_mode, target)) -> {
+          let entity_id_str = entity_id.climate_entity_id_to_string(entity_id)
+          log.entity_debug(
+            entity_id_str,
+            "→ HA API: mode="
+              <> mode.hvac_mode_to_string(hvac_mode)
+              <> ", target="
+              <> temperature.format(target),
+          )
+
           // Notify spy for testing/observability
           process.send(
             state.api_spy,
@@ -319,6 +329,15 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
       // Timer fired - execute the pending heating action
       case state.pending_heating_action {
         Ok(PendingHeatingAction(entity_id, hvac_mode, target)) -> {
+          let entity_id_str = entity_id.climate_entity_id_to_string(entity_id)
+          log.entity_debug(
+            entity_id_str,
+            "→ HA API (boiler): mode="
+              <> mode.hvac_mode_to_string(hvac_mode)
+              <> ", target="
+              <> temperature.format(target),
+          )
+
           // Notify the spy for testing/observability
           process.send(
             state.api_spy,

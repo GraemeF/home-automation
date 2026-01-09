@@ -9,10 +9,12 @@
 ////   - After 3am: Auto (unless button pressed after 8pm same day)
 ////   - Button pressed after 8pm: Sleeping (until 3am next day)
 
+import deep_heating/log
 import deep_heating/mode.{type HouseMode, HouseModeAuto, HouseModeSleeping}
 import deep_heating/rooms/room_actor
 import deep_heating/timer.{type SendAfter, type TimerHandle}
 import gleam/erlang/process.{type Name, type Subject}
+import gleam/int
 import gleam/list
 import gleam/otp/actor
 import gleam/otp/supervision
@@ -293,6 +295,16 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
       case current_hour > 20 {
         True -> {
           // Valid button press - update state and mode
+          log.actor_debug(
+            "HouseMode",
+            "Sleep button pressed at "
+              <> int.to_string(current_hour)
+              <> ":00 → "
+              <> log.state_change(
+                mode.house_mode_to_string(state.mode),
+                "Sleeping",
+              ),
+          )
           let new_state =
             State(
               ..state,
@@ -311,6 +323,14 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
             evaluate_mode(current_time, new_state.last_button_press)
           case new_mode != state.mode {
             True -> {
+              log.actor_debug(
+                "HouseMode",
+                "Button pressed (before 8pm) → "
+                  <> log.state_change(
+                    mode.house_mode_to_string(state.mode),
+                    mode.house_mode_to_string(new_mode),
+                  ),
+              )
               broadcast_mode_change(new_state.room_actors, new_mode)
               actor.continue(State(..new_state, mode: new_mode))
             }
@@ -320,6 +340,11 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
       }
     }
     WakeUp -> {
+      log.actor_debug(
+        "HouseMode",
+        "WakeUp triggered → "
+          <> log.state_change(mode.house_mode_to_string(state.mode), "Auto"),
+      )
       // Clear button press and set to Auto
       let new_state =
         State(..state, last_button_press: Error(Nil), mode: HouseModeAuto)
@@ -339,6 +364,16 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
       let new_mode = evaluate_mode(current_time, state.last_button_press)
       let new_state = case new_mode != state.mode {
         True -> {
+          log.actor_debug(
+            "HouseMode",
+            "Timer re-evaluation at "
+              <> int.to_string(datetime_hour(current_time))
+              <> ":00 → "
+              <> log.state_change(
+                mode.house_mode_to_string(state.mode),
+                mode.house_mode_to_string(new_mode),
+              ),
+          )
           broadcast_mode_change(state.room_actors, new_mode)
           State(..state, mode: new_mode)
         }
