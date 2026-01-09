@@ -62,3 +62,65 @@ pub fn warning(message: String) -> Nil {
 pub fn error(message: String) -> Nil {
   logging.log(logging.Error, message)
 }
+
+/// Format a message with actor context prefix.
+/// Returns "[ActorName] message"
+pub fn format_actor(actor_name: String, message: String) -> String {
+  "[" <> actor_name <> "] " <> message
+}
+
+/// Format a message with entity ID prefix.
+/// Returns "[entity_id] message"
+pub fn format_entity(entity_id: String, message: String) -> String {
+  "[" <> entity_id <> "] " <> message
+}
+
+/// Format a state change transition.
+/// Returns "from→to"
+pub fn state_change(from: String, to: String) -> String {
+  from <> "→" <> to
+}
+
+// Actor-context logging convenience functions
+
+/// Log a debug message with actor context.
+pub fn actor_debug(actor_name: String, message: String) -> Nil {
+  debug(format_actor(actor_name, message))
+}
+
+/// Log an info message with actor context.
+pub fn actor_info(actor_name: String, message: String) -> Nil {
+  info(format_actor(actor_name, message))
+}
+
+/// Log a warning message with actor context.
+pub fn actor_warning(actor_name: String, message: String) -> Nil {
+  warning(format_actor(actor_name, message))
+}
+
+/// Log an error message with actor context.
+pub fn actor_error(actor_name: String, message: String) -> Nil {
+  error(format_actor(actor_name, message))
+}
+
+// Entity-context logging convenience functions
+
+/// Log a debug message with entity ID context.
+pub fn entity_debug(entity_id: String, message: String) -> Nil {
+  debug(format_entity(entity_id, message))
+}
+
+/// Log an info message with entity ID context.
+pub fn entity_info(entity_id: String, message: String) -> Nil {
+  info(format_entity(entity_id, message))
+}
+
+/// Log a warning message with entity ID context.
+pub fn entity_warning(entity_id: String, message: String) -> Nil {
+  warning(format_entity(entity_id, message))
+}
+
+/// Log an error message with entity ID context.
+pub fn entity_error(entity_id: String, message: String) -> Nil {
+  error(format_entity(entity_id, message))
+}

@@ -318,4 +318,3 @@ pub fn update_climate_entity_changes_state_test() {
 
   fake_ha_server.stop(server)
 }
-

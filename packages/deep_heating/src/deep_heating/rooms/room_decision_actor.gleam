@@ -7,11 +7,13 @@
 //// - Implement the "smart" heating logic (compensation)
 
 import deep_heating/entity_id.{type ClimateEntityId}
+import deep_heating/log
 import deep_heating/mode.{type HvacMode}
 import deep_heating/rooms/room_actor
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Name, type Subject}
+import gleam/int
 import gleam/option
 import gleam/otp/actor
 
@@ -72,6 +74,18 @@ pub fn start_named(
 fn handle_message(state: State, message: Message) -> actor.Next(State, Message) {
   case message {
     RoomStateChanged(room_state) -> {
+      // Log received room state at debug level
+      log.actor_debug(
+        "RoomDecision",
+        "Room "
+          <> room_state.name
+          <> " state: target="
+          <> temperature.format_option(room_state.target_temperature)
+          <> ", temp="
+          <> temperature.format_option(room_state.temperature)
+          <> ", trvs="
+          <> int.to_string(dict.size(room_state.trv_states)),
+      )
       let new_state = evaluate_and_send_commands(state, room_state)
       actor.continue(new_state)
     }
@@ -91,9 +105,13 @@ fn evaluate_and_send_commands(
         room_state.trv_states,
         state,
         fn(current_state, entity_id, trv_state) {
+          let entity_id_str = entity_id.climate_entity_id_to_string(entity_id)
           // Skip TRVs that are off - user has explicitly turned them off
           case trv_state.mode {
-            mode.HvacOff -> current_state
+            mode.HvacOff -> {
+              log.entity_debug(entity_id_str, "✗ Skipped: mode is off")
+              current_state
+            }
             _ -> {
               let desired_target =
                 compute_desired_trv_target(
@@ -120,8 +138,37 @@ fn evaluate_and_send_commands(
                 is_first_contact || mode_needs_change || target_needs_change
 
               case should_send {
-                False -> current_state
+                False -> {
+                  log.entity_debug(
+                    entity_id_str,
+                    "✗ No change: target="
+                      <> temperature.format(desired_target)
+                      <> " already set",
+                  )
+                  current_state
+                }
                 True -> {
+                  // Log the command being sent
+                  let reason = case is_first_contact, mode_needs_change {
+                    True, _ -> "first contact"
+                    _, True ->
+                      "mode "
+                      <> log.state_change(
+                        mode.hvac_mode_to_string(trv_state.mode),
+                        "heat",
+                      )
+                    _, _ ->
+                      "target "
+                      <> log.state_change(
+                        temperature.format_option(trv_state.target),
+                        temperature.format(desired_target),
+                      )
+                  }
+                  log.entity_debug(
+                    entity_id_str,
+                    "✓ Sending command: " <> reason,
+                  )
+
                   // Send command and mark TRV as contacted
                   let trv_commands: Subject(TrvCommand) =
                     process.named_subject(current_state.trv_adapter_name)
