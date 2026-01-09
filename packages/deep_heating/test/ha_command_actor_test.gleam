@@ -428,3 +428,129 @@ pub fn shutdown_cancels_multiple_pending_timers_test() {
   let result = process.receive(api_spy, 100)
   result |> should.be_error
 }
+
+// =============================================================================
+// True Debounce Timer Reset Tests (dh-33jq.71.7.2)
+// =============================================================================
+
+pub fn trv_debounce_resets_timer_on_new_command_test() {
+  // True debounce: each new command should RESET the timer
+  // Timer fires X ms after LAST command, not X ms after FIRST command
+  //
+  // Timeline with 100ms debounce:
+  // - t=0: Send command 1
+  // - t=80: Send command 2 (before original timer fires)
+  // - Current (buggy): Timer fires at t=100 (100ms after first)
+  // - True debounce: Timer fires at t=180 (100ms after last)
+  let api_spy: process.Subject(ApiCall) = process.new_subject()
+  let assert Ok(started) =
+    ha_command_actor.start_with_options(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      api_spy: api_spy,
+      debounce_ms: 100,
+      skip_http: True,
+      send_after: timer.real_send_after,
+    )
+  let assert Ok(trv_id) = entity_id.climate_entity_id("climate.test_trv")
+
+  // t=0: Send first command
+  process.send(
+    started.data,
+    ha_command_actor.SetTrvAction(
+      entity_id: trv_id,
+      mode: mode.HvacHeat,
+      target: temperature.temperature(20.0),
+    ),
+  )
+
+  // t=80: Send second command (before original timer would fire at t=100)
+  process.sleep(80)
+  process.send(
+    started.data,
+    ha_command_actor.SetTrvAction(
+      entity_id: trv_id,
+      mode: mode.HvacHeat,
+      target: temperature.temperature(21.0),
+    ),
+  )
+
+  // t=110: Check for API call
+  // Current (buggy): Timer fired at t=100, so API call received
+  // True debounce: Timer reset at t=80, won't fire until t=180
+  process.sleep(30)
+  let result = process.receive(api_spy, 50)
+
+  // With true debounce, NO API call should have been received yet
+  result |> should.be_error
+
+  // Now wait for true debounce timer to fire (t=180)
+  process.sleep(100)
+  let assert Ok(call) = process.receive(api_spy, 50)
+
+  // Should have the LAST value (21.0)
+  case call {
+    ha_command_actor.TrvApiCall(_, _, called_target) -> {
+      temperature.unwrap(called_target) |> should.equal(21.0)
+    }
+    _ -> should.fail()
+  }
+
+  // Clean up
+  process.send(started.data, ha_command_actor.Shutdown)
+}
+
+pub fn heating_debounce_resets_timer_on_new_command_test() {
+  // True debounce for heating: timer should reset on new commands
+  let api_spy: process.Subject(ApiCall) = process.new_subject()
+  let assert Ok(started) =
+    ha_command_actor.start_with_options(
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      api_spy: api_spy,
+      debounce_ms: 100,
+      skip_http: True,
+      send_after: timer.real_send_after,
+    )
+  let assert Ok(heating_id) =
+    entity_id.climate_entity_id("climate.main_heating")
+
+  // t=0: Send first heating command
+  process.send(
+    started.data,
+    ha_command_actor.SetHeatingAction(
+      entity_id: heating_id,
+      mode: mode.HvacHeat,
+      target: temperature.temperature(20.0),
+    ),
+  )
+
+  // t=80: Send second heating command
+  process.sleep(80)
+  process.send(
+    started.data,
+    ha_command_actor.SetHeatingAction(
+      entity_id: heating_id,
+      mode: mode.HvacHeat,
+      target: temperature.temperature(22.0),
+    ),
+  )
+
+  // t=110: With true debounce, timer shouldn't have fired yet
+  process.sleep(30)
+  let result = process.receive(api_spy, 50)
+  result |> should.be_error
+
+  // t=210: Now the true debounce timer should have fired
+  process.sleep(100)
+  let assert Ok(call) = process.receive(api_spy, 50)
+
+  // Should have the LAST value (22.0)
+  case call {
+    ha_command_actor.HeatingApiCall(_, _, called_target) -> {
+      temperature.unwrap(called_target) |> should.equal(22.0)
+    }
+    _ -> should.fail()
+  }
+
+  // Clean up
+  process.send(started.data, ha_command_actor.Shutdown)
+}

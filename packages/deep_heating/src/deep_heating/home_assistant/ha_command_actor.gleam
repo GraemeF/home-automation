@@ -198,24 +198,20 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
           PendingAction(mode: hvac_mode, target: target),
         )
 
-      // Start debounce timer if not already running for this entity
-      let has_timer =
-        dict.get(state.active_trv_timers, entity_id)
-        |> result_to_bool
-
-      let new_timers = case has_timer {
-        True -> state.active_trv_timers
-        False -> {
-          // Start timer - send message to self after debounce period
-          let handle =
-            state.send_after(
-              state.self_subject,
-              state.debounce_ms,
-              TrvDebounceTimeout(entity_id),
-            )
-          dict.insert(state.active_trv_timers, entity_id, handle)
-        }
+      // Cancel existing timer if present (true debounce: reset on each new command)
+      case dict.get(state.active_trv_timers, entity_id) {
+        Ok(existing_handle) -> timer.cancel_handle(existing_handle)
+        Error(_) -> Nil
       }
+
+      // Start new timer - send message to self after debounce period
+      let handle =
+        state.send_after(
+          state.self_subject,
+          state.debounce_ms,
+          TrvDebounceTimeout(entity_id),
+        )
+      let new_timers = dict.insert(state.active_trv_timers, entity_id, handle)
 
       actor.continue(
         State(
@@ -296,26 +292,25 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
           target: target,
         ))
 
-      // Start debounce timer if not already running
-      let new_timer_handle = case state.heating_timer_handle {
-        Ok(_) -> state.heating_timer_handle
-        Error(_) -> {
-          // Start timer and store the handle
-          let handle =
-            state.send_after(
-              state.self_subject,
-              state.debounce_ms,
-              HeatingDebounceTimeout,
-            )
-          Ok(handle)
-        }
+      // Cancel existing timer if present (true debounce: reset on each new command)
+      case state.heating_timer_handle {
+        Ok(existing_handle) -> timer.cancel_handle(existing_handle)
+        Error(_) -> Nil
       }
+
+      // Start new timer
+      let handle =
+        state.send_after(
+          state.self_subject,
+          state.debounce_ms,
+          HeatingDebounceTimeout,
+        )
 
       actor.continue(
         State(
           ..state,
           pending_heating_action: new_pending,
-          heating_timer_handle: new_timer_handle,
+          heating_timer_handle: Ok(handle),
         ),
       )
     }
@@ -396,9 +391,3 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
   }
 }
 
-fn result_to_bool(r: Result(a, b)) -> Bool {
-  case r {
-    Ok(_) -> True
-    Error(_) -> False
-  }
-}
