@@ -13,7 +13,6 @@
 import deep_heating/config/home_config.{type HomeConfig, HomeConfig, RoomConfig}
 import deep_heating/entity_id
 import deep_heating/home_assistant/client.{HaClient}
-import deep_heating/home_assistant/ha_command_actor
 import deep_heating/home_assistant/ha_poller_actor
 import deep_heating/house_mode/house_mode_actor
 import deep_heating/mode
@@ -42,103 +41,6 @@ const test_token = "e2e-test-token"
 
 /// Test adjustments path
 const test_adjustments_path = "/tmp/deep_heating_e2e_adjustments.json"
-
-// =============================================================================
-// Test infrastructure - spy subjects for controlled timers
-// =============================================================================
-
-/// Spy subjects for capturing timer requests.
-/// Tests can receive from these to trigger timer messages manually.
-/// Only includes spies that are actually used in tests:
-/// - ha_command: to bypass debounce and trigger commands immediately
-/// - state_aggregator: to flush broadcast throttle
-type TestSpies {
-  TestSpies(
-    ha_command: Subject(timer.TimerRequest(ha_command_actor.Message)),
-    state_aggregator: Subject(
-      timer.TimerRequest(state_aggregator_actor.Message),
-    ),
-  )
-}
-
-/// Create spy subjects for actors that need controlled timing in tests
-fn create_test_spies() -> TestSpies {
-  TestSpies(
-    ha_command: process.new_subject(),
-    state_aggregator: process.new_subject(),
-  )
-}
-
-/// Flush all pending timer requests from a spy, triggering them immediately.
-/// Returns the number of timers that were triggered.
-/// Uses timeout 0 - only flushes requests already in the mailbox.
-fn flush_timer_spy(spy: Subject(timer.TimerRequest(msg))) -> Int {
-  flush_timer_spy_loop(spy, 0)
-}
-
-fn flush_timer_spy_loop(
-  spy: Subject(timer.TimerRequest(msg)),
-  count: Int,
-) -> Int {
-  case process.receive(spy, 0) {
-    Ok(timer.TimerRequest(subject, _delay, msg)) -> {
-      process.send(subject, msg)
-      flush_timer_spy_loop(spy, count + 1)
-    }
-    Error(_) -> count
-  }
-}
-
-/// Wait for at least one timer request to arrive, then IMMEDIATELY trigger it.
-/// This bypasses the actual delay - useful for testing wiring without waiting.
-/// Returns Ok(count) with the number of timers triggered, or Error(Nil) if timeout.
-fn wait_and_immediately_trigger_timers(
-  spy: Subject(timer.TimerRequest(msg)),
-  timeout_ms: Int,
-) -> Result(Int, Nil) {
-  case process.receive(spy, timeout_ms) {
-    Ok(timer.TimerRequest(subject, _delay, msg)) -> {
-      process.send(subject, msg)
-      // Continue to flush any additional timers that arrived
-      Ok(1 + flush_timer_spy(spy))
-    }
-    Error(_) -> Error(Nil)
-  }
-}
-
-/// Wait for ha_command timers to arrive and IMMEDIATELY trigger ALL of them.
-/// This bypasses the actual debounce delay - we're testing wiring, not timing.
-/// HaCommandActor handles both TRV and heating commands, so multiple timers
-/// may be scheduled. We wait for the first (with long timeout to sync), then
-/// continue waiting with shorter timeouts until no more timers arrive.
-fn wait_and_immediately_trigger_ha_command_timers(
-  spies: TestSpies,
-) -> Result(Int, Nil) {
-  // First wait for at least one timer to ensure message chain has progressed
-  case wait_and_immediately_trigger_timers(spies.ha_command, 5000) {
-    Error(_) -> Error(Nil)
-    Ok(count) -> {
-      // Keep waiting for more timers with shorter timeout
-      // TRV and heating paths run in parallel, so more timers may arrive
-      Ok(count + wait_and_immediately_trigger_loop(spies.ha_command, 200))
-    }
-  }
-}
-
-/// Loop waiting for additional timers, IMMEDIATELY triggering each one.
-/// Returns when no more timers arrive within timeout_ms.
-fn wait_and_immediately_trigger_loop(
-  spy: Subject(timer.TimerRequest(msg)),
-  timeout_ms: Int,
-) -> Int {
-  case process.receive(spy, timeout_ms) {
-    Ok(timer.TimerRequest(subject, _delay, msg)) -> {
-      process.send(subject, msg)
-      1 + wait_and_immediately_trigger_loop(spy, timeout_ms)
-    }
-    Error(_) -> 0
-  }
-}
 
 // =============================================================================
 // Polling helpers - wait for observable outcomes instead of arbitrary sleeps
@@ -228,29 +130,17 @@ fn wait_for_house_mode_loop(
 }
 
 /// Wait until UI subscriber receives a state with the expected number of rooms.
-/// Repeatedly flushes the state aggregator timer to trigger broadcasts.
+/// With throttle_ms: 0, broadcasts happen immediately - no timer flushing needed.
 fn wait_for_ui_state_with_rooms(
   ui_subscriber: Subject(DeepHeatingState),
-  state_aggregator_spy: Subject(
-    timer.TimerRequest(state_aggregator_actor.Message),
-  ),
   expected_room_count: Int,
   timeout_ms: Int,
 ) -> Result(DeepHeatingState, Nil) {
-  wait_for_ui_state_loop(
-    ui_subscriber,
-    state_aggregator_spy,
-    expected_room_count,
-    timeout_ms,
-    100,
-  )
+  wait_for_ui_state_loop(ui_subscriber, expected_room_count, timeout_ms, 100)
 }
 
 fn wait_for_ui_state_loop(
   ui_subscriber: Subject(DeepHeatingState),
-  state_aggregator_spy: Subject(
-    timer.TimerRequest(state_aggregator_actor.Message),
-  ),
   expected_room_count: Int,
   remaining_ms: Int,
   poll_interval_ms: Int,
@@ -258,8 +148,6 @@ fn wait_for_ui_state_loop(
   case remaining_ms <= 0 {
     True -> Error(Nil)
     False -> {
-      // Flush any pending timer requests to trigger broadcast
-      let _ = flush_timer_spy(state_aggregator_spy)
       // Try to receive state with short timeout
       case process.receive(ui_subscriber, poll_interval_ms) {
         Ok(received_state) -> {
@@ -269,7 +157,6 @@ fn wait_for_ui_state_loop(
               // Got state but not enough rooms yet
               wait_for_ui_state_loop(
                 ui_subscriber,
-                state_aggregator_spy,
                 expected_room_count,
                 remaining_ms - poll_interval_ms,
                 poll_interval_ms,
@@ -281,7 +168,6 @@ fn wait_for_ui_state_loop(
           // No state yet, keep trying
           wait_for_ui_state_loop(
             ui_subscriber,
-            state_aggregator_spy,
             expected_room_count,
             remaining_ms - poll_interval_ms,
             poll_interval_ms,
@@ -307,19 +193,12 @@ pub fn full_system_wiring_turns_on_heating_when_cold_test() {
   process.sleep(500)
 
   // 2. Start Deep Heating supervisor pointing at fake HA
-  let assert Ok(TestSystem(supervisor: system, spies: spies)) =
-    start_deep_heating(port)
+  let assert Ok(system) = start_deep_heating(port)
 
   // 3. Trigger a poll to get initial state
   trigger_poll(system)
 
-  // 4. Wait for the message chain to complete and ALL timers to be scheduled,
-  //    then trigger them. HaCommandActor handles both TRV and heating commands
-  //    through the same spy, so we need to trigger all of them.
-  let assert Ok(_) = wait_and_immediately_trigger_ha_command_timers(spies)
-
-  // 5. Wait for observable outcome - the heating command arriving at fake HA
-  //    This replaces arbitrary process.sleep(100) with proper synchronization
+  // 4. Wait for observable outcome - the heating command arriving at fake HA
   let assert Ok(_) = wait_for_heating_command(fake_ha, mode.HvacHeat, 5000)
 
   // Cleanup
@@ -338,12 +217,10 @@ pub fn full_system_wiring_turns_off_heating_when_warm_test() {
   process.sleep(500)
 
   // 2. Start Deep Heating supervisor
-  let assert Ok(TestSystem(supervisor: system, spies: spies)) =
-    start_deep_heating(port)
+  let assert Ok(system) = start_deep_heating(port)
 
-  // 3. Trigger poll and wait for ALL timers to be scheduled
+  // 3. Trigger poll
   trigger_poll(system)
-  let assert Ok(_) = wait_and_immediately_trigger_ha_command_timers(spies)
 
   // 4. Wait for observable outcome - the heating OFF command arriving at fake HA
   let assert Ok(_) = wait_for_heating_command(fake_ha, mode.HvacOff, 5000)
@@ -354,7 +231,6 @@ pub fn full_system_wiring_turns_off_heating_when_warm_test() {
 }
 
 /// Test that sleep button press correctly changes house mode.
-/// This test was previously flaky (dh-33jq.65.1) but now uses controlled timers.
 pub fn full_system_wiring_responds_to_sleep_button_test() {
   let port = base_port + 3
 
@@ -362,18 +238,16 @@ pub fn full_system_wiring_responds_to_sleep_button_test() {
   let assert Ok(fake_ha) = start_fake_ha_with_cold_rooms(port)
 
   // Give the server time to be ready for connections
-  // Mist needs more time to fully bind to the port
   process.sleep(500)
 
   // 2. Start Deep Heating supervisor with evening time (after 8pm for sleep button to work)
   let evening_time = fn() {
     house_mode_actor.local_datetime(2026, 1, 5, 22, 30, 0)
   }
-  let assert Ok(TestSystem(supervisor: system, spies: _spies)) =
+  let assert Ok(system) =
     start_deep_heating_with_time_provider(port, Some(evening_time))
 
   // 3. Initial poll to establish baseline state
-  //    (need short wait for HTTP to complete - can't poll for this since mode doesn't change)
   trigger_poll(system)
   process.sleep(200)
 
@@ -384,7 +258,6 @@ pub fn full_system_wiring_responds_to_sleep_button_test() {
   trigger_poll(system)
 
   // 6. Wait for observable outcome - house mode changes to sleeping
-  //    Event chain: poll → HTTP → parse → EventRouter → HouseModeActor
   let assert Ok(_) = wait_for_house_mode(system, mode.HouseModeSleeping, 5000)
 
   // Cleanup
@@ -399,12 +272,10 @@ pub fn full_system_wiring_broadcasts_state_to_ui_subscribers_test() {
   let assert Ok(fake_ha) = start_fake_ha_with_cold_rooms(port)
 
   // Give the server time to be ready for connections
-  // Mist needs more time to fully bind to the port
   process.sleep(500)
 
   // 2. Start Deep Heating supervisor
-  let assert Ok(TestSystem(supervisor: system, spies: spies)) =
-    start_deep_heating(port)
+  let assert Ok(system) = start_deep_heating(port)
 
   // 3. Subscribe a test subject to the StateAggregatorActor (simulates UI client)
   let ui_subscriber: Subject(DeepHeatingState) = process.new_subject()
@@ -418,9 +289,8 @@ pub fn full_system_wiring_broadcasts_state_to_ui_subscribers_test() {
   trigger_poll(system)
 
   // 5. Wait for observable outcome - UI state with 1 room
-  //    This polls and flushes state aggregator timer until we get expected state
   let assert Ok(received_state) =
-    wait_for_ui_state_with_rooms(ui_subscriber, spies.state_aggregator, 1, 5000)
+    wait_for_ui_state_with_rooms(ui_subscriber, 1, 5000)
 
   // 6. Verify the received state
   list.length(received_state.rooms) |> should.equal(1)
@@ -561,7 +431,7 @@ fn start_fake_ha_with_warm_rooms(
 /// Start the Deep Heating supervisor pointing at the fake HA
 fn start_deep_heating(
   port: Int,
-) -> Result(TestSystem, supervisor.StartWithRoomsError) {
+) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
   start_deep_heating_with_options(port, None)
 }
 
@@ -569,20 +439,15 @@ fn start_deep_heating(
 fn start_deep_heating_with_time_provider(
   port: Int,
   time_provider: Option(house_mode_actor.TimeProvider),
-) -> Result(TestSystem, supervisor.StartWithRoomsError) {
+) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
   start_deep_heating_with_options(port, time_provider)
-}
-
-/// Result of starting deep heating with test infrastructure
-type TestSystem {
-  TestSystem(supervisor: supervisor.SupervisorWithRooms, spies: TestSpies)
 }
 
 /// Start the Deep Heating supervisor with all options
 fn start_deep_heating_with_options(
   port: Int,
   time_provider: Option(house_mode_actor.TimeProvider),
-) -> Result(TestSystem, supervisor.StartWithRoomsError) {
+) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
   let ha_client =
     HaClient("http://127.0.0.1:" <> int_to_string(port), test_token)
 
@@ -592,12 +457,6 @@ fn start_deep_heating_with_options(
   // Use port as a unique prefix for actor names to avoid conflicts in parallel tests
   let name_prefix = "e2e_" <> int_to_string(port)
 
-  // Create spy subjects only for actors where we need to control timing:
-  // - ha_command: to bypass debounce and trigger commands immediately
-  // - state_aggregator: to flush broadcast throttle (though with throttle_ms: 0 this is mostly unused)
-  // Other actors use real timers - we don't need to control their timing in e2e tests.
-  let spies = create_test_spies()
-
   case
     supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
       ha_client: ha_client,
@@ -606,7 +465,7 @@ fn start_deep_heating_with_options(
       home_config: home_config,
       name_prefix: Some(name_prefix),
       time_provider: time_provider,
-      // Use real timers for actors where we don't need to control timing
+      // Use real timers for all actors
       house_mode_deps: supervisor.HouseModeDeps(
         send_after: timer.real_send_after,
       ),
@@ -614,19 +473,19 @@ fn start_deep_heating_with_options(
       room_actor_deps: supervisor.RoomActorDeps(
         send_after: timer.real_send_after,
       ),
-      // Use spy for ha_command to bypass debounce and trigger commands immediately
+      // Zero debounce - commands fire immediately
       ha_command_deps: supervisor.HaCommandDeps(
-        send_after: timer.spy_send_after(spies.ha_command),
-        debounce_ms: 5000,
+        send_after: timer.real_send_after,
+        debounce_ms: 0,
       ),
-      // Use throttle_ms: 0 for immediate broadcasts - eliminates need to flush timer spy
+      // Zero throttle - broadcasts fire immediately
       state_aggregator_deps: supervisor.StateAggregatorDeps(
-        send_after: timer.spy_send_after(spies.state_aggregator),
+        send_after: timer.real_send_after,
         throttle_ms: 0,
       ),
     ))
   {
-    Ok(started) -> Ok(TestSystem(supervisor: started.data, spies: spies))
+    Ok(started) -> Ok(started.data)
     Error(e) -> Error(e)
   }
 }
@@ -663,12 +522,10 @@ pub fn full_system_wiring_multi_room_demand_aggregation_test() {
   process.sleep(500)
 
   // 2. Start Deep Heating supervisor with multi-room config
-  let assert Ok(TestSystem(supervisor: system, spies: spies)) =
-    start_deep_heating_multi_room(port)
+  let assert Ok(system) = start_deep_heating_multi_room(port)
 
-  // 3. Trigger poll and wait for ALL timers to be scheduled
+  // 3. Trigger poll
   trigger_poll(system)
-  let assert Ok(_) = wait_and_immediately_trigger_ha_command_timers(spies)
 
   // 4. Wait for observable outcome - heating command arriving at fake HA
   //    Even though bedroom is warm, lounge is cold so heating should be ON
@@ -689,8 +546,7 @@ pub fn full_system_wiring_multi_room_broadcasts_all_rooms_to_ui_test() {
   process.sleep(500)
 
   // 2. Start Deep Heating supervisor with multi-room config
-  let assert Ok(TestSystem(supervisor: system, spies: spies)) =
-    start_deep_heating_multi_room(port)
+  let assert Ok(system) = start_deep_heating_multi_room(port)
 
   // 3. Subscribe a test subject to the StateAggregatorActor (simulates UI client)
   let ui_subscriber: Subject(DeepHeatingState) = process.new_subject()
@@ -705,7 +561,7 @@ pub fn full_system_wiring_multi_room_broadcasts_all_rooms_to_ui_test() {
 
   // 5. Wait for observable outcome - UI state with 2 rooms
   let assert Ok(received_state) =
-    wait_for_ui_state_with_rooms(ui_subscriber, spies.state_aggregator, 2, 5000)
+    wait_for_ui_state_with_rooms(ui_subscriber, 2, 5000)
 
   // 6. Verify both rooms are present
   list.length(received_state.rooms) |> should.equal(2)
@@ -944,7 +800,7 @@ fn make_multi_room_home_config() -> HomeConfig {
 /// Start the Deep Heating supervisor with multi-room config
 fn start_deep_heating_multi_room(
   port: Int,
-) -> Result(TestSystem, supervisor.StartWithRoomsError) {
+) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
   let ha_client =
     HaClient("http://127.0.0.1:" <> int_to_string(port), test_token)
 
@@ -954,9 +810,6 @@ fn start_deep_heating_multi_room(
   // Use port as a unique prefix for actor names to avoid conflicts in parallel tests
   let name_prefix = "e2e_multi_" <> int_to_string(port)
 
-  // Create spy subjects only for actors where we need to control timing
-  let spies = create_test_spies()
-
   case
     supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
       ha_client: ha_client,
@@ -965,7 +818,7 @@ fn start_deep_heating_multi_room(
       home_config: home_config,
       name_prefix: Some(name_prefix),
       time_provider: None,
-      // Use real timers for actors where we don't need to control timing
+      // Use real timers for all actors
       house_mode_deps: supervisor.HouseModeDeps(
         send_after: timer.real_send_after,
       ),
@@ -973,93 +826,19 @@ fn start_deep_heating_multi_room(
       room_actor_deps: supervisor.RoomActorDeps(
         send_after: timer.real_send_after,
       ),
-      // Use spy for ha_command to bypass debounce and trigger commands immediately
-      ha_command_deps: supervisor.HaCommandDeps(
-        send_after: timer.spy_send_after(spies.ha_command),
-        debounce_ms: 5000,
-      ),
-      // Use throttle_ms: 0 for immediate broadcasts - eliminates need to flush timer spy
-      state_aggregator_deps: supervisor.StateAggregatorDeps(
-        send_after: timer.spy_send_after(spies.state_aggregator),
-        throttle_ms: 0,
-      ),
-    ))
-  {
-    Ok(started) -> Ok(TestSystem(supervisor: started.data, spies: spies))
-    Error(e) -> Error(e)
-  }
-}
-
-// =============================================================================
-// Zero debounce tests - commands fire immediately without timer spy
-// =============================================================================
-
-/// Test that commands fire immediately when debounce_ms is set to 0.
-/// This allows tests to work without needing to manually trigger ha_command timers.
-pub fn commands_fire_immediately_with_zero_debounce_test() {
-  let port = base_port + 7
-
-  // 1. Start fake HA with cold rooms
-  let assert Ok(fake_ha) = start_fake_ha_with_cold_rooms(port)
-  process.sleep(500)
-
-  // 2. Start Deep Heating with debounce_ms: 0 - no timer spy needed!
-  let assert Ok(TestSystem(supervisor: system, spies: _spies)) =
-    start_deep_heating_with_zero_debounce(port)
-
-  // 3. Trigger a poll to get initial state
-  trigger_poll(system)
-
-  // 4. Wait for observable outcome WITHOUT triggering ha_command timers!
-  //    With debounce_ms: 0, commands should fire immediately.
-  let assert Ok(_) = wait_for_heating_command(fake_ha, mode.HvacHeat, 5000)
-
-  // Cleanup
-  supervisor.shutdown_with_rooms(system)
-  fake_ha_server.stop(fake_ha)
-}
-
-/// Start Deep Heating with zero debounce - commands fire immediately
-fn start_deep_heating_with_zero_debounce(
-  port: Int,
-) -> Result(TestSystem, supervisor.StartWithRoomsError) {
-  let ha_client =
-    HaClient("http://127.0.0.1:" <> int_to_string(port), test_token)
-
-  let home_config = make_test_home_config()
-  let poller_config = make_poller_config(home_config)
-  let name_prefix = "e2e_zero_debounce_" <> int_to_string(port)
-  let spies = create_test_spies()
-
-  case
-    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
-      ha_client: ha_client,
-      poller_config: poller_config,
-      adjustments_path: test_adjustments_path,
-      home_config: home_config,
-      name_prefix: Some(name_prefix),
-      time_provider: None,
-      // Use real timers for actors where we don't need to control timing
-      house_mode_deps: supervisor.HouseModeDeps(
-        send_after: timer.real_send_after,
-      ),
-      ha_poller_deps: supervisor.HaPollerDeps(send_after: timer.real_send_after),
-      room_actor_deps: supervisor.RoomActorDeps(
-        send_after: timer.real_send_after,
-      ),
-      // Zero debounce - commands fire immediately without timer spy
+      // Zero debounce - commands fire immediately
       ha_command_deps: supervisor.HaCommandDeps(
         send_after: timer.real_send_after,
         debounce_ms: 0,
       ),
-      // Use throttle_ms: 0 for immediate broadcasts
+      // Zero throttle - broadcasts fire immediately
       state_aggregator_deps: supervisor.StateAggregatorDeps(
-        send_after: timer.spy_send_after(spies.state_aggregator),
+        send_after: timer.real_send_after,
         throttle_ms: 0,
       ),
     ))
   {
-    Ok(started) -> Ok(TestSystem(supervisor: started.data, spies: spies))
+    Ok(started) -> Ok(started.data)
     Error(e) -> Error(e)
   }
 }
