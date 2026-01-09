@@ -527,12 +527,7 @@ pub fn supervisor_has_heating_control_actor_when_started_with_home_config_test()
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
   let config =
-    make_test_supervisor_config(
-      ha_client,
-      poller_config,
-      home_config,
-      "has_hc",
-    )
+    make_test_supervisor_config(ha_client, poller_config, home_config, "has_hc")
 
   let assert Ok(started) = supervisor.start_with_home_config(config)
 
