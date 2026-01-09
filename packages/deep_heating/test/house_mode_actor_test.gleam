@@ -22,7 +22,7 @@ fn make_test_actor_at_evening() -> process.Subject(house_mode_actor.Message) {
     house_mode_actor.start_with_options(
       get_now: fn() { evening_time() },
       timer_interval_ms: 0,
-      send_after: timer.instant_send_after,
+      send_after: timer.real_send_after,
     )
   actor
 }
@@ -36,7 +36,7 @@ fn make_test_actor_at_time(
     house_mode_actor.start_with_options(
       get_now: get_now,
       timer_interval_ms: 0,
-      send_after: timer.instant_send_after,
+      send_after: timer.real_send_after,
     )
   actor
 }
@@ -525,30 +525,6 @@ pub fn timer_reschedules_after_each_evaluation_test() {
 // =============================================================================
 // Injectable Timer Tests
 // =============================================================================
-
-pub fn instant_send_after_with_disabled_timer_avoids_infinite_loop_test() {
-  // When using instant_send_after with timer_interval_ms=0, the timer
-  // is disabled so there's no infinite recursion from ReEvaluateMode
-  // rescheduling itself immediately.
-  //
-  // This test verifies the pattern used by make_test_actor_at_time()
-  // works correctly for fast tests.
-  let current_time = make_datetime(2026, 1, 3, 10, 0, 0)
-  let assert Ok(actor) =
-    house_mode_actor.start_with_options(
-      get_now: fn() { current_time },
-      timer_interval_ms: 0,
-      send_after: timer.instant_send_after,
-    )
-
-  // Should be able to query mode immediately (no infinite loop)
-  let reply = process.new_subject()
-  process.send(actor, house_mode_actor.GetMode(reply))
-
-  // Using short timeout since delivery should be instant
-  let assert Ok(current_mode) = process.receive(reply, 100)
-  current_mode |> should.equal(mode.HouseModeAuto)
-}
 
 pub fn spy_send_after_captures_timer_requests_test() {
   // When using spy_send_after, timer requests are captured

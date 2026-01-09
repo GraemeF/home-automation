@@ -1,8 +1,7 @@
 //// Timer utilities for injectable send_after functionality.
 ////
-//// This module provides three implementations of send_after:
+//// This module provides two implementations of send_after:
 //// - `real_send_after`: Production implementation using process.send_after
-//// - `instant_send_after`: Test implementation that sends immediately
 //// - `spy_send_after`: Test implementation that notifies a spy subject
 ////
 //// TimerHandle allows cancellation of pending timers for graceful shutdown.
@@ -52,18 +51,6 @@ pub fn real_send_after(
 ) -> TimerHandle {
   let timer = process.send_after(subject, delay_ms, msg)
   RealTimer(timer)
-}
-
-/// Test implementation - sends message immediately (no delay).
-/// Useful for fast tests where you don't want to wait for timers.
-/// Returns NoTimer since no timer is actually created.
-pub fn instant_send_after(
-  subject: Subject(msg),
-  _delay_ms: Int,
-  msg: msg,
-) -> TimerHandle {
-  process.send(subject, msg)
-  NoTimer
 }
 
 /// Test implementation - notifies spy subject when timer would be set.

@@ -26,37 +26,6 @@ pub fn real_send_after_delivers_message_after_delay_test() {
 }
 
 // =============================================================================
-// instant_send_after Tests
-// =============================================================================
-
-pub fn instant_send_after_delivers_message_immediately_test() {
-  // Given a subject and a message
-  let subject = process.new_subject()
-  let msg = "instant"
-
-  // When we use instant_send_after
-  timer.instant_send_after(subject, 5000, msg)
-
-  // Then the message should arrive immediately (even with a long "delay")
-  let result = process.receive(subject, 10)
-  result |> should.be_ok
-  let assert Ok(received) = result
-  received |> should.equal("instant")
-}
-
-pub fn instant_send_after_ignores_delay_parameter_test() {
-  // Given a subject
-  let subject = process.new_subject()
-
-  // When we use instant_send_after with a very long delay
-  timer.instant_send_after(subject, 60_000, "should be instant")
-
-  // Then we should still get the message within milliseconds
-  let result = process.receive(subject, 10)
-  result |> should.be_ok
-}
-
-// =============================================================================
 // spy_send_after Tests
 // =============================================================================
 

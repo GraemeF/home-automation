@@ -1393,9 +1393,8 @@ pub fn room_actor_no_timer_when_interval_zero_test() {
 
 pub fn room_actor_reschedules_timer_after_firing_test() {
   // Verify that the timer is rescheduled after ReComputeTarget fires.
-  // Uses instant_send_after so the initial timer fires immediately,
-  // then spy_send_after for subsequent timers wouldn't work directly.
-  // Instead, we manually send ReComputeTarget and check the spy.
+  // Uses spy_send_after to capture timer requests, then manually sends
+  // ReComputeTarget to trigger the reschedule logic.
 
   let timer_spy: Subject(timer.TimerRequest(room_actor.Message)) =
     process.new_subject()

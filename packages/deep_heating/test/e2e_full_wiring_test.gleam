@@ -73,6 +73,7 @@ fn create_test_spies() -> TestSpies {
 
 /// Flush all pending timer requests from a spy, triggering them immediately.
 /// Returns the number of timers that were triggered.
+/// Uses timeout 0 - only flushes requests already in the mailbox.
 fn flush_timer_spy(spy: Subject(timer.TimerRequest(msg))) -> Int {
   flush_timer_spy_loop(spy, 0)
 }
@@ -87,9 +88,55 @@ fn flush_timer_spy_loop(spy: Subject(timer.TimerRequest(msg)), count: Int) -> In
   }
 }
 
-/// Flush the ha_command timer spy to trigger debounced commands
-fn flush_ha_command_timers(spies: TestSpies) -> Int {
-  flush_timer_spy(spies.ha_command)
+/// Wait for at least one timer request to arrive, then IMMEDIATELY trigger it.
+/// This bypasses the actual delay - useful for testing wiring without waiting.
+/// Returns Ok(count) with the number of timers triggered, or Error(Nil) if timeout.
+fn wait_and_immediately_trigger_timers(
+  spy: Subject(timer.TimerRequest(msg)),
+  timeout_ms: Int,
+) -> Result(Int, Nil) {
+  case process.receive(spy, timeout_ms) {
+    Ok(timer.TimerRequest(subject, _delay, msg)) -> {
+      process.send(subject, msg)
+      // Continue to flush any additional timers that arrived
+      Ok(1 + flush_timer_spy(spy))
+    }
+    Error(_) -> Error(Nil)
+  }
+}
+
+/// Wait for ha_command timers to arrive and IMMEDIATELY trigger ALL of them.
+/// This bypasses the actual debounce delay - we're testing wiring, not timing.
+/// HaCommandActor handles both TRV and heating commands, so multiple timers
+/// may be scheduled. We wait for the first (with long timeout to sync), then
+/// continue waiting with shorter timeouts until no more timers arrive.
+fn wait_and_immediately_trigger_ha_command_timers(
+  spies: TestSpies,
+) -> Result(Int, Nil) {
+  // First wait for at least one timer to ensure message chain has progressed
+  case wait_and_immediately_trigger_timers(spies.ha_command, 5000) {
+    Error(_) -> Error(Nil)
+    Ok(count) -> {
+      // Keep waiting for more timers with shorter timeout
+      // TRV and heating paths run in parallel, so more timers may arrive
+      Ok(count + wait_and_immediately_trigger_loop(spies.ha_command, 200))
+    }
+  }
+}
+
+/// Loop waiting for additional timers, IMMEDIATELY triggering each one.
+/// Returns when no more timers arrive within timeout_ms.
+fn wait_and_immediately_trigger_loop(
+  spy: Subject(timer.TimerRequest(msg)),
+  timeout_ms: Int,
+) -> Int {
+  case process.receive(spy, timeout_ms) {
+    Ok(timer.TimerRequest(subject, _delay, msg)) -> {
+      process.send(subject, msg)
+      1 + wait_and_immediately_trigger_loop(spy, timeout_ms)
+    }
+    Error(_) -> 0
+  }
 }
 
 // =============================================================================
@@ -113,16 +160,15 @@ pub fn full_system_wiring_turns_on_heating_when_cold_test() {
   // 3. Trigger a poll to get initial state
   trigger_poll(system)
 
-  // 4. Give HTTP request time to complete
+  // 4. Wait for the message chain to complete and ALL timers to be scheduled,
+  //    then trigger them. HaCommandActor handles both TRV and heating commands
+  //    through the same spy, so we need to trigger all of them.
+  let assert Ok(_) = wait_and_immediately_trigger_ha_command_timers(spies)
+
+  // 5. Give HA command HTTP time to propagate (localhost should be fast)
   process.sleep(100)
 
-  // 5. Flush timers to fire debounced commands
-  let _ = flush_ha_command_timers(spies)
-
-  // 6. Give HA commands time to propagate
-  process.sleep(100)
-
-  // 7. Verify the boiler was commanded to turn on (rooms are cold, demand heat)
+  // 6. Verify the boiler was commanded to turn on (rooms are cold, demand heat)
   let heating_calls = fake_ha_server.get_set_hvac_mode_calls(fake_ha)
 
   // The heating should have been turned on because rooms are below target
@@ -147,15 +193,14 @@ pub fn full_system_wiring_turns_off_heating_when_warm_test() {
   let assert Ok(TestSystem(supervisor: system, spies: spies)) =
     start_deep_heating(port)
 
-  // 3. Trigger poll and give HTTP time to complete
+  // 3. Trigger poll and wait for ALL timers to be scheduled
   trigger_poll(system)
+  let assert Ok(_) = wait_and_immediately_trigger_ha_command_timers(spies)
+
+  // 4. Give HA command HTTP time to propagate
   process.sleep(100)
 
-  // 4. Flush timers to fire debounced commands
-  let _ = flush_ha_command_timers(spies)
-  process.sleep(100)
-
-  // 5. Verify no heating command sent (rooms already warm)
+  // 5. Verify heating command set to off (rooms already warm)
   let heating_calls = fake_ha_server.get_set_hvac_mode_calls(fake_ha)
 
   // The heating should be off because rooms are at target
@@ -512,12 +557,11 @@ pub fn full_system_wiring_multi_room_demand_aggregation_test() {
   let assert Ok(TestSystem(supervisor: system, spies: spies)) =
     start_deep_heating_multi_room(port)
 
-  // 3. Trigger a poll to get initial state
+  // 3. Trigger poll and wait for ALL timers to be scheduled
   trigger_poll(system)
-  process.sleep(100)
+  let assert Ok(_) = wait_and_immediately_trigger_ha_command_timers(spies)
 
-  // 4. Flush timers to fire debounced commands
-  let _ = flush_ha_command_timers(spies)
+  // 4. Give HA command HTTP time to propagate
   process.sleep(100)
 
   // 5. Verify the boiler was commanded to turn on

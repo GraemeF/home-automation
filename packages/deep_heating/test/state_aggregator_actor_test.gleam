@@ -212,11 +212,11 @@ pub fn state_aggregator_tracks_multiple_rooms_test() {
 // =============================================================================
 
 pub fn state_aggregator_broadcasts_to_subscribers_after_throttle_test() {
-  // Use instant_send_after so we don't need to wait for real throttle timer
+  // Use real timers - broadcast happens after throttle period
   let assert Ok(actor) =
     state_aggregator_actor.start_link_with_options(
       adjustments_path: "/tmp/test_broadcast_throttle.json",
-      send_after: timer.instant_send_after,
+      send_after: timer.real_send_after,
     )
 
   // Subscribe
@@ -232,8 +232,8 @@ pub fn state_aggregator_broadcasts_to_subscribers_after_throttle_test() {
   let room_state = make_room_state("lounge")
   process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
 
-  // With instant_send_after, broadcast happens immediately - short wait for processing
-  process.sleep(20)
+  // Wait for throttle period (~100ms) plus processing time
+  process.sleep(150)
 
   // Subscriber should receive the broadcast
   let assert Ok(received_state) = process.receive(subscriber, 100)
@@ -281,11 +281,11 @@ pub fn state_aggregator_throttles_rapid_updates_test() {
 }
 
 pub fn state_aggregator_does_not_broadcast_to_unsubscribed_test() {
-  // Use instant_send_after so we don't need to wait for real throttle timer
+  // Use real timers - broadcast happens after throttle period
   let assert Ok(actor) =
     state_aggregator_actor.start_link_with_options(
       adjustments_path: "/tmp/test_unsubscribe.json",
-      send_after: timer.instant_send_after,
+      send_after: timer.real_send_after,
     )
 
   let subscriber: process.Subject(state.DeepHeatingState) =
@@ -305,8 +305,8 @@ pub fn state_aggregator_does_not_broadcast_to_unsubscribed_test() {
   let room_state = make_room_state("lounge")
   process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
 
-  // With instant_send_after, broadcast happens immediately - short wait for processing
-  process.sleep(20)
+  // Wait for throttle period plus processing time
+  process.sleep(150)
 
   // Subscriber should NOT receive anything (unsubscribed)
   case process.receive(subscriber, 50) {
@@ -495,42 +495,6 @@ pub fn state_aggregator_only_persists_on_adjustment_change_test() {
 }
 
 // =============================================================================
-// Injectable Timer Tests
-// =============================================================================
-
-pub fn state_aggregator_with_instant_send_after_broadcasts_immediately_test() {
-  // Start with instant_send_after - broadcasts should happen immediately
-  let assert Ok(actor) =
-    state_aggregator_actor.start_link_with_options(
-      adjustments_path: "/tmp/test_instant_timer.json",
-      send_after: timer.instant_send_after,
-    )
-
-  // Subscribe
-  let subscriber: process.Subject(state.DeepHeatingState) =
-    process.new_subject()
-  process.send(actor, state_aggregator_actor.Subscribe(subscriber))
-
-  // Give the subscribe message time to process
-  process.sleep(10)
-
-  // Drain the initial empty state sent on subscribe
-  drain_initial_state(subscriber)
-
-  // Send a room update
-  let room_state = make_room_state("lounge")
-  process.send(actor, state_aggregator_actor.RoomUpdated("lounge", room_state))
-
-  // With instant_send_after, broadcast happens immediately - no 150ms wait needed
-  // Just give a tiny bit of time for message processing
-  process.sleep(10)
-
-  // Subscriber should receive the broadcast immediately
-  let assert Ok(received_state) = process.receive(subscriber, 100)
-  list.length(received_state.rooms) |> should.equal(1)
-}
-
-// =============================================================================
 // Named Actor with Injectable Timer Tests
 // =============================================================================
 
@@ -543,7 +507,7 @@ pub fn state_aggregator_start_with_options_creates_named_actor_test() {
     state_aggregator_actor.start_with_options(
       name: name,
       adjustments_path: "/tmp/test_named_with_options.json",
-      send_after: timer.instant_send_after,
+      send_after: timer.real_send_after,
     )
 
   // Verify the actor is registered with the name
@@ -560,12 +524,12 @@ pub fn state_aggregator_start_with_options_uses_injected_timer_test() {
   // Create a unique name for this test
   let name = process.new_name("test_aggregator_timer_injection")
 
-  // Start with instant_send_after
+  // Start with real_send_after
   let assert Ok(started) =
     state_aggregator_actor.start_with_options(
       name: name,
       adjustments_path: "/tmp/test_timer_injection.json",
-      send_after: timer.instant_send_after,
+      send_after: timer.real_send_after,
     )
 
   // Subscribe
@@ -584,8 +548,8 @@ pub fn state_aggregator_start_with_options_uses_injected_timer_test() {
     state_aggregator_actor.RoomUpdated("lounge", room_state),
   )
 
-  // With instant_send_after, broadcast happens immediately (no 150ms wait)
-  process.sleep(10)
+  // Wait for throttle period plus processing time
+  process.sleep(150)
 
   // Subscriber should receive the broadcast
   let assert Ok(received_state) = process.receive(subscriber, 100)
