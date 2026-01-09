@@ -140,6 +140,154 @@ fn wait_and_immediately_trigger_loop(
 }
 
 // =============================================================================
+// Polling helpers - wait for observable outcomes instead of arbitrary sleeps
+// =============================================================================
+
+/// Wait until fake_ha records a heating command with the expected mode, or timeout.
+/// This is the proper way to synchronize - wait for observable behavior.
+fn wait_for_heating_command(
+  fake_ha: fake_ha_server.Server,
+  expected_mode: mode.HvacMode,
+  timeout_ms: Int,
+) -> Result(List(#(entity_id.ClimateEntityId, mode.HvacMode)), Nil) {
+  wait_for_heating_command_loop(fake_ha, expected_mode, timeout_ms, 50)
+}
+
+fn wait_for_heating_command_loop(
+  fake_ha: fake_ha_server.Server,
+  expected_mode: mode.HvacMode,
+  remaining_ms: Int,
+  poll_interval_ms: Int,
+) -> Result(List(#(entity_id.ClimateEntityId, mode.HvacMode)), Nil) {
+  case remaining_ms <= 0 {
+    True -> Error(Nil)
+    // Timeout
+    False -> {
+      let calls = fake_ha_server.get_set_hvac_mode_calls(fake_ha)
+      case has_heating_command(calls, expected_mode) {
+        True -> Ok(calls)
+        False -> {
+          process.sleep(poll_interval_ms)
+          wait_for_heating_command_loop(
+            fake_ha,
+            expected_mode,
+            remaining_ms - poll_interval_ms,
+            poll_interval_ms,
+          )
+        }
+      }
+    }
+  }
+}
+
+/// Check if the calls list contains a heating command with the expected mode
+fn has_heating_command(
+  calls: List(#(entity_id.ClimateEntityId, mode.HvacMode)),
+  expected_mode: mode.HvacMode,
+) -> Bool {
+  let assert Ok(heating_id) =
+    entity_id.climate_entity_id("climate.main_heating")
+  list.any(calls, fn(call) { call.0 == heating_id && call.1 == expected_mode })
+}
+
+/// Wait until house mode matches the expected mode, or timeout.
+fn wait_for_house_mode(
+  system: supervisor.SupervisorWithRooms,
+  expected_mode: mode.HouseMode,
+  timeout_ms: Int,
+) -> Result(mode.HouseMode, Nil) {
+  wait_for_house_mode_loop(system, expected_mode, timeout_ms, 50)
+}
+
+fn wait_for_house_mode_loop(
+  system: supervisor.SupervisorWithRooms,
+  expected_mode: mode.HouseMode,
+  remaining_ms: Int,
+  poll_interval_ms: Int,
+) -> Result(mode.HouseMode, Nil) {
+  case remaining_ms <= 0 {
+    True -> Error(Nil)
+    // Timeout
+    False -> {
+      let current_mode = supervisor.get_current_house_mode(system)
+      case current_mode == expected_mode {
+        True -> Ok(current_mode)
+        False -> {
+          process.sleep(poll_interval_ms)
+          wait_for_house_mode_loop(
+            system,
+            expected_mode,
+            remaining_ms - poll_interval_ms,
+            poll_interval_ms,
+          )
+        }
+      }
+    }
+  }
+}
+
+/// Wait until UI subscriber receives a state with the expected number of rooms.
+/// Repeatedly flushes the state aggregator timer to trigger broadcasts.
+fn wait_for_ui_state_with_rooms(
+  ui_subscriber: Subject(DeepHeatingState),
+  state_aggregator_spy: Subject(timer.TimerRequest(state_aggregator_actor.Message)),
+  expected_room_count: Int,
+  timeout_ms: Int,
+) -> Result(DeepHeatingState, Nil) {
+  wait_for_ui_state_loop(
+    ui_subscriber,
+    state_aggregator_spy,
+    expected_room_count,
+    timeout_ms,
+    100,
+  )
+}
+
+fn wait_for_ui_state_loop(
+  ui_subscriber: Subject(DeepHeatingState),
+  state_aggregator_spy: Subject(timer.TimerRequest(state_aggregator_actor.Message)),
+  expected_room_count: Int,
+  remaining_ms: Int,
+  poll_interval_ms: Int,
+) -> Result(DeepHeatingState, Nil) {
+  case remaining_ms <= 0 {
+    True -> Error(Nil)
+    False -> {
+      // Flush any pending timer requests to trigger broadcast
+      let _ = flush_timer_spy(state_aggregator_spy)
+      // Try to receive state with short timeout
+      case process.receive(ui_subscriber, poll_interval_ms) {
+        Ok(received_state) -> {
+          case list.length(received_state.rooms) >= expected_room_count {
+            True -> Ok(received_state)
+            False -> {
+              // Got state but not enough rooms yet
+              wait_for_ui_state_loop(
+                ui_subscriber,
+                state_aggregator_spy,
+                expected_room_count,
+                remaining_ms - poll_interval_ms,
+                poll_interval_ms,
+              )
+            }
+          }
+        }
+        Error(_) -> {
+          // No state yet, keep trying
+          wait_for_ui_state_loop(
+            ui_subscriber,
+            state_aggregator_spy,
+            expected_room_count,
+            remaining_ms - poll_interval_ms,
+            poll_interval_ms,
+          )
+        }
+      }
+    }
+  }
+}
+
+// =============================================================================
 // The main e2e test
 // =============================================================================
 
@@ -165,14 +313,9 @@ pub fn full_system_wiring_turns_on_heating_when_cold_test() {
   //    through the same spy, so we need to trigger all of them.
   let assert Ok(_) = wait_and_immediately_trigger_ha_command_timers(spies)
 
-  // 5. Give HA command HTTP time to propagate (localhost should be fast)
-  process.sleep(100)
-
-  // 6. Verify the boiler was commanded to turn on (rooms are cold, demand heat)
-  let heating_calls = fake_ha_server.get_set_hvac_mode_calls(fake_ha)
-
-  // The heating should have been turned on because rooms are below target
-  should_have_heating_command(heating_calls, mode.HvacHeat)
+  // 5. Wait for observable outcome - the heating command arriving at fake HA
+  //    This replaces arbitrary process.sleep(100) with proper synchronization
+  let assert Ok(_) = wait_for_heating_command(fake_ha, mode.HvacHeat, 5000)
 
   // Cleanup
   supervisor.shutdown_with_rooms(system)
@@ -197,14 +340,8 @@ pub fn full_system_wiring_turns_off_heating_when_warm_test() {
   trigger_poll(system)
   let assert Ok(_) = wait_and_immediately_trigger_ha_command_timers(spies)
 
-  // 4. Give HA command HTTP time to propagate
-  process.sleep(100)
-
-  // 5. Verify heating command set to off (rooms already warm)
-  let heating_calls = fake_ha_server.get_set_hvac_mode_calls(fake_ha)
-
-  // The heating should be off because rooms are at target
-  should_have_heating_command(heating_calls, mode.HvacOff)
+  // 4. Wait for observable outcome - the heating OFF command arriving at fake HA
+  let assert Ok(_) = wait_for_heating_command(fake_ha, mode.HvacOff, 5000)
 
   // Cleanup
   supervisor.shutdown_with_rooms(system)
@@ -231,8 +368,9 @@ pub fn full_system_wiring_responds_to_sleep_button_test() {
     start_deep_heating_with_time_provider(port, Some(evening_time))
 
   // 3. Initial poll to establish baseline state
+  //    (need short wait for HTTP to complete - can't poll for this since mode doesn't change)
   trigger_poll(system)
-  process.sleep(100)
+  process.sleep(200)
 
   // 4. Press the sleep button (update fake HA state)
   press_sleep_button(fake_ha)
@@ -240,13 +378,9 @@ pub fn full_system_wiring_responds_to_sleep_button_test() {
   // 5. Trigger another poll to detect the button press
   trigger_poll(system)
 
-  // 6. Give HTTP time to complete and events to propagate
-  // Event chain: poll → HTTP → parse → EventRouter → HouseModeActor
-  process.sleep(100)
-
-  // 7. Verify house mode changed to sleeping
-  let current_mode = supervisor.get_current_house_mode(system)
-  current_mode |> should.equal(mode.HouseModeSleeping)
+  // 6. Wait for observable outcome - house mode changes to sleeping
+  //    Event chain: poll → HTTP → parse → EventRouter → HouseModeActor
+  let assert Ok(_) = wait_for_house_mode(system, mode.HouseModeSleeping, 5000)
 
   // Cleanup
   supervisor.shutdown_with_rooms(system)
@@ -277,30 +411,17 @@ pub fn full_system_wiring_broadcasts_state_to_ui_subscribers_test() {
 
   // 4. Trigger a poll to get HA state
   trigger_poll(system)
-  process.sleep(100)
 
-  // 5. Flush state aggregator timer to trigger broadcast
-  let _ = flush_timer_spy(spies.state_aggregator)
-  process.sleep(100)
+  // 5. Wait for observable outcome - UI state with 1 room
+  //    This polls and flushes state aggregator timer until we get expected state
+  let assert Ok(received_state) =
+    wait_for_ui_state_with_rooms(ui_subscriber, spies.state_aggregator, 1, 5000)
 
-  // 6. Check that we received a state update with room data
-  case process.receive(ui_subscriber, 1000) {
-    Ok(received_state) -> {
-      // Should have at least one room
-      list.length(received_state.rooms) |> should.equal(1)
-
-      // The room should be named "lounge"
-      let assert Ok(lounge) =
-        list.find(received_state.rooms, fn(r) { r.name == "lounge" })
-
-      // Should have temperature data from the poll
-      lounge.name |> should.equal("lounge")
-    }
-    Error(_) -> {
-      // No state received - UI wiring is broken
-      should.fail()
-    }
-  }
+  // 6. Verify the received state
+  list.length(received_state.rooms) |> should.equal(1)
+  let assert Ok(lounge) =
+    list.find(received_state.rooms, fn(r) { r.name == "lounge" })
+  lounge.name |> should.equal("lounge")
 
   // Cleanup
   process.send(
@@ -515,29 +636,6 @@ fn press_sleep_button(server: fake_ha_server.Server) -> Nil {
   )
 }
 
-
-/// Assert that a heating command was sent with the expected mode
-fn should_have_heating_command(
-  calls: List(#(entity_id.ClimateEntityId, mode.HvacMode)),
-  expected_mode: mode.HvacMode,
-) -> Nil {
-  let assert Ok(heating_id) =
-    entity_id.climate_entity_id("climate.main_heating")
-
-  // Find the call for the heating entity
-  let heating_call =
-    calls
-    |> list.find(fn(call) { call.0 == heating_id })
-
-  case heating_call {
-    Ok(#(_, actual_mode)) -> actual_mode |> should.equal(expected_mode)
-    Error(_) -> {
-      // No call found - fail the test
-      should.fail()
-    }
-  }
-}
-
 // =============================================================================
 // Multi-room integration test
 // =============================================================================
@@ -561,14 +659,9 @@ pub fn full_system_wiring_multi_room_demand_aggregation_test() {
   trigger_poll(system)
   let assert Ok(_) = wait_and_immediately_trigger_ha_command_timers(spies)
 
-  // 4. Give HA command HTTP time to propagate
-  process.sleep(100)
-
-  // 5. Verify the boiler was commanded to turn on
-  // Even though bedroom is warm, lounge is cold so heating should be ON
-  let heating_calls = fake_ha_server.get_set_hvac_mode_calls(fake_ha)
-
-  should_have_heating_command(heating_calls, mode.HvacHeat)
+  // 4. Wait for observable outcome - heating command arriving at fake HA
+  //    Even though bedroom is warm, lounge is cold so heating should be ON
+  let assert Ok(_) = wait_for_heating_command(fake_ha, mode.HvacHeat, 5000)
 
   // Cleanup
   supervisor.shutdown_with_rooms(system)
@@ -598,31 +691,19 @@ pub fn full_system_wiring_multi_room_broadcasts_all_rooms_to_ui_test() {
 
   // 4. Trigger a poll to get HA state
   trigger_poll(system)
-  process.sleep(100)
 
-  // 5. Flush state aggregator timer to trigger broadcast
-  let _ = flush_timer_spy(spies.state_aggregator)
-  process.sleep(100)
+  // 5. Wait for observable outcome - UI state with 2 rooms
+  let assert Ok(received_state) =
+    wait_for_ui_state_with_rooms(ui_subscriber, spies.state_aggregator, 2, 5000)
 
-  // 6. Check that we received a state update with BOTH rooms
-  case process.receive(ui_subscriber, 1000) {
-    Ok(received_state) -> {
-      // Should have two rooms
-      list.length(received_state.rooms) |> should.equal(2)
-
-      // Both rooms should be present
-      let room_names =
-        received_state.rooms
-        |> list.map(fn(r) { r.name })
-        |> set.from_list
-
-      set.contains(room_names, "lounge") |> should.be_true
-      set.contains(room_names, "bedroom") |> should.be_true
-    }
-    Error(_) -> {
-      should.fail()
-    }
-  }
+  // 6. Verify both rooms are present
+  list.length(received_state.rooms) |> should.equal(2)
+  let room_names =
+    received_state.rooms
+    |> list.map(fn(r) { r.name })
+    |> set.from_list
+  set.contains(room_names, "lounge") |> should.be_true
+  set.contains(room_names, "bedroom") |> should.be_true
 
   // Cleanup
   process.send(
