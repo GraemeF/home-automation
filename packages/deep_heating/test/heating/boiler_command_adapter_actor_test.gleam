@@ -7,6 +7,7 @@ import deep_heating/home_assistant/ha_command_actor
 import deep_heating/mode
 import deep_heating/temperature
 import gleam/erlang/process
+import gleam/int
 import gleam/otp/actor
 import gleeunit/should
 
@@ -17,26 +18,6 @@ import gleeunit/should
 /// Counter for unique test names
 @external(erlang, "erlang", "unique_integer")
 fn unique_integer() -> Int
-
-fn int_to_string(n: Int) -> String {
-  case n < 0 {
-    True -> "-" <> int_to_string(-n)
-    False ->
-      case n {
-        0 -> "0"
-        1 -> "1"
-        2 -> "2"
-        3 -> "3"
-        4 -> "4"
-        5 -> "5"
-        6 -> "6"
-        7 -> "7"
-        8 -> "8"
-        9 -> "9"
-        _ -> int_to_string(n / 10) <> int_to_string(n % 10)
-      }
-  }
-}
 
 /// State for mock HA command actor
 type MockHaState {
@@ -65,7 +46,7 @@ fn start_mock_ha_command_actor(
 // =============================================================================
 
 pub fn boiler_adapter_starts_successfully_test() {
-  let unique = int_to_string(unique_integer())
+  let unique = int.to_string(unique_integer())
   let ha_command_name = process.new_name("test_ha_cmd_" <> unique)
   let adapter_name = process.new_name("test_boiler_adapter_" <> unique)
   let spy: process.Subject(ha_command_actor.Message) = process.new_subject()
@@ -84,7 +65,7 @@ pub fn boiler_adapter_starts_successfully_test() {
 }
 
 pub fn boiler_adapter_forwards_commands_to_ha_test() {
-  let unique = int_to_string(unique_integer())
+  let unique = int.to_string(unique_integer())
   let ha_command_name = process.new_name("test_ha_cmd_" <> unique)
   let adapter_name = process.new_name("test_boiler_adapter_" <> unique)
   let spy: process.Subject(ha_command_actor.Message) = process.new_subject()

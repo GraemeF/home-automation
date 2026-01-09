@@ -21,7 +21,7 @@ pub fn starts_on_specified_port_test() {
 
   // Server should be running - we'll verify by making a request
   let client =
-    HaClient("http://localhost:" <> port_to_string(port), "test-token")
+    HaClient("http://localhost:" <> int.to_string(port), "test-token")
   let result = client.get_states(client)
 
   // Should succeed (empty array is valid)
@@ -52,7 +52,7 @@ pub fn rejects_request_without_auth_header_test() {
 
   // Use wrong token
   let client =
-    HaClient("http://localhost:" <> port_to_string(port), "wrong-token")
+    HaClient("http://localhost:" <> int.to_string(port), "wrong-token")
   let result = client.get_states(client)
 
   result |> should.equal(Error(client.AuthenticationError))
@@ -66,7 +66,7 @@ pub fn accepts_request_with_valid_token_test() {
   let assert Ok(server) = fake_ha_server.start(port, "my-secret-token")
 
   let client =
-    HaClient("http://localhost:" <> port_to_string(port), "my-secret-token")
+    HaClient("http://localhost:" <> int.to_string(port), "my-secret-token")
   let result = client.get_states(client)
 
   result |> should.be_ok
@@ -83,7 +83,7 @@ pub fn get_states_returns_empty_array_by_default_test() {
 
   let assert Ok(server) = fake_ha_server.start(port, "token")
 
-  let client = HaClient("http://localhost:" <> port_to_string(port), "token")
+  let client = HaClient("http://localhost:" <> int.to_string(port), "token")
   let assert Ok(json) = client.get_states(client)
 
   json |> should.equal("[]")
@@ -109,7 +109,7 @@ pub fn get_states_returns_configured_climate_entities_test() {
     ),
   )
 
-  let client = HaClient("http://localhost:" <> port_to_string(port), "token")
+  let client = HaClient("http://localhost:" <> int.to_string(port), "token")
   let assert Ok(json) = client.get_states(client)
 
   // Parse the JSON to verify
@@ -143,7 +143,7 @@ pub fn get_states_returns_configured_sensor_entities_test() {
     ),
   )
 
-  let client = HaClient("http://localhost:" <> port_to_string(port), "token")
+  let client = HaClient("http://localhost:" <> int.to_string(port), "token")
   let assert Ok(json) = client.get_states(client)
 
   // Parse the JSON to verify
@@ -168,7 +168,7 @@ pub fn get_states_returns_configured_input_button_test() {
     "2026-01-03T22:30:00+00:00",
   )
 
-  let client = HaClient("http://localhost:" <> port_to_string(port), "token")
+  let client = HaClient("http://localhost:" <> int.to_string(port), "token")
   let assert Ok(json) = client.get_states(client)
 
   // Find the input_button state
@@ -189,7 +189,7 @@ pub fn set_temperature_records_call_test() {
 
   let assert Ok(server) = fake_ha_server.start(port, "token")
 
-  let client = HaClient("http://localhost:" <> port_to_string(port), "token")
+  let client = HaClient("http://localhost:" <> int.to_string(port), "token")
   let assert Ok(entity_id) = entity_id.climate_entity_id("climate.bedroom_trv")
   let temp = temperature.temperature(22.0)
 
@@ -209,7 +209,7 @@ pub fn set_temperature_records_multiple_calls_test() {
 
   let assert Ok(server) = fake_ha_server.start(port, "token")
 
-  let client = HaClient("http://localhost:" <> port_to_string(port), "token")
+  let client = HaClient("http://localhost:" <> int.to_string(port), "token")
   let assert Ok(eid1) = entity_id.climate_entity_id("climate.bedroom_trv")
   let assert Ok(eid2) = entity_id.climate_entity_id("climate.lounge_trv")
   let temp1 = temperature.temperature(20.0)
@@ -233,7 +233,7 @@ pub fn set_hvac_mode_records_call_test() {
 
   let assert Ok(server) = fake_ha_server.start(port, "token")
 
-  let client = HaClient("http://localhost:" <> port_to_string(port), "token")
+  let client = HaClient("http://localhost:" <> int.to_string(port), "token")
   let assert Ok(entity_id) = entity_id.climate_entity_id("climate.kitchen_trv")
 
   let result = client.set_hvac_mode(client, entity_id, mode.HvacHeat)
@@ -256,7 +256,7 @@ pub fn clear_calls_resets_recorded_calls_test() {
 
   let assert Ok(server) = fake_ha_server.start(port, "token")
 
-  let client = HaClient("http://localhost:" <> port_to_string(port), "token")
+  let client = HaClient("http://localhost:" <> int.to_string(port), "token")
   let assert Ok(entity_id) = entity_id.climate_entity_id("climate.office_trv")
   let temp = temperature.temperature(19.0)
 
@@ -307,7 +307,7 @@ pub fn update_climate_entity_changes_state_test() {
     ),
   )
 
-  let client = HaClient("http://localhost:" <> port_to_string(port), "token")
+  let client = HaClient("http://localhost:" <> int.to_string(port), "token")
   let assert Ok(json) = client.get_states(client)
   let assert Ok([entity]) = client.parse_climate_entities(json)
 
@@ -319,10 +319,3 @@ pub fn update_climate_entity_changes_state_test() {
   fake_ha_server.stop(server)
 }
 
-// -----------------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------------
-
-fn port_to_string(port: Int) -> String {
-  int.to_string(port)
-}

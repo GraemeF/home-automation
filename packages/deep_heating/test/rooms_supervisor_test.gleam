@@ -15,6 +15,7 @@ import deep_heating/temperature
 import deep_heating/timer
 import gleam/dict
 import gleam/erlang/process
+import gleam/int
 import gleam/list
 import gleam/option.{None, Some}
 import gleam/otp/actor
@@ -60,32 +61,12 @@ fn make_mock_ha_command(
   process.Subject(ha_command_actor.Message),
 ) {
   let name_str =
-    "test_ha_command_" <> test_id <> "_" <> int_to_string(unique_integer())
+    "test_ha_command_" <> test_id <> "_" <> int.to_string(unique_integer())
   let ha_command_name: process.Name(ha_command_actor.Message) =
     process.new_name(name_str)
   let spy: process.Subject(ha_command_actor.Message) = process.new_subject()
   let assert Ok(_) = start_mock_ha_command_actor(ha_command_name, spy)
   #(ha_command_name, spy)
-}
-
-fn int_to_string(n: Int) -> String {
-  case n < 0 {
-    True -> "-" <> int_to_string(-n)
-    False ->
-      case n {
-        0 -> "0"
-        1 -> "1"
-        2 -> "2"
-        3 -> "3"
-        4 -> "4"
-        5 -> "5"
-        6 -> "6"
-        7 -> "7"
-        8 -> "8"
-        9 -> "9"
-        _ -> int_to_string(n / 10) <> int_to_string(n % 10)
-      }
-  }
 }
 
 fn make_test_schedule() -> schedule.WeekSchedule {
