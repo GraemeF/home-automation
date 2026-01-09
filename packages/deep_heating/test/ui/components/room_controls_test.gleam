@@ -1,5 +1,6 @@
 import birdie
 import deep_heating/ui/components/room_controls
+import gleeunit/should
 import lustre/dev/query
 import lustre/element
 import ui/test_helpers
@@ -104,4 +105,19 @@ pub fn always_has_target_display_test() {
   let view_off = room_controls.view(test_helpers.off_room())
   let assert True =
     query.has(view_off, query.attribute("data-testid", "target-display"))
+}
+
+// =============================================================================
+// Delta Calculation Tests - Bug dh-jvf4
+// These test that the delta sent by buttons is always +/-step (0.5).
+// =============================================================================
+
+pub fn warmer_delta_returns_positive_step_test() {
+  room_controls.warmer_delta()
+  |> should.equal(0.5)
+}
+
+pub fn colder_delta_returns_negative_step_test() {
+  room_controls.colder_delta()
+  |> should.equal(-0.5)
 }

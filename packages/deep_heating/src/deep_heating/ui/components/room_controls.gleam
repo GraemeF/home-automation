@@ -13,6 +13,18 @@ import lustre/event
 
 const step: Float = 0.5
 
+/// Calculate the delta to send for the warmer button.
+/// Always returns +step (0.5).
+pub fn warmer_delta() -> Float {
+  step
+}
+
+/// Calculate the delta to send for the colder button.
+/// Always returns -step (-0.5).
+pub fn colder_delta() -> Float {
+  0.0 -. step
+}
+
 /// Room temperature adjustment controls.
 /// Shows target temperature with optional adjustment badge.
 /// In Auto mode, also shows +/- buttons for temperature adjustment.
@@ -43,7 +55,7 @@ fn colder_button(room_name: String, adjustment: Float) -> Element(Msg) {
     [
       class("btn btn-circle btn-ghost btn-sm"),
       attribute("data-testid", "colder-button"),
-      event.on_click(AdjustRoom(room_name, adjustment -. step)),
+      event.on_click(AdjustRoom(room_name, colder_delta())),
     ],
     [icons.minus_icon(adjustment <. 0.0, IconMedium)],
   )
@@ -54,7 +66,7 @@ fn warmer_button(room_name: String, adjustment: Float) -> Element(Msg) {
     [
       class("btn btn-circle btn-ghost btn-sm"),
       attribute("data-testid", "warmer-button"),
-      event.on_click(AdjustRoom(room_name, adjustment +. step)),
+      event.on_click(AdjustRoom(room_name, warmer_delta())),
     ],
     [icons.plus_icon(adjustment >. 0.0, IconMedium)],
   )
