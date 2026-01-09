@@ -22,44 +22,8 @@ import simplifile
 /// Test adjustments path - using /tmp for test safety
 const test_adjustments_path = "/tmp/deep_heating_test_adjustments.json"
 
-/// Create a SupervisorConfigWithRooms with spy timers (for unit tests).
-/// Unit tests don't need timer events - they just verify structure.
-fn make_test_supervisor_config(
-  ha_client: home_assistant.HaClient,
-  poller_config: ha_poller_actor.PollerConfig,
-  home_config: HomeConfig,
-  time_provider: Option(house_mode_actor.TimeProvider),
-) -> supervisor.SupervisorConfigWithRooms {
-  make_test_supervisor_config_full(
-    ha_client,
-    poller_config,
-    home_config,
-    time_provider,
-    test_adjustments_path,
-    None,
-  )
-}
-
-/// Create config with a custom adjustments path
-fn make_test_supervisor_config_with_path(
-  ha_client: home_assistant.HaClient,
-  poller_config: ha_poller_actor.PollerConfig,
-  home_config: HomeConfig,
-  time_provider: Option(house_mode_actor.TimeProvider),
-  adjustments_path: String,
-) -> supervisor.SupervisorConfigWithRooms {
-  make_test_supervisor_config_full(
-    ha_client,
-    poller_config,
-    home_config,
-    time_provider,
-    adjustments_path,
-    None,
-  )
-}
-
 /// Create config with a custom name prefix (for test isolation)
-fn make_test_supervisor_config_with_prefix(
+fn make_test_supervisor_config(
   ha_client: home_assistant.HaClient,
   poller_config: ha_poller_actor.PollerConfig,
   home_config: HomeConfig,
@@ -123,13 +87,13 @@ fn make_test_supervisor_config_full(
 
 pub fn supervisor_starts_successfully_test() {
   // The top-level supervisor should start and return Ok with a Started record
-  let assert Ok(started) = supervisor.start()
+  let assert Ok(started) = supervisor.start_with_prefix(Some("starts_ok"))
   supervisor.shutdown(started.data)
 }
 
 pub fn supervisor_returns_valid_pid_test() {
   // The started supervisor should have a valid PID
-  let assert Ok(started) = supervisor.start()
+  let assert Ok(started) = supervisor.start_with_prefix(Some("valid_pid"))
   // Verify the PID is alive
   process.is_alive(started.pid) |> should.be_true
   supervisor.shutdown(started.data)
@@ -139,7 +103,7 @@ pub fn supervisor_returns_valid_pid_test() {
 
 pub fn supervisor_has_house_mode_actor_test() {
   // The supervisor should have started a HouseModeActor child
-  let assert Ok(started) = supervisor.start()
+  let assert Ok(started) = supervisor.start_with_prefix(Some("has_house_mode"))
 
   // Get the house mode actor from the supervisor
   let result = supervisor.get_house_mode_actor(started.data)
@@ -149,7 +113,7 @@ pub fn supervisor_has_house_mode_actor_test() {
 
 pub fn supervisor_has_state_aggregator_actor_test() {
   // The supervisor should have started a StateAggregatorActor child
-  let assert Ok(started) = supervisor.start()
+  let assert Ok(started) = supervisor.start_with_prefix(Some("has_state_agg"))
 
   // Get the state aggregator from the supervisor
   let result = supervisor.get_state_aggregator(started.data)
@@ -159,7 +123,7 @@ pub fn supervisor_has_state_aggregator_actor_test() {
 
 pub fn house_mode_actor_is_alive_test() {
   // The house mode actor should be running
-  let assert Ok(started) = supervisor.start()
+  let assert Ok(started) = supervisor.start_with_prefix(Some("hm_alive"))
   let assert Ok(house_mode) = supervisor.get_house_mode_actor(started.data)
   process.is_alive(house_mode.pid) |> should.be_true
   supervisor.shutdown(started.data)
@@ -167,7 +131,7 @@ pub fn house_mode_actor_is_alive_test() {
 
 pub fn state_aggregator_actor_is_alive_test() {
   // The state aggregator actor should be running
-  let assert Ok(started) = supervisor.start()
+  let assert Ok(started) = supervisor.start_with_prefix(Some("sa_alive"))
   let assert Ok(aggregator) = supervisor.get_state_aggregator(started.data)
   process.is_alive(aggregator.pid) |> should.be_true
   supervisor.shutdown(started.data)
@@ -177,7 +141,7 @@ pub fn state_aggregator_actor_is_alive_test() {
 
 pub fn supervisor_restarts_crashed_house_mode_actor_test() {
   // When the house mode actor crashes, the supervisor should restart it
-  let assert Ok(started) = supervisor.start()
+  let assert Ok(started) = supervisor.start_with_prefix(Some("hm_restart"))
 
   // Get the house mode actor's PID
   let assert Ok(house_mode) = supervisor.get_house_mode_actor(started.data)
@@ -208,7 +172,7 @@ pub fn supervisor_restarts_crashed_house_mode_actor_test() {
 
 pub fn supervisor_restarts_crashed_state_aggregator_test() {
   // When the state aggregator crashes, the supervisor should restart it
-  let assert Ok(started) = supervisor.start()
+  let assert Ok(started) = supervisor.start_with_prefix(Some("sa_restart"))
 
   // Get the aggregator's PID
   let assert Ok(aggregator) = supervisor.get_state_aggregator(started.data)
@@ -247,14 +211,12 @@ fn create_test_poller_config() -> ha_poller_actor.PollerConfig {
 
 pub fn supervisor_has_ha_poller_actor_test() {
   // When started with config, supervisor should have HaPollerActor child
-  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
-  let poller_config = create_test_poller_config()
-
   let assert Ok(started) =
     supervisor.start_with_config(supervisor.SupervisorConfig(
-      ha_client: ha_client,
-      poller_config: poller_config,
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      poller_config: create_test_poller_config(),
       adjustments_path: test_adjustments_path,
+      name_prefix: Some("has_ha_poller"),
     ))
 
   // Get the ha poller actor from the supervisor
@@ -265,14 +227,12 @@ pub fn supervisor_has_ha_poller_actor_test() {
 
 pub fn ha_poller_actor_is_alive_test() {
   // The HaPollerActor should be running
-  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
-  let poller_config = create_test_poller_config()
-
   let assert Ok(started) =
     supervisor.start_with_config(supervisor.SupervisorConfig(
-      ha_client: ha_client,
-      poller_config: poller_config,
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      poller_config: create_test_poller_config(),
       adjustments_path: test_adjustments_path,
+      name_prefix: Some("ha_poller_alive"),
     ))
 
   let assert Ok(ha_poller) = supervisor.get_ha_poller(started.data)
@@ -282,14 +242,12 @@ pub fn ha_poller_actor_is_alive_test() {
 
 pub fn supervisor_restarts_crashed_ha_poller_actor_test() {
   // When the HaPollerActor crashes, the supervisor should restart it
-  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
-  let poller_config = create_test_poller_config()
-
   let assert Ok(started) =
     supervisor.start_with_config(supervisor.SupervisorConfig(
-      ha_client: ha_client,
-      poller_config: poller_config,
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      poller_config: create_test_poller_config(),
       adjustments_path: test_adjustments_path,
+      name_prefix: Some("ha_poller_restart"),
     ))
 
   // Get the HaPollerActor's PID
@@ -325,14 +283,12 @@ pub fn supervisor_restarts_crashed_ha_poller_actor_test() {
 
 pub fn supervisor_has_ha_command_actor_test() {
   // When started with config, supervisor should have HaCommandActor child
-  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
-  let poller_config = create_test_poller_config()
-
   let assert Ok(started) =
     supervisor.start_with_config(supervisor.SupervisorConfig(
-      ha_client: ha_client,
-      poller_config: poller_config,
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      poller_config: create_test_poller_config(),
       adjustments_path: test_adjustments_path,
+      name_prefix: Some("has_ha_cmd"),
     ))
 
   // Get the ha command actor from the supervisor
@@ -343,14 +299,12 @@ pub fn supervisor_has_ha_command_actor_test() {
 
 pub fn ha_command_actor_is_alive_test() {
   // The HaCommandActor should be running
-  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
-  let poller_config = create_test_poller_config()
-
   let assert Ok(started) =
     supervisor.start_with_config(supervisor.SupervisorConfig(
-      ha_client: ha_client,
-      poller_config: poller_config,
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      poller_config: create_test_poller_config(),
       adjustments_path: test_adjustments_path,
+      name_prefix: Some("ha_cmd_alive"),
     ))
 
   let assert Ok(ha_command) = supervisor.get_ha_command_actor(started.data)
@@ -360,14 +314,12 @@ pub fn ha_command_actor_is_alive_test() {
 
 pub fn ha_command_actor_responds_to_messages_test() {
   // The HaCommandActor should process messages
-  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
-  let poller_config = create_test_poller_config()
-
   let assert Ok(started) =
     supervisor.start_with_config(supervisor.SupervisorConfig(
-      ha_client: ha_client,
-      poller_config: poller_config,
+      ha_client: home_assistant.HaClient("http://localhost:8123", "test-token"),
+      poller_config: create_test_poller_config(),
       adjustments_path: test_adjustments_path,
+      name_prefix: Some("ha_cmd_msg"),
     ))
 
   let assert Ok(ha_command) = supervisor.get_ha_command_actor(started.data)
@@ -441,7 +393,12 @@ pub fn supervisor_starts_rooms_with_home_config_test() {
   let poller_config = create_test_poller_config()
 
   let config =
-    make_test_supervisor_config(ha_client, poller_config, home_config, None)
+    make_test_supervisor_config(
+      ha_client,
+      poller_config,
+      home_config,
+      "starts_rooms",
+    )
 
   let assert Ok(started) = supervisor.start_with_home_config(config)
 
@@ -462,7 +419,12 @@ pub fn supervisor_rooms_are_accessible_by_name_test() {
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
   let config =
-    make_test_supervisor_config(ha_client, poller_config, home_config, None)
+    make_test_supervisor_config(
+      ha_client,
+      poller_config,
+      home_config,
+      "rooms_by_name",
+    )
 
   let assert Ok(started) = supervisor.start_with_home_config(config)
 
@@ -483,7 +445,12 @@ pub fn supervisor_room_actors_are_alive_test() {
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
   let config =
-    make_test_supervisor_config(ha_client, poller_config, home_config, None)
+    make_test_supervisor_config(
+      ha_client,
+      poller_config,
+      home_config,
+      "room_alive",
+    )
 
   let assert Ok(started) = supervisor.start_with_home_config(config)
 
@@ -522,12 +489,13 @@ pub fn supervisor_loads_room_adjustments_from_env_test() {
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
   let config =
-    make_test_supervisor_config_with_path(
+    make_test_supervisor_config_full(
       ha_client,
       poller_config,
       home_config,
       None,
       test_path,
+      Some("load_adj"),
     )
 
   let assert Ok(started) = supervisor.start_with_home_config(config)
@@ -559,7 +527,12 @@ pub fn supervisor_has_heating_control_actor_when_started_with_home_config_test()
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
   let config =
-    make_test_supervisor_config(ha_client, poller_config, home_config, None)
+    make_test_supervisor_config(
+      ha_client,
+      poller_config,
+      home_config,
+      "has_hc",
+    )
 
   let assert Ok(started) = supervisor.start_with_home_config(config)
 
@@ -577,7 +550,12 @@ pub fn heating_control_actor_is_alive_when_started_with_home_config_test() {
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
   let config =
-    make_test_supervisor_config(ha_client, poller_config, home_config, None)
+    make_test_supervisor_config(
+      ha_client,
+      poller_config,
+      home_config,
+      "hc_alive",
+    )
 
   let assert Ok(started) = supervisor.start_with_home_config(config)
 
@@ -599,7 +577,7 @@ pub fn supervisor_accepts_timer_deps_config_test() {
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
   let config =
-    make_test_supervisor_config_with_prefix(
+    make_test_supervisor_config(
       ha_client,
       poller_config,
       home_config,
@@ -631,7 +609,7 @@ pub fn shutdown_terminates_otp_supervisor_test() {
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
   let config =
-    make_test_supervisor_config_with_prefix(
+    make_test_supervisor_config(
       ha_client,
       poller_config,
       home_config,
@@ -660,7 +638,7 @@ pub fn shutdown_with_rooms_terminates_all_actors_test() {
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
   let config =
-    make_test_supervisor_config_with_prefix(
+    make_test_supervisor_config(
       ha_client,
       poller_config,
       home_config,
@@ -716,7 +694,7 @@ pub fn shutdown_allows_restart_with_same_names_test() {
 
   // First instance
   let config1 =
-    make_test_supervisor_config_with_prefix(
+    make_test_supervisor_config(
       ha_client,
       poller_config,
       home_config,
@@ -730,7 +708,7 @@ pub fn shutdown_allows_restart_with_same_names_test() {
 
   // Second instance with same prefix should start successfully
   let config2 =
-    make_test_supervisor_config_with_prefix(
+    make_test_supervisor_config(
       ha_client,
       poller_config,
       home_config,
@@ -757,7 +735,7 @@ pub fn shutdown_is_fast_test() {
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
   let config =
-    make_test_supervisor_config_with_prefix(
+    make_test_supervisor_config(
       ha_client,
       poller_config,
       home_config,

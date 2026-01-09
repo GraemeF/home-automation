@@ -50,6 +50,8 @@ pub type SupervisorConfig {
     poller_config: ha_poller_actor.PollerConfig,
     /// Path to persist room adjustments
     adjustments_path: String,
+    /// Optional prefix for actor names (for test isolation)
+    name_prefix: Option(String),
   )
 }
 
@@ -166,10 +168,26 @@ pub type ActorRef(msg) {
 ///
 /// Returns a Started record containing the supervisor PID and a handle
 /// for querying child actors.
+///
+/// Use `start_with_prefix` for test isolation.
 pub fn start() -> Result(actor.Started(Supervisor), actor.StartError) {
+  start_with_prefix(None)
+}
+
+/// Start the Deep Heating supervision tree with optional name prefix.
+///
+/// The prefix is used to isolate test instances from each other.
+pub fn start_with_prefix(
+  name_prefix: Option(String),
+) -> Result(actor.Started(Supervisor), actor.StartError) {
+  let prefix = case name_prefix {
+    Some(p) -> p <> "_"
+    None -> ""
+  }
   // Create names for our actors so we can look them up later
-  let house_mode_name = process.new_name("deep_heating_house_mode")
-  let state_aggregator_name = process.new_name("deep_heating_state_aggregator")
+  let house_mode_name = process.new_name(prefix <> "deep_heating_house_mode")
+  let state_aggregator_name =
+    process.new_name(prefix <> "deep_heating_state_aggregator")
 
   // Build and start the supervision tree
   supervisor.new(supervisor.OneForOne)
@@ -192,11 +210,17 @@ const default_ha_command_debounce_ms = 5000
 pub fn start_with_config(
   config: SupervisorConfig,
 ) -> Result(actor.Started(Supervisor), actor.StartError) {
+  // Use prefix for actor name isolation (for tests)
+  let prefix = case config.name_prefix {
+    Some(p) -> p <> "_"
+    None -> ""
+  }
   // Create names for our actors so we can look them up later
-  let house_mode_name = process.new_name("deep_heating_house_mode")
-  let state_aggregator_name = process.new_name("deep_heating_state_aggregator")
-  let ha_poller_name = process.new_name("deep_heating_ha_poller")
-  let ha_command_name = process.new_name("deep_heating_ha_command")
+  let house_mode_name = process.new_name(prefix <> "deep_heating_house_mode")
+  let state_aggregator_name =
+    process.new_name(prefix <> "deep_heating_state_aggregator")
+  let ha_poller_name = process.new_name(prefix <> "deep_heating_ha_poller")
+  let ha_command_name = process.new_name(prefix <> "deep_heating_ha_command")
 
   // Create an orphaned event spy - events are discarded in this mode
   // (This mode is primarily for testing without full room configuration)

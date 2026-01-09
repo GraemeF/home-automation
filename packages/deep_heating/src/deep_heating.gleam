@@ -123,6 +123,7 @@ fn build_supervisor_config() -> Result(
             ha_client: ha_client,
             poller_config: poller_config,
             adjustments_path: adjustments_path,
+            name_prefix: option.None,
           ))
         }
       }
