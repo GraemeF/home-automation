@@ -1,84 +1,66 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bash(git add:*), Bash(git commit:*), Bash(cd:*), Bash(pwd:*), Bash(turbo:*)
-description: Iteratively fix all issues shown by `turbo all` one file at a time until the build passes completely.
+allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bash(git add:*), Bash(git commit:*), Bash(cd:*), Bash(pwd:*), Bash(gleam build:*), Bash(gleam test:*), Bash(gleam format:*)
+description: Iteratively fix all Gleam build/test issues until everything passes
 ---
 
 # Your Task
 
-Iteratively fix all issues shown by `turbo all` one file at a time until the build passes completely.
+Iteratively fix all issues shown by `gleam build` and `gleam test` one at a time until everything passes.
 
 ## Instructions
 
-You are orchestrating a complex multi-file fix operation. Your job is to:
+You are fixing build and test failures in the Gleam codebase. Your job is to:
 
-1. **Run `turbo all`** to identify the first failing file
-2. **Delegate to the effect-pro agent** to fix that specific file
-3. **Commit the changes** after each successful fix
-4. **Repeat** until `turbo all` completes successfully
+1. **Run `gleam build`** from `packages/deep_heating` to identify compile errors
+2. **Fix the first error** - focus on one issue at a time
+3. **Run `gleam test`** to identify test failures
+4. **Fix any test failures** one at a time
+5. **Commit the changes** after each successful fix
+6. **Repeat** until both `gleam build` and `gleam test` pass
 
-## Critical Rules for Agents
-
-When delegating to agents, you MUST include these instructions:
+## Critical Rules
 
 ### Scope
 
-- Fix ONLY the specific file assigned to you
-- Do NOT modify any other files unless absolutely necessary
-- If you need to modify another file, report back first
+- Fix ONLY the specific issue in front of you
+- Do NOT refactor unrelated code
+- If fixing one issue reveals another, report it but stay focused
 
-### Strict Lint Rules
+### Gleam-Specific Guidelines
 
-This codebase enforces extremely strict functional programming rules enforced by lint. These rules are to ensure we have readable, functional code. Use function names carefully to aid readability.
+- Follow the existing code patterns in the codebase
+- Use pipe operators (`|>`) for function composition
+- Prefer pattern matching over conditionals
+- Keep functions pure where possible
+- Actor messages should be descriptive domain concepts
 
 ### Verification
 
-- Run `turbo all` repeatedly until YOUR file is no longer the source of errors (typecheck, lint, or test failures).
-- NO OTHER COMMANDS ARE PERMITTED. Only `turbo all`.
-- The next file may fail - that's expected and will be handled by the next agent
-- Ensure your fixes don't break other files (watch for import changes, type changes, etc.)
+- Run `gleam build` and `gleam test` after each fix
+- Ensure format is correct with `gleam format --check src test`
+- The goal is a clean build with all tests passing
 
-### Testing Exclusions
+### Testing
 
-Note: Files matching these patterns have relaxed rules:
+- Tests live in the `test/` directory mirroring `src/` structure
+- Run specific tests with `gleam test -- --filter=test_name`
+- Never delete a failing test without explicit permission
+- If a test is wrong, fix the test to match correct behaviour
 
-- `**/*.test.ts`, `**/*.spec.ts`
-- `**/testing/**/*.ts`
-- `**/eventsourcing-testing-contracts/**/*.ts`
-
-## Orchestration Strategy
-
-### Detecting Ping-Pong
-
-Watch for agents repeatedly breaking each other's files. Signs include:
-
-- Same 2-3 files alternating in error list
-- Type signature changes causing cascading failures
-- Import/export changes affecting multiple files
-
-### Handling Ping-Pong
-
-If you detect ping-pong:
-
-1. **Stop the iteration**
-2. **Analyze the root cause** - usually a shared type or interface
-3. **Create a coordinated fix plan** - fix the root cause first, then dependents
-4. **Guide the agent explicitly** - "Fix X without changing the signature of Y"
-
-### Progress Tracking
+## Progress Tracking
 
 Use the TodoWrite tool to track:
 
 - Which files have been fixed
-- Which files are currently failing
-- Any ping-pong patterns detected
+- Which issues remain
 - Overall progress toward clean build
 
 ## Exit Condition
 
-Stop when `turbo all` completes with exit code 0 and shows:
+Stop when:
 
-```
-Tasks: X successful, X total
-```
+1. `gleam build` completes with no errors
+2. `gleam test` completes with all tests passing
+3. `gleam format --check src test` shows no formatting issues
 
-With no error messages.
+Report the final state to the user.

@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(gh run:*), Bash(git checkout:*), Bash(git status:*), Bash(git branch:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(git fetch:*), Bash(git diff:*), Bash(git worktree:*), Bash(bun install:*), Bash(bun pm:*), Bash(turbo:*), Read, Glob, Grep, Edit, Write, Task, WebFetch
+allowed-tools: Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(gh run:*), Bash(git checkout:*), Bash(git status:*), Bash(git branch:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(git fetch:*), Bash(git diff:*), Bash(git worktree:*), Bash(gleam build:*), Bash(gleam test:*), Bash(gleam deps:*), Read, Glob, Grep, Edit, Write, Task, WebFetch
 description: Process open Renovate dependency update PRs
 ---
 
@@ -34,7 +34,7 @@ gh pr view {PR_NUMBER} --json title,body,files,additions,deletions
 
 Read the PR description and changed files to understand:
 
-- Which packages are being updated
+- Which dependencies are being updated (Nix flake inputs or Gleam packages)
 - What version changes are occurring (patch/minor/major)
 - If there are any breaking changes mentioned
 
@@ -51,22 +51,13 @@ For MINOR and MAJOR version bumps:
 
 Follow the project's branch workflow (see CLAUDE.md) to work on the Renovate branch. Ensure you have the latest changes from origin.
 
-#### 2.5 Update Lock Files
+#### 2.5 Run Full Build and Tests
 
-Ensure lock files are fresh and consistent:
-
-```bash
-bun install
-```
-
-If `bun.lock` changes, commit and push. The `sync-bun-nix.yml` workflow will automatically regenerate `bun-deep-heating.nix` and commit it to the branch. Wait for that workflow to complete before proceeding.
-
-**Note:** If Renovate updated `flake.lock` (Nix inputs), no additional regeneration is needed.
-
-#### 2.6 Run Full Build and Tests
+From the `packages/deep_heating` directory:
 
 ```bash
-turbo all
+gleam build
+gleam test
 ```
 
 If this fails:
@@ -75,7 +66,7 @@ If this fails:
 - Make necessary code changes to fix compatibility issues
 - Commit the fixes with a clear message explaining what changed
 
-#### 2.7 Leverage New Features
+#### 2.6 Leverage New Features
 
 Based on your research from Step 2.3, look for opportunities to use new features:
 
@@ -85,15 +76,15 @@ Based on your research from Step 2.3, look for opportunities to use new features
 
 Make changes if they're straightforward and improve the codebase. For complex refactors, note them for future work but don't implement them now.
 
-#### 2.8 Final Verification
+#### 2.7 Final Verification
 
 Run the full build again to ensure everything passes:
 
 ```bash
-turbo all
+gleam build && gleam test
 ```
 
-#### 2.9 Push Changes (if any)
+#### 2.8 Push Changes (if any)
 
 If you made any changes beyond Renovate's original updates:
 
@@ -103,7 +94,7 @@ git commit -m "chore: update code for dependency changes"
 git push origin {BRANCH_NAME}
 ```
 
-#### 2.10 Merge the PR
+#### 2.9 Merge the PR
 
 Wait for CI to pass, then merge:
 
@@ -119,13 +110,6 @@ After the PR is merged, clean up according to the project's branch workflow (see
 Report how many Renovate PRs remain (if any). The user can run `/renovate` again to process the next one.
 
 ## Important Rules
-
-### Lock File Hygiene
-
-- ALWAYS run `bun install` on each Renovate branch to ensure lock files are consistent
-- If `bun.lock` changes, push and wait for `sync-bun-nix.yml` workflow to regenerate `bun-deep-heating.nix`
-- Pull after the workflow completes to get the regenerated file
-- Commit lock file changes separately from code changes when possible
 
 ### Avoiding Scope Creep
 

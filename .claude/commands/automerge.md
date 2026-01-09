@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(gh pr:*), Bash(cd:*), Bash(pwd:*)
+allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(gh pr:*), Bash(cd:*), Bash(pwd:*), Bash(gleam build:*), Bash(gleam test:*), Bash(gleam format:*)
 description: Commit changes, create/update PR, enable automerge, and wait for merge
 ---
 
@@ -11,10 +11,10 @@ This command automates the entire process of getting changes merged into main:
 2. **Handle uncommitted changes** (if any):
    - Check if already on a feature branch, if not create one
 3. **Run checks**
-   - Run `bun run build && bun run test && bun run lint` to ensure all tests and checks pass before proceeding
+   - Run `gleam build && gleam test` from `packages/deep_heating` to ensure all tests pass before proceeding
    - Fix any issues if checks fail
    - Assume all failures are due to your changes, not external factors
-4. **Create a changeset file** (if changes affect packages)
+4. **Create a changeset file** (if changes affect the package)
    - Manually create a new changeset file in `.changeset/` with a summary of changes and type of release (patch or minor only, because we are still pre-1.0.0)
    - Changes must be described from the perspective of a user of the package, not internal implementation details
    - Skip this step if changes don't affect published packages (e.g., CI/workflow changes only)

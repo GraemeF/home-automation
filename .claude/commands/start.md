@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git worktree:*), Bash(git fetch:*), Bash(git status:*), Bash(git branch:*), Bash(bun install:*), Bash(pwd:*), Bash(git pull:*), Bash(git checkout:*), Bash(ls:*)
+allowed-tools: Bash(git worktree:*), Bash(git fetch:*), Bash(git status:*), Bash(git branch:*), Bash(gleam build:*), Bash(gleam test:*), Bash(pwd:*), Bash(git pull:*), Bash(git checkout:*), Bash(ls:*)
 description: Start a new piece of work using git worktree
 ---
 
@@ -25,7 +25,7 @@ IMPORTANT: Always use worktrees for feature development to maintain clean separa
 
 3. **Set up the new worktree:**
    - Change to the new worktree directory
-   - Run `bun install` to set up dependencies
+   - Run `gleam build` from `packages/deep_heating` to verify dependencies
    - Run `git status` to confirm branch and clean state
    - Run `pwd` to show current worktree location
 
@@ -34,13 +34,13 @@ IMPORTANT: Always use worktrees for feature development to maintain clean separa
 - Complete isolation from main branch
 - Can work on multiple features simultaneously
 - No risk of contaminating main with uncommitted changes
-- Each worktree has its own node_modules and build artifacts
-- Pre-commit hooks work correctly (requires `bun install`)
+- Each worktree has its own build artifacts
+- Gleam deps are cached globally, so no reinstallation needed
 
 **Next Steps After Setup:**
 
 1. Make your changes in the isolated worktree
-2. Run `turbo build lint test` to verify changes
+2. Run `gleam test` and `gleam build` to verify changes (from packages/deep_heating)
 3. Commit with conventional format: "type(scope): description"
 4. Push and create PR
 5. After merge, clean up:

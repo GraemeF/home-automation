@@ -6,7 +6,7 @@ Create a markdown file here (e.g., `fix-temperature-bug.md`):
 
 ```markdown
 ---
-'@home-automation/deep-heating-rx': patch
+'deep_heating': patch
 ---
 
 Brief description of what changed
