@@ -13,16 +13,19 @@
 import deep_heating/config/home_config.{type HomeConfig, HomeConfig, RoomConfig}
 import deep_heating/entity_id
 import deep_heating/home_assistant/client.{HaClient}
+import deep_heating/home_assistant/ha_command_actor
 import deep_heating/home_assistant/ha_poller_actor
 import deep_heating/house_mode/house_mode_actor
 import deep_heating/mode
+import deep_heating/rooms/room_actor
 import deep_heating/scheduling/schedule
 import deep_heating/state.{type DeepHeatingState}
 import deep_heating/state/state_aggregator_actor
 import deep_heating/supervisor
 import deep_heating/temperature
+import deep_heating/timer
 import fake_ha_server.{ClimateEntityState, SensorEntityState}
-import gleam/erlang/process
+import gleam/erlang/process.{type Subject}
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/set
@@ -42,6 +45,54 @@ const test_token = "e2e-test-token"
 const test_adjustments_path = "/tmp/deep_heating_e2e_adjustments.json"
 
 // =============================================================================
+// Test infrastructure - spy subjects for controlled timers
+// =============================================================================
+
+/// Spy subjects for capturing timer requests.
+/// Tests can receive from these to trigger timer messages manually.
+type TestSpies {
+  TestSpies(
+    house_mode: Subject(timer.TimerRequest(house_mode_actor.Message)),
+    room_actor: Subject(timer.TimerRequest(room_actor.Message)),
+    ha_command: Subject(timer.TimerRequest(ha_command_actor.Message)),
+    state_aggregator: Subject(timer.TimerRequest(state_aggregator_actor.Message)),
+    ha_poller: Subject(timer.TimerRequest(ha_poller_actor.Message)),
+  )
+}
+
+/// Create spy subjects for all actor types
+fn create_test_spies() -> TestSpies {
+  TestSpies(
+    house_mode: process.new_subject(),
+    room_actor: process.new_subject(),
+    ha_command: process.new_subject(),
+    state_aggregator: process.new_subject(),
+    ha_poller: process.new_subject(),
+  )
+}
+
+/// Flush all pending timer requests from a spy, triggering them immediately.
+/// Returns the number of timers that were triggered.
+fn flush_timer_spy(spy: Subject(timer.TimerRequest(msg))) -> Int {
+  flush_timer_spy_loop(spy, 0)
+}
+
+fn flush_timer_spy_loop(spy: Subject(timer.TimerRequest(msg)), count: Int) -> Int {
+  case process.receive(spy, 0) {
+    Ok(timer.TimerRequest(subject, _delay, msg)) -> {
+      process.send(subject, msg)
+      flush_timer_spy_loop(spy, count + 1)
+    }
+    Error(_) -> count
+  }
+}
+
+/// Flush the ha_command timer spy to trigger debounced commands
+fn flush_ha_command_timers(spies: TestSpies) -> Int {
+  flush_timer_spy(spies.ha_command)
+}
+
+// =============================================================================
 // The main e2e test
 // =============================================================================
 
@@ -56,22 +107,29 @@ pub fn full_system_wiring_turns_on_heating_when_cold_test() {
   process.sleep(500)
 
   // 2. Start Deep Heating supervisor pointing at fake HA
-  let assert Ok(system) = start_deep_heating(port)
+  let assert Ok(TestSystem(supervisor: system, spies: spies)) =
+    start_deep_heating(port)
 
   // 3. Trigger a poll to get initial state
   trigger_poll(system)
 
-  // 4. Wait for events to propagate through the actor chain
-  // (with instant timers, debounce fires immediately)
-  process.sleep(200)
+  // 4. Give HTTP request time to complete
+  process.sleep(100)
 
-  // 5. Verify the boiler was commanded to turn on (rooms are cold, demand heat)
+  // 5. Flush timers to fire debounced commands
+  let _ = flush_ha_command_timers(spies)
+
+  // 6. Give HA commands time to propagate
+  process.sleep(100)
+
+  // 7. Verify the boiler was commanded to turn on (rooms are cold, demand heat)
   let heating_calls = fake_ha_server.get_set_hvac_mode_calls(fake_ha)
 
   // The heating should have been turned on because rooms are below target
   should_have_heating_command(heating_calls, mode.HvacHeat)
 
   // Cleanup
+  supervisor.shutdown_with_rooms(system)
   fake_ha_server.stop(fake_ha)
 }
 
@@ -86,28 +144,31 @@ pub fn full_system_wiring_turns_off_heating_when_warm_test() {
   process.sleep(500)
 
   // 2. Start Deep Heating supervisor
-  let assert Ok(system) = start_deep_heating(port)
+  let assert Ok(TestSystem(supervisor: system, spies: spies)) =
+    start_deep_heating(port)
 
-  // 3. Trigger poll and wait for events to propagate
-  // (with instant timers, debounce fires immediately)
+  // 3. Trigger poll and give HTTP time to complete
   trigger_poll(system)
-  process.sleep(200)
+  process.sleep(100)
 
-  // 4. Verify no heating command sent (rooms already warm)
+  // 4. Flush timers to fire debounced commands
+  let _ = flush_ha_command_timers(spies)
+  process.sleep(100)
+
+  // 5. Verify no heating command sent (rooms already warm)
   let heating_calls = fake_ha_server.get_set_hvac_mode_calls(fake_ha)
 
   // The heating should be off because rooms are at target
   should_have_heating_command(heating_calls, mode.HvacOff)
 
+  // Cleanup
+  supervisor.shutdown_with_rooms(system)
   fake_ha_server.stop(fake_ha)
 }
 
-/// FLAKY TEST - skipped pending investigation
-/// See bead dh-33jq.65.1 for tracking
-/// The test intermittently times out waiting for house mode to change to Sleeping.
-/// Suspected race condition between async message passing and HTTP polling.
-/// Renaming to not end with _test so gleeunit doesn't pick it up.
-pub fn flaky_full_system_wiring_responds_to_sleep_button() {
+/// Test that sleep button press correctly changes house mode.
+/// This test was previously flaky (dh-33jq.65.1) but now uses controlled timers.
+pub fn full_system_wiring_responds_to_sleep_button_test() {
   let port = base_port + 3
 
   // 1. Start fake HA with cold rooms and sleep button not pressed
@@ -121,12 +182,12 @@ pub fn flaky_full_system_wiring_responds_to_sleep_button() {
   let evening_time = fn() {
     house_mode_actor.local_datetime(2026, 1, 5, 22, 30, 0)
   }
-  let assert Ok(system) =
+  let assert Ok(TestSystem(supervisor: system, spies: _spies)) =
     start_deep_heating_with_time_provider(port, Some(evening_time))
 
   // 3. Initial poll to establish baseline state
   trigger_poll(system)
-  process.sleep(200)
+  process.sleep(100)
 
   // 4. Press the sleep button (update fake HA state)
   press_sleep_button(fake_ha)
@@ -134,13 +195,16 @@ pub fn flaky_full_system_wiring_responds_to_sleep_button() {
   // 5. Trigger another poll to detect the button press
   trigger_poll(system)
 
-  // 6. Wait for events to propagate (consistent with other tests)
+  // 6. Give HTTP time to complete and events to propagate
   // Event chain: poll → HTTP → parse → EventRouter → HouseModeActor
-  process.sleep(200)
+  process.sleep(100)
 
   // 7. Verify house mode changed to sleeping
-  let assert Ok(Nil) = wait_for_house_mode(system, mode.HouseModeSleeping, 2000)
+  let current_mode = supervisor.get_current_house_mode(system)
+  current_mode |> should.equal(mode.HouseModeSleeping)
 
+  // Cleanup
+  supervisor.shutdown_with_rooms(system)
   fake_ha_server.stop(fake_ha)
 }
 
@@ -155,10 +219,11 @@ pub fn full_system_wiring_broadcasts_state_to_ui_subscribers_test() {
   process.sleep(500)
 
   // 2. Start Deep Heating supervisor
-  let assert Ok(system) = start_deep_heating(port)
+  let assert Ok(TestSystem(supervisor: system, spies: spies)) =
+    start_deep_heating(port)
 
   // 3. Subscribe a test subject to the StateAggregatorActor (simulates UI client)
-  let ui_subscriber: process.Subject(DeepHeatingState) = process.new_subject()
+  let ui_subscriber: Subject(DeepHeatingState) = process.new_subject()
   let state_aggregator = supervisor.get_state_aggregator_subject(system)
   process.send(
     state_aggregator,
@@ -167,9 +232,11 @@ pub fn full_system_wiring_broadcasts_state_to_ui_subscribers_test() {
 
   // 4. Trigger a poll to get HA state
   trigger_poll(system)
+  process.sleep(100)
 
-  // 5. Wait for state to propagate through actors to aggregator
-  process.sleep(200)
+  // 5. Flush state aggregator timer to trigger broadcast
+  let _ = flush_timer_spy(spies.state_aggregator)
+  process.sleep(100)
 
   // 6. Check that we received a state update with room data
   case process.receive(ui_subscriber, 1000) {
@@ -195,6 +262,7 @@ pub fn full_system_wiring_broadcasts_state_to_ui_subscribers_test() {
     state_aggregator,
     state_aggregator_actor.Unsubscribe(ui_subscriber),
   )
+  supervisor.shutdown_with_rooms(system)
   fake_ha_server.stop(fake_ha)
 }
 
@@ -322,24 +390,28 @@ fn start_fake_ha_with_warm_rooms(
 /// Start the Deep Heating supervisor pointing at the fake HA
 fn start_deep_heating(
   port: Int,
-) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
-  start_deep_heating_with_time_provider(port, None)
+) -> Result(TestSystem, supervisor.StartWithRoomsError) {
+  start_deep_heating_with_options(port, None)
 }
 
 /// Start the Deep Heating supervisor with an optional time provider (for testing time-based logic)
 fn start_deep_heating_with_time_provider(
   port: Int,
   time_provider: Option(house_mode_actor.TimeProvider),
-) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
-  start_deep_heating_with_options(port, time_provider, True)
+) -> Result(TestSystem, supervisor.StartWithRoomsError) {
+  start_deep_heating_with_options(port, time_provider)
+}
+
+/// Result of starting deep heating with test infrastructure
+type TestSystem {
+  TestSystem(supervisor: supervisor.SupervisorWithRooms, spies: TestSpies)
 }
 
 /// Start the Deep Heating supervisor with all options
 fn start_deep_heating_with_options(
   port: Int,
   time_provider: Option(house_mode_actor.TimeProvider),
-  use_instant_timers: Bool,
-) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
+) -> Result(TestSystem, supervisor.StartWithRoomsError) {
   let ha_client =
     HaClient("http://127.0.0.1:" <> int_to_string(port), test_token)
 
@@ -349,6 +421,9 @@ fn start_deep_heating_with_options(
   // Use port as a unique prefix for actor names to avoid conflicts in parallel tests
   let name_prefix = "e2e_" <> int_to_string(port)
 
+  // Create spy subjects for all actors - gives complete control over timing
+  let spies = create_test_spies()
+
   case
     supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
       ha_client: ha_client,
@@ -357,10 +432,24 @@ fn start_deep_heating_with_options(
       home_config: home_config,
       name_prefix: Some(name_prefix),
       time_provider: time_provider,
-      use_instant_timers: use_instant_timers,
+      house_mode_deps: supervisor.HouseModeDeps(
+        send_after: timer.spy_send_after(spies.house_mode),
+      ),
+      ha_poller_deps: supervisor.HaPollerDeps(
+        send_after: timer.spy_send_after(spies.ha_poller),
+      ),
+      room_actor_deps: supervisor.RoomActorDeps(
+        send_after: timer.spy_send_after(spies.room_actor),
+      ),
+      ha_command_deps: supervisor.HaCommandDeps(
+        send_after: timer.spy_send_after(spies.ha_command),
+      ),
+      state_aggregator_deps: supervisor.StateAggregatorDeps(
+        send_after: timer.spy_send_after(spies.state_aggregator),
+      ),
     ))
   {
-    Ok(started) -> Ok(started.data)
+    Ok(started) -> Ok(TestSystem(supervisor: started.data, spies: spies))
     Error(e) -> Error(e)
   }
 }
@@ -381,46 +470,6 @@ fn press_sleep_button(server: fake_ha_server.Server) -> Nil {
   )
 }
 
-/// Get the current house mode from the system
-fn get_house_mode(system: supervisor.SupervisorWithRooms) -> mode.HouseMode {
-  supervisor.get_current_house_mode(system)
-}
-
-/// Wait for house mode to reach expected state, with polling and timeout
-/// Returns Ok if expected mode is reached, Error if timeout expires
-fn wait_for_house_mode(
-  system: supervisor.SupervisorWithRooms,
-  expected: mode.HouseMode,
-  timeout_ms: Int,
-) -> Result(Nil, Nil) {
-  wait_for_house_mode_loop(system, expected, timeout_ms, 50)
-}
-
-fn wait_for_house_mode_loop(
-  system: supervisor.SupervisorWithRooms,
-  expected: mode.HouseMode,
-  remaining_ms: Int,
-  poll_interval_ms: Int,
-) -> Result(Nil, Nil) {
-  case remaining_ms <= 0 {
-    True -> Error(Nil)
-    False -> {
-      let current = get_house_mode(system)
-      case current == expected {
-        True -> Ok(Nil)
-        False -> {
-          process.sleep(poll_interval_ms)
-          wait_for_house_mode_loop(
-            system,
-            expected,
-            remaining_ms - poll_interval_ms,
-            poll_interval_ms,
-          )
-        }
-      }
-    }
-  }
-}
 
 /// Assert that a heating command was sent with the expected mode
 fn should_have_heating_command(
@@ -460,14 +509,16 @@ pub fn full_system_wiring_multi_room_demand_aggregation_test() {
   process.sleep(500)
 
   // 2. Start Deep Heating supervisor with multi-room config
-  let assert Ok(system) = start_deep_heating_multi_room(port)
+  let assert Ok(TestSystem(supervisor: system, spies: spies)) =
+    start_deep_heating_multi_room(port)
 
   // 3. Trigger a poll to get initial state
   trigger_poll(system)
+  process.sleep(100)
 
-  // 4. Wait for events to propagate through the actor chain
-  // (with instant timers, debounce fires immediately)
-  process.sleep(200)
+  // 4. Flush timers to fire debounced commands
+  let _ = flush_ha_command_timers(spies)
+  process.sleep(100)
 
   // 5. Verify the boiler was commanded to turn on
   // Even though bedroom is warm, lounge is cold so heating should be ON
@@ -476,6 +527,7 @@ pub fn full_system_wiring_multi_room_demand_aggregation_test() {
   should_have_heating_command(heating_calls, mode.HvacHeat)
 
   // Cleanup
+  supervisor.shutdown_with_rooms(system)
   fake_ha_server.stop(fake_ha)
 }
 
@@ -489,10 +541,11 @@ pub fn full_system_wiring_multi_room_broadcasts_all_rooms_to_ui_test() {
   process.sleep(500)
 
   // 2. Start Deep Heating supervisor with multi-room config
-  let assert Ok(system) = start_deep_heating_multi_room(port)
+  let assert Ok(TestSystem(supervisor: system, spies: spies)) =
+    start_deep_heating_multi_room(port)
 
   // 3. Subscribe a test subject to the StateAggregatorActor (simulates UI client)
-  let ui_subscriber: process.Subject(DeepHeatingState) = process.new_subject()
+  let ui_subscriber: Subject(DeepHeatingState) = process.new_subject()
   let state_aggregator = supervisor.get_state_aggregator_subject(system)
   process.send(
     state_aggregator,
@@ -501,9 +554,11 @@ pub fn full_system_wiring_multi_room_broadcasts_all_rooms_to_ui_test() {
 
   // 4. Trigger a poll to get HA state
   trigger_poll(system)
+  process.sleep(100)
 
-  // 5. Wait for state to propagate through actors to aggregator
-  process.sleep(200)
+  // 5. Flush state aggregator timer to trigger broadcast
+  let _ = flush_timer_spy(spies.state_aggregator)
+  process.sleep(100)
 
   // 6. Check that we received a state update with BOTH rooms
   case process.receive(ui_subscriber, 1000) {
@@ -530,6 +585,7 @@ pub fn full_system_wiring_multi_room_broadcasts_all_rooms_to_ui_test() {
     state_aggregator,
     state_aggregator_actor.Unsubscribe(ui_subscriber),
   )
+  supervisor.shutdown_with_rooms(system)
   fake_ha_server.stop(fake_ha)
 }
 
@@ -752,7 +808,7 @@ fn make_multi_room_home_config() -> HomeConfig {
 /// Start the Deep Heating supervisor with multi-room config
 fn start_deep_heating_multi_room(
   port: Int,
-) -> Result(supervisor.SupervisorWithRooms, supervisor.StartWithRoomsError) {
+) -> Result(TestSystem, supervisor.StartWithRoomsError) {
   let ha_client =
     HaClient("http://127.0.0.1:" <> int_to_string(port), test_token)
 
@@ -762,6 +818,9 @@ fn start_deep_heating_multi_room(
   // Use port as a unique prefix for actor names to avoid conflicts in parallel tests
   let name_prefix = "e2e_multi_" <> int_to_string(port)
 
+  // Create spy subjects for all actors - gives complete control over timing
+  let spies = create_test_spies()
+
   case
     supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
       ha_client: ha_client,
@@ -770,10 +829,24 @@ fn start_deep_heating_multi_room(
       home_config: home_config,
       name_prefix: Some(name_prefix),
       time_provider: None,
-      use_instant_timers: True,
+      house_mode_deps: supervisor.HouseModeDeps(
+        send_after: timer.spy_send_after(spies.house_mode),
+      ),
+      ha_poller_deps: supervisor.HaPollerDeps(
+        send_after: timer.spy_send_after(spies.ha_poller),
+      ),
+      room_actor_deps: supervisor.RoomActorDeps(
+        send_after: timer.spy_send_after(spies.room_actor),
+      ),
+      ha_command_deps: supervisor.HaCommandDeps(
+        send_after: timer.spy_send_after(spies.ha_command),
+      ),
+      state_aggregator_deps: supervisor.StateAggregatorDeps(
+        send_after: timer.spy_send_after(spies.state_aggregator),
+      ),
     ))
   {
-    Ok(started) -> Ok(started.data)
+    Ok(started) -> Ok(TestSystem(supervisor: started.data, spies: spies))
     Error(e) -> Error(e)
   }
 }

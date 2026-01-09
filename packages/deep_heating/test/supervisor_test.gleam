@@ -3,22 +3,118 @@ import deep_heating/entity_id
 import deep_heating/home_assistant/client as home_assistant
 import deep_heating/home_assistant/ha_command_actor
 import deep_heating/home_assistant/ha_poller_actor
+import deep_heating/house_mode/house_mode_actor
 import deep_heating/mode
 import deep_heating/rooms/room_actor
 import deep_heating/rooms/rooms_supervisor
 import deep_heating/scheduling/schedule
 import deep_heating/supervisor
 import deep_heating/temperature
+import deep_heating/timer
 import envoy
 import gleam/erlang/process
 import gleam/list
-import gleam/option.{None, Some}
+import gleam/option.{type Option, None, Some}
 import gleam/set
 import gleeunit/should
 import simplifile
 
 /// Test adjustments path - using /tmp for test safety
 const test_adjustments_path = "/tmp/deep_heating_test_adjustments.json"
+
+/// Create a SupervisorConfigWithRooms with spy timers (for unit tests).
+/// Unit tests don't need timer events - they just verify structure.
+fn make_test_supervisor_config(
+  ha_client: home_assistant.HaClient,
+  poller_config: ha_poller_actor.PollerConfig,
+  home_config: HomeConfig,
+  time_provider: Option(house_mode_actor.TimeProvider),
+) -> supervisor.SupervisorConfigWithRooms {
+  make_test_supervisor_config_full(
+    ha_client,
+    poller_config,
+    home_config,
+    time_provider,
+    test_adjustments_path,
+    None,
+  )
+}
+
+/// Create config with a custom adjustments path
+fn make_test_supervisor_config_with_path(
+  ha_client: home_assistant.HaClient,
+  poller_config: ha_poller_actor.PollerConfig,
+  home_config: HomeConfig,
+  time_provider: Option(house_mode_actor.TimeProvider),
+  adjustments_path: String,
+) -> supervisor.SupervisorConfigWithRooms {
+  make_test_supervisor_config_full(
+    ha_client,
+    poller_config,
+    home_config,
+    time_provider,
+    adjustments_path,
+    None,
+  )
+}
+
+/// Create config with a custom name prefix (for test isolation)
+fn make_test_supervisor_config_with_prefix(
+  ha_client: home_assistant.HaClient,
+  poller_config: ha_poller_actor.PollerConfig,
+  home_config: HomeConfig,
+  name_prefix: String,
+) -> supervisor.SupervisorConfigWithRooms {
+  make_test_supervisor_config_full(
+    ha_client,
+    poller_config,
+    home_config,
+    None,
+    test_adjustments_path,
+    Some(name_prefix),
+  )
+}
+
+/// Create config with all options
+fn make_test_supervisor_config_full(
+  ha_client: home_assistant.HaClient,
+  poller_config: ha_poller_actor.PollerConfig,
+  home_config: HomeConfig,
+  time_provider: Option(house_mode_actor.TimeProvider),
+  adjustments_path: String,
+  name_prefix: Option(String),
+) -> supervisor.SupervisorConfigWithRooms {
+  // Create spy subjects that capture timer requests (never fire them)
+  let house_mode_spy = process.new_subject()
+  let ha_poller_spy = process.new_subject()
+  let room_actor_spy = process.new_subject()
+  let ha_command_spy = process.new_subject()
+  let state_aggregator_spy = process.new_subject()
+
+  supervisor.SupervisorConfigWithRooms(
+    ha_client: ha_client,
+    poller_config: poller_config,
+    adjustments_path: adjustments_path,
+    home_config: home_config,
+    name_prefix: name_prefix,
+    time_provider: time_provider,
+    house_mode_deps: supervisor.HouseModeDeps(
+      send_after: timer.spy_send_after(house_mode_spy),
+    ),
+    ha_poller_deps: supervisor.HaPollerDeps(
+      send_after: timer.spy_send_after(ha_poller_spy),
+    ),
+    room_actor_deps: supervisor.RoomActorDeps(
+      send_after: timer.spy_send_after(room_actor_spy),
+    ),
+    ha_command_deps: supervisor.HaCommandDeps(
+      send_after: timer.spy_send_after(ha_command_spy),
+    ),
+    state_aggregator_deps: supervisor.StateAggregatorDeps(
+      send_after: timer.spy_send_after(state_aggregator_spy),
+    ),
+  )
+}
 
 // Supervisor startup tests
 
@@ -341,16 +437,10 @@ pub fn supervisor_starts_rooms_with_home_config_test() {
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
 
-  let assert Ok(started) =
-    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
-      ha_client: ha_client,
-      poller_config: poller_config,
-      adjustments_path: test_adjustments_path,
-      home_config: home_config,
-      name_prefix: None,
-      time_provider: None,
-      use_instant_timers: False,
-    ))
+  let config =
+    make_test_supervisor_config(ha_client, poller_config, home_config, None)
+
+  let assert Ok(started) = supervisor.start_with_home_config(config)
 
   // Get the rooms supervisor from the main supervisor
   let assert Ok(rooms_sup) = supervisor.get_rooms_supervisor(started.data)
@@ -358,6 +448,9 @@ pub fn supervisor_starts_rooms_with_home_config_test() {
   // Should have one room
   let room_supervisors = rooms_supervisor.get_room_supervisors(rooms_sup)
   list.length(room_supervisors) |> should.equal(1)
+
+  // Cleanup
+  supervisor.shutdown_with_rooms(started.data)
 }
 
 pub fn supervisor_rooms_are_accessible_by_name_test() {
@@ -365,17 +458,10 @@ pub fn supervisor_rooms_are_accessible_by_name_test() {
   let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
+  let config =
+    make_test_supervisor_config(ha_client, poller_config, home_config, None)
 
-  let assert Ok(started) =
-    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
-      ha_client: ha_client,
-      poller_config: poller_config,
-      adjustments_path: test_adjustments_path,
-      home_config: home_config,
-      name_prefix: None,
-      time_provider: None,
-      use_instant_timers: False,
-    ))
+  let assert Ok(started) = supervisor.start_with_home_config(config)
 
   // Get the rooms supervisor
   let assert Ok(rooms_sup) = supervisor.get_rooms_supervisor(started.data)
@@ -383,6 +469,9 @@ pub fn supervisor_rooms_are_accessible_by_name_test() {
   // Should be able to get room by name
   let lounge_result = rooms_supervisor.get_room_by_name(rooms_sup, "lounge")
   should.be_ok(lounge_result)
+
+  // Cleanup
+  supervisor.shutdown_with_rooms(started.data)
 }
 
 pub fn supervisor_room_actors_are_alive_test() {
@@ -390,17 +479,10 @@ pub fn supervisor_room_actors_are_alive_test() {
   let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
+  let config =
+    make_test_supervisor_config(ha_client, poller_config, home_config, None)
 
-  let assert Ok(started) =
-    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
-      ha_client: ha_client,
-      poller_config: poller_config,
-      adjustments_path: test_adjustments_path,
-      home_config: home_config,
-      name_prefix: None,
-      time_provider: None,
-      use_instant_timers: False,
-    ))
+  let assert Ok(started) = supervisor.start_with_home_config(config)
 
   // Get the rooms supervisor and lounge room
   let assert Ok(rooms_sup) = supervisor.get_rooms_supervisor(started.data)
@@ -414,6 +496,9 @@ pub fn supervisor_room_actors_are_alive_test() {
   // Should respond with state showing the room name
   let assert Ok(state) = process.receive(reply, 1000)
   state.name |> should.equal("lounge")
+
+  // Cleanup
+  supervisor.shutdown_with_rooms(started.data)
 }
 
 // =============================================================================
@@ -433,17 +518,16 @@ pub fn supervisor_loads_room_adjustments_from_env_test() {
   let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
+  let config =
+    make_test_supervisor_config_with_path(
+      ha_client,
+      poller_config,
+      home_config,
+      None,
+      test_path,
+    )
 
-  let assert Ok(started) =
-    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
-      ha_client: ha_client,
-      poller_config: poller_config,
-      adjustments_path: test_path,
-      home_config: home_config,
-      name_prefix: None,
-      time_provider: None,
-      use_instant_timers: False,
-    ))
+  let assert Ok(started) = supervisor.start_with_home_config(config)
 
   // Get the lounge room actor and query its state
   let assert Ok(rooms_sup) = supervisor.get_rooms_supervisor(started.data)
@@ -456,6 +540,7 @@ pub fn supervisor_loads_room_adjustments_from_env_test() {
   // Cleanup
   envoy.unset("ROOM_ADJUSTMENTS_PATH")
   let _ = simplifile.delete(test_path)
+  supervisor.shutdown_with_rooms(started.data)
 
   // The room should have the adjustment from the persisted file
   state.adjustment |> should.equal(1.5)
@@ -470,21 +555,17 @@ pub fn supervisor_has_heating_control_actor_when_started_with_home_config_test()
   let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
+  let config =
+    make_test_supervisor_config(ha_client, poller_config, home_config, None)
 
-  let assert Ok(started) =
-    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
-      ha_client: ha_client,
-      poller_config: poller_config,
-      adjustments_path: test_adjustments_path,
-      home_config: home_config,
-      name_prefix: None,
-      time_provider: None,
-      use_instant_timers: False,
-    ))
+  let assert Ok(started) = supervisor.start_with_home_config(config)
 
   // Get the heating control actor from the supervisor
   let result = supervisor.get_heating_control_actor(started.data)
   should.be_ok(result)
+
+  // Cleanup
+  supervisor.shutdown_with_rooms(started.data)
 }
 
 pub fn heating_control_actor_is_alive_when_started_with_home_config_test() {
@@ -492,48 +573,45 @@ pub fn heating_control_actor_is_alive_when_started_with_home_config_test() {
   let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
+  let config =
+    make_test_supervisor_config(ha_client, poller_config, home_config, None)
 
-  let assert Ok(started) =
-    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
-      ha_client: ha_client,
-      poller_config: poller_config,
-      adjustments_path: test_adjustments_path,
-      home_config: home_config,
-      name_prefix: None,
-      time_provider: None,
-      use_instant_timers: False,
-    ))
+  let assert Ok(started) = supervisor.start_with_home_config(config)
 
   let assert Ok(heating_control) =
     supervisor.get_heating_control_actor(started.data)
   process.is_alive(heating_control.pid) |> should.be_true
+
+  // Cleanup
+  supervisor.shutdown_with_rooms(started.data)
 }
 
 // =============================================================================
 // Instant timer injection tests
 // =============================================================================
 
-pub fn supervisor_accepts_use_instant_timers_config_test() {
-  // The supervisor should start successfully with use_instant_timers: True
+pub fn supervisor_accepts_timer_deps_config_test() {
+  // The supervisor should start successfully with timer deps
   let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
+  let config =
+    make_test_supervisor_config_with_prefix(
+      ha_client,
+      poller_config,
+      home_config,
+      "timer_deps_test",
+    )
 
-  let assert Ok(started) =
-    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
-      ha_client: ha_client,
-      poller_config: poller_config,
-      adjustments_path: test_adjustments_path,
-      home_config: home_config,
-      name_prefix: Some("instant_timer_test"),
-      time_provider: None,
-      use_instant_timers: True,
-    ))
+  let assert Ok(started) = supervisor.start_with_home_config(config)
 
   // Verify all actors are alive
   let assert Ok(rooms_sup) = supervisor.get_rooms_supervisor(started.data)
   let room_supervisors = rooms_supervisor.get_room_supervisors(rooms_sup)
   list.length(room_supervisors) |> should.equal(1)
+
+  // Cleanup
+  supervisor.shutdown_with_rooms(started.data)
 }
 
 // =============================================================================
@@ -549,17 +627,15 @@ pub fn shutdown_terminates_otp_supervisor_test() {
   let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
+  let config =
+    make_test_supervisor_config_with_prefix(
+      ha_client,
+      poller_config,
+      home_config,
+      "shutdown_test_1",
+    )
 
-  let assert Ok(started) =
-    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
-      ha_client: ha_client,
-      poller_config: poller_config,
-      adjustments_path: test_adjustments_path,
-      home_config: home_config,
-      name_prefix: Some("shutdown_test_1"),
-      time_provider: None,
-      use_instant_timers: False,
-    ))
+  let assert Ok(started) = supervisor.start_with_home_config(config)
 
   let supervisor_pid = started.pid
 
@@ -580,17 +656,15 @@ pub fn shutdown_with_rooms_terminates_all_actors_test() {
   let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
+  let config =
+    make_test_supervisor_config_with_prefix(
+      ha_client,
+      poller_config,
+      home_config,
+      "shutdown_test_2",
+    )
 
-  let assert Ok(started) =
-    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
-      ha_client: ha_client,
-      poller_config: poller_config,
-      adjustments_path: test_adjustments_path,
-      home_config: home_config,
-      name_prefix: Some("shutdown_test_2"),
-      time_provider: None,
-      use_instant_timers: False,
-    ))
+  let assert Ok(started) = supervisor.start_with_home_config(config)
 
   let supervisor_pid = started.pid
 
@@ -635,35 +709,31 @@ pub fn shutdown_allows_restart_with_same_names_test() {
   let poller_config = create_test_poller_config()
 
   // Use the same prefix for both instances to test name cleanup
-  let name_prefix = Some("restart_test")
+  let name_prefix = "restart_test"
 
   // First instance
-  let assert Ok(started1) =
-    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
-      ha_client: ha_client,
-      poller_config: poller_config,
-      adjustments_path: test_adjustments_path,
-      home_config: home_config,
-      name_prefix: name_prefix,
-      time_provider: None,
-      use_instant_timers: False,
-    ))
+  let config1 =
+    make_test_supervisor_config_with_prefix(
+      ha_client,
+      poller_config,
+      home_config,
+      name_prefix,
+    )
+  let assert Ok(started1) = supervisor.start_with_home_config(config1)
 
   // Shutdown first instance using proper shutdown function
   supervisor.shutdown_with_rooms(started1.data)
   process.sleep(100)
 
   // Second instance with same prefix should start successfully
-  let result2 =
-    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
-      ha_client: ha_client,
-      poller_config: poller_config,
-      adjustments_path: test_adjustments_path,
-      home_config: home_config,
-      name_prefix: name_prefix,
-      time_provider: None,
-      use_instant_timers: False,
-    ))
+  let config2 =
+    make_test_supervisor_config_with_prefix(
+      ha_client,
+      poller_config,
+      home_config,
+      name_prefix,
+    )
+  let result2 = supervisor.start_with_home_config(config2)
 
   should.be_ok(result2)
 
@@ -683,17 +753,15 @@ pub fn shutdown_is_fast_test() {
   let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
   let home_config = make_test_home_config()
   let poller_config = create_test_poller_config()
+  let config =
+    make_test_supervisor_config_with_prefix(
+      ha_client,
+      poller_config,
+      home_config,
+      "shutdown_timing_test",
+    )
 
-  let assert Ok(started) =
-    supervisor.start_with_home_config(supervisor.SupervisorConfigWithRooms(
-      ha_client: ha_client,
-      poller_config: poller_config,
-      adjustments_path: test_adjustments_path,
-      home_config: home_config,
-      name_prefix: Some("shutdown_timing_test"),
-      time_provider: None,
-      use_instant_timers: False,
-    ))
+  let assert Ok(started) = supervisor.start_with_home_config(config)
 
   let supervisor_pid = started.pid
 
