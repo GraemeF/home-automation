@@ -22,7 +22,7 @@ import deep_heating/state/state_aggregator_actor
 import deep_heating/supervisor
 import deep_heating/temperature
 import deep_heating/timer
-import fake_ha_server.{ClimateEntityState, SensorEntityState}
+import e2e/fake_ha_server.{ClimateEntityState, SensorEntityState}
 import gleam/erlang/process.{type Subject}
 import gleam/int
 import gleam/list

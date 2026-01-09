@@ -4,7 +4,7 @@ import deep_heating/entity_id
 import deep_heating/home_assistant/client.{HaClient}
 import deep_heating/mode
 import deep_heating/temperature
-import fake_ha_server
+import e2e/fake_ha_server
 import gleam/int
 import gleam/list
 import gleam/option.{None, Some}
