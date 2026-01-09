@@ -45,8 +45,9 @@ result
 # Misc
 *.local.json
 
-# Local home config
+# Local home config and data
 /home/
+/data/
 
 # Logs
 npm-debug.log
