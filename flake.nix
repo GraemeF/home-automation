@@ -44,41 +44,82 @@
               );
           };
 
-          # Hash of manifest.toml - invalidates cache when deps change
-          gleamManifestHash = builtins.substring 0 8 (builtins.hashFile "sha256" ./packages/deep_heating/manifest.toml);
+          # Parse manifest.toml to extract hex packages (like my-round)
+          manifestContent = builtins.readFile ./packages/deep_heating/manifest.toml;
 
-          # Fixed-Output Derivation for Gleam dependencies
-          # Downloads deps from Hex and caches them reproducibly
+          parseManifestPackages = let
+            lines = pkgs.lib.splitString "\n" manifestContent;
+            packageLines = builtins.filter (l: builtins.match ".*name = \".*" l != null) lines;
+            parsePackage = line: let
+              nameMatch = builtins.match ".*name = \"([^\"]+)\".*" line;
+              versionMatch = builtins.match ".*version = \"([^\"]+)\".*" line;
+              checksumMatch = builtins.match ".*outer_checksum = \"([^\"]+)\".*" line;
+              sourceMatch = builtins.match ".*source = \"([^\"]+)\".*" line;
+            in if nameMatch != null && versionMatch != null && checksumMatch != null && sourceMatch != null
+               then {
+                 name = builtins.elemAt nameMatch 0;
+                 version = builtins.elemAt versionMatch 0;
+                 sha256 = builtins.elemAt checksumMatch 0;
+                 source = builtins.elemAt sourceMatch 0;
+               }
+               else null;
+            parsed = map parsePackage packageLines;
+          in builtins.filter (p: p != null && p.source == "hex") parsed;
+
+          hexPackages = parseManifestPackages;
+
+          # Fetch individual hex packages (extracted)
+          fetchHexPackage = pkg: pkgs.fetchHex {
+            inherit (pkg) sha256;
+            pkg = pkg.name;
+            version = pkg.version;
+          };
+
+          # Derivation containing all hex dependencies (extracted packages)
           gleamDeps = pkgs.stdenv.mkDerivation {
-            pname = "deep-heating-gleam-deps-${gleamManifestHash}";
+            pname = "deep-heating-gleam-deps";
             version = "0.1.0";
-
-            src = gleamSrc;
-            nativeBuildInputs = [ pkgs.gleam pkgs.cacert ];
-
-            # FOD settings - allows network access during build
-            outputHashAlgo = "sha256";
-            outputHashMode = "recursive";
-            # To update: run `nix build .#gleamDeps` and use the hash from the error
-            outputHash = "sha256-wya1eCIxjl5gcvC05BEsbeFdsQBXSs6+kVT4K1ZfHPg=";
+            dontUnpack = true;
 
             buildPhase = ''
-              export HOME=$TMPDIR
-              export HEX_HOME=$TMPDIR/.hex
-              export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
-              gleam deps download
+              mkdir -p $out
+              ${pkgs.lib.concatMapStringsSep "\n" (pkg: ''
+                echo "Copying ${pkg.name}@${pkg.version}..."
+                cp -r ${fetchHexPackage pkg} $out/${pkg.name}
+              '') hexPackages}
             '';
 
             installPhase = ''
-              mkdir -p $out
-              cp -r build/packages/* $out/
+              echo "Gleam dependencies cached in $out"
+              ls -la $out | head -20
+            '';
+          };
 
-              # Sort packages.toml for reproducibility
-              if [ -f $out/packages.toml ]; then
-                head -1 $out/packages.toml > $out/packages.toml.sorted
-                tail -n +2 $out/packages.toml | sort >> $out/packages.toml.sorted
-                mv $out/packages.toml.sorted $out/packages.toml
-              fi
+          # FOD that downloads hex tarballs for gleam's cache
+          gleamHexCache = pkgs.stdenv.mkDerivation {
+            pname = "deep-heating-hex-cache";
+            version = "0.1.0";
+            src = gleamSrc;
+
+            outputHashAlgo = "sha256";
+            outputHashMode = "recursive";
+            # To update: run `nix build .#gleamHexCache` and use the hash from the error
+            outputHash = "sha256-3iVxPvFDdGgoJ3+23AWxMtTV+B/ZA4GJyCYsqoS/w4M=";
+
+            nativeBuildInputs = [ pkgs.gleam pkgs.cacert ];
+
+            buildPhase = ''
+              export HOME=$TMPDIR
+              export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
+              gleam deps download
+
+              mkdir -p $out
+              cp $HOME/.cache/gleam/hex/hexpm/packages/*.tar $out/
+            '';
+
+            installPhase = ''
+              echo "Hex cache contents:"
+              ls -la $out | head -10
             '';
           };
 
@@ -119,12 +160,22 @@
 
             src = gleamSrc;
 
+            # autoPatchelfHook fixes the dynamic linker for the tailwindcss binary
+            nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+            buildInputs = [ pkgs.stdenv.cc.cc.lib ];
+
             buildPhase = ''
               # Set up the CSS build environment
               mkdir -p src/styles
               cp ${daisyuiBundle} src/styles/daisyui.mjs
               cp ${tailwindStandalone} ./tailwindcss
-              chmod +x ./tailwindcss
+              chmod +wx ./tailwindcss
+
+              # Patch the dynamic linker for the Nix sandbox
+              patchelf --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" ./tailwindcss
+
+              # Set library path for libstdc++ (needed by Bun runtime inside tailwindcss)
+              export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH"
 
               # Run Tailwind CLI to build CSS
               ./tailwindcss -i ./src/styles/input.css -o ./styles.css --minify
@@ -146,17 +197,43 @@
 
             SOURCE_DATE_EPOCH = lastModified;
 
-            buildPhase = ''
-              # Copy in the cached dependencies (need writable copies)
+            configurePhase = ''
+              export HOME=$TMPDIR
+
+              # Set up hex cache with tarballs
+              mkdir -p $HOME/.cache/gleam/hex/hexpm/packages
+              echo "Setting up hex cache with tarballs..."
+              cp ${gleamHexCache}/*.tar $HOME/.cache/gleam/hex/hexpm/packages/
+              echo "Hex cache populated:"
+              ls $HOME/.cache/gleam/hex/hexpm/packages/ | head -5
+
+              # Set up packages directory with extracted deps
               mkdir -p build/packages
-              cp -r ${gleamDeps}/* build/packages/
-              chmod -R u+w build/packages/
+              for pkg in ${gleamDeps}/*; do
+                pkgname=$(basename $pkg)
+                echo "Setting up $pkgname..."
+                cp -a $pkg build/packages/$pkgname
+                chmod -R u+w build/packages/$pkgname
+              done
+
+              # Verify .hex files are present
+              echo "Verifying package markers..."
+              ls -la build/packages/gleam_stdlib/.hex || echo "WARNING: .hex marker missing"
+            '';
+
+            buildPhase = ''
+              export HOME=$TMPDIR
 
               # Copy compiled CSS to priv directory
               mkdir -p priv/static
               cp ${tailwindCss}/styles.css priv/static/
 
-              # Build the Erlang release
+              # Build first
+              echo "Running gleam build..."
+              gleam build
+
+              # Then export the Erlang release
+              echo "Exporting erlang-shipment..."
               gleam export erlang-shipment
             '';
 
@@ -224,7 +301,7 @@ EOF
         in
         {
           # Gleam packages
-          inherit gleamDeps deep-heating tailwindCss;
+          inherit gleamDeps gleamHexCache deep-heating tailwindCss;
         } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
           # Linux-only packages
           inherit dockerImage;
