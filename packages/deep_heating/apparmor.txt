@@ -1,0 +1,34 @@
+#include <tunables/global>
+
+profile deep_heating flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  # Capabilities
+  capability chown,
+  capability dac_override,
+  capability setgid,
+  capability setuid,
+  file,
+  signal,
+
+  # OTP/Erlang runtime
+  /app/** rmix,
+  /tmp/** rw,
+
+  # Config files
+  /config/** rw,
+
+  # Data persistence
+  /data/** rw,
+
+  # Network access
+  network inet stream,
+  network inet6 stream,
+
+  # Common system access
+  /etc/passwd r,
+  /etc/hosts r,
+  /etc/resolv.conf r,
+  /dev/tty rw,
+  /proc/** r,
+}
