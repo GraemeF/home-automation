@@ -29,6 +29,7 @@ Environment variables:
 - `SUPERVISOR_URL` / `SUPERVISOR_TOKEN` - Home Assistant connection
 - `HOME_CONFIG_PATH` - path to room/TRV configuration
 - `LOG_LEVEL` - logging level (debug, info, warning, error)
+- `DRY_RUN` - set to `true` to enable dry-run mode (logs commands instead of sending to HA)
 
 ## Architecture (packages/deep_heating)
 

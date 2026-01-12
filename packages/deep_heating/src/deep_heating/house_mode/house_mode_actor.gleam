@@ -301,9 +301,9 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
               <> int.to_string(current_hour)
               <> ":00 → "
               <> log.state_change(
-                mode.house_mode_to_string(state.mode),
-                "Sleeping",
-              ),
+              mode.house_mode_to_string(state.mode),
+              "Sleeping",
+            ),
           )
           let new_state =
             State(
@@ -327,9 +327,9 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
                 "HouseMode",
                 "Button pressed (before 8pm) → "
                   <> log.state_change(
-                    mode.house_mode_to_string(state.mode),
-                    mode.house_mode_to_string(new_mode),
-                  ),
+                  mode.house_mode_to_string(state.mode),
+                  mode.house_mode_to_string(new_mode),
+                ),
               )
               broadcast_mode_change(new_state.room_actors, new_mode)
               actor.continue(State(..new_state, mode: new_mode))
@@ -370,9 +370,9 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
               <> int.to_string(datetime_hour(current_time))
               <> ":00 → "
               <> log.state_change(
-                mode.house_mode_to_string(state.mode),
-                mode.house_mode_to_string(new_mode),
-              ),
+              mode.house_mode_to_string(state.mode),
+              mode.house_mode_to_string(new_mode),
+            ),
           )
           broadcast_mode_change(state.room_actors, new_mode)
           State(..state, mode: new_mode)

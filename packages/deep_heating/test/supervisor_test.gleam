@@ -60,6 +60,7 @@ fn make_test_supervisor_config_full(
     home_config: home_config,
     name_prefix: name_prefix,
     time_provider: time_provider,
+    dry_run: False,
     house_mode_deps: supervisor.HouseModeDeps(send_after: timer.spy_send_after(
       house_mode_spy,
     )),
@@ -476,6 +477,78 @@ pub fn shutdown_allows_restart_with_same_names_test() {
     }
     Error(_) -> Nil
   }
+}
+
+// =============================================================================
+// Dry-run mode tests (dh-33jq.85)
+// =============================================================================
+
+pub fn supervisor_starts_in_dry_run_mode_test() {
+  // When dry_run is true, supervisor should start LoggingCommandActor
+  // instead of HaCommandActor
+  let ha_client = home_assistant.HaClient("http://localhost:8123", "test-token")
+  let home_config = make_test_home_config()
+  let poller_config = create_test_poller_config()
+  let config =
+    make_test_supervisor_config_with_dry_run(
+      ha_client,
+      poller_config,
+      home_config,
+      "dry_run_test",
+      True,
+    )
+
+  let assert Ok(started) = supervisor.start(config)
+
+  // Supervisor should start successfully in dry-run mode
+  process.is_alive(started.pid) |> should.be_true
+
+  // Cleanup
+  supervisor.shutdown(started.data)
+}
+
+/// Create config with dry_run option
+fn make_test_supervisor_config_with_dry_run(
+  ha_client: home_assistant.HaClient,
+  poller_config: ha_poller_actor.PollerConfig,
+  home_config: HomeConfig,
+  name_prefix: String,
+  dry_run: Bool,
+) -> supervisor.Config {
+  // Create spy subjects that capture timer requests (never fire them)
+  let house_mode_spy = process.new_subject()
+  let ha_poller_spy = process.new_subject()
+  let room_actor_spy = process.new_subject()
+  let ha_command_spy = process.new_subject()
+  let state_aggregator_spy = process.new_subject()
+
+  supervisor.Config(
+    ha_client: ha_client,
+    poller_config: poller_config,
+    adjustments_path: test_adjustments_path,
+    home_config: home_config,
+    name_prefix: Some(name_prefix),
+    time_provider: None,
+    dry_run: dry_run,
+    house_mode_deps: supervisor.HouseModeDeps(send_after: timer.spy_send_after(
+      house_mode_spy,
+    )),
+    ha_poller_deps: supervisor.HaPollerDeps(send_after: timer.spy_send_after(
+      ha_poller_spy,
+    )),
+    room_actor_deps: supervisor.RoomActorDeps(send_after: timer.spy_send_after(
+      room_actor_spy,
+    )),
+    ha_command_deps: supervisor.HaCommandDeps(
+      send_after: timer.spy_send_after(ha_command_spy),
+      debounce_ms: 5000,
+    ),
+    // Use throttle_ms: 0 for immediate broadcasts in tests
+    state_aggregator_deps: supervisor.StateAggregatorDeps(
+      send_after: timer.spy_send_after(state_aggregator_spy),
+      throttle_ms: 0,
+    ),
+  )
 }
 
 pub fn shutdown_is_fast_test() {

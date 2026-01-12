@@ -19,7 +19,9 @@ import deep_heating/heating/heating_control_adapter_actor
 import deep_heating/home_assistant/client.{type HaClient}
 import deep_heating/home_assistant/ha_command_actor
 import deep_heating/home_assistant/ha_poller_actor
+import deep_heating/home_assistant/logging_command_actor
 import deep_heating/house_mode/house_mode_actor
+import deep_heating/log
 import deep_heating/mode
 import deep_heating/rooms/room_actor
 import deep_heating/rooms/room_adjustments
@@ -86,6 +88,8 @@ pub type Config {
     name_prefix: Option(String),
     /// Optional time provider for testing (defaults to real time)
     time_provider: Option(house_mode_actor.TimeProvider),
+    /// Dry-run mode: log commands instead of sending to Home Assistant
+    dry_run: Bool,
     /// Actor dependencies - use default_*_deps() for production, inject spy_send_after for tests
     house_mode_deps: HouseModeDeps,
     room_actor_deps: RoomActorDeps,
@@ -319,17 +323,29 @@ pub fn start(config: Config) -> Result(actor.Started(Supervisor), StartError) {
         Ok(house_mode_started) -> {
           let house_mode_subject = house_mode_started.data
 
-          // Start HaCommandActor manually to capture its actual Subject
-          case
-            ha_command_actor.start_named_with_options(
-              name: ha_command_name,
-              ha_client: config.ha_client,
-              api_spy: process.new_subject(),
-              debounce_ms: config.ha_command_deps.debounce_ms,
-              skip_http: False,
-              send_after: config.ha_command_deps.send_after,
-            )
-          {
+          // Start command actor: HaCommandActor for production, LoggingCommandActor for dry-run
+          let command_actor_result = case config.dry_run {
+            True -> {
+              log.info(
+                "[DRY RUN] Starting in dry-run mode - commands will be logged, not sent to Home Assistant",
+              )
+              logging_command_actor.start_named(
+                name: ha_command_name,
+                api_spy: process.new_subject(),
+              )
+            }
+            False -> {
+              ha_command_actor.start_named_with_options(
+                name: ha_command_name,
+                ha_client: config.ha_client,
+                api_spy: process.new_subject(),
+                debounce_ms: config.ha_command_deps.debounce_ms,
+                skip_http: False,
+                send_after: config.ha_command_deps.send_after,
+              )
+            }
+          }
+          case command_actor_result {
             Error(e) -> Error(SupervisorStartError(e))
             Ok(_ha_command_started) -> {
               // Load initial adjustments from environment
@@ -526,9 +542,7 @@ fn build_sensor_registry(
 }
 
 /// Get the rooms supervisor
-pub fn get_rooms_supervisor(
-  sup: Supervisor,
-) -> Result(RoomsSupervisor, Nil) {
+pub fn get_rooms_supervisor(sup: Supervisor) -> Result(RoomsSupervisor, Nil) {
   Ok(sup.rooms_supervisor)
 }
 

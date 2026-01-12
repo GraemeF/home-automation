@@ -7,6 +7,7 @@ import deep_heating/rooms/room_adjustments
 import deep_heating/server
 import deep_heating/state/state_aggregator_actor
 import deep_heating/supervisor
+import envoy
 import gleam/erlang/process
 import gleam/int
 import gleam/list
@@ -101,10 +102,7 @@ pub type ConfigBuildError {
 
 /// Build Config from environment variables and home config file.
 /// Returns Error if required env vars are not set or config cannot be loaded.
-fn build_config() -> Result(
-  supervisor.Config,
-  ConfigBuildError,
-) {
+fn build_config() -> Result(supervisor.Config, ConfigBuildError) {
   // Try to get HaClient from env vars
   case home_assistant.ha_client_from_env() {
     Error(e) -> Error(HaClientError(e))
@@ -119,6 +117,9 @@ fn build_config() -> Result(
           // Get adjustments path from env, or use default
           let adjustments_path = room_adjustments.path_from_env_with_default()
 
+          // Check for dry-run mode
+          let dry_run = envoy.get("DRY_RUN") == Ok("true")
+
           Ok(supervisor.Config(
             ha_client: ha_client,
             poller_config: poller_config,
@@ -126,6 +127,7 @@ fn build_config() -> Result(
             home_config: config,
             name_prefix: option.None,
             time_provider: option.None,
+            dry_run: dry_run,
             house_mode_deps: supervisor.default_house_mode_deps(),
             room_actor_deps: supervisor.default_room_actor_deps(),
             ha_command_deps: supervisor.default_ha_command_deps(),

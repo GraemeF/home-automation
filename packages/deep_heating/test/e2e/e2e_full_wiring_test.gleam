@@ -466,6 +466,7 @@ fn start_deep_heating_with_options(
       home_config: home_config,
       name_prefix: Some(name_prefix),
       time_provider: time_provider,
+      dry_run: False,
       // Use real timers for all actors
       house_mode_deps: supervisor.HouseModeDeps(
         send_after: timer.real_send_after,
@@ -802,6 +803,7 @@ fn start_deep_heating_multi_room(
       home_config: home_config,
       name_prefix: Some(name_prefix),
       time_provider: None,
+      dry_run: False,
       // Use real timers for all actors
       house_mode_deps: supervisor.HouseModeDeps(
         send_after: timer.real_send_after,

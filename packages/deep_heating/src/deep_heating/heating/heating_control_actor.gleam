@@ -159,7 +159,9 @@ fn evaluate_and_send_command(state: State) -> State {
     False, True -> {
       log.actor_debug(
         "HeatingControl",
-        "Boiler demand: " <> log.state_change("on", "off") <> " (no rooms need heat)",
+        "Boiler demand: "
+          <> log.state_change("on", "off")
+          <> " (no rooms need heat)",
       )
       send_boiler_command(state, mode.HvacOff)
       State(..state, boiler_is_heating: False)
