@@ -1180,9 +1180,9 @@
     url = "https://registry.npmjs.org/eslint-plugin-compat/-/eslint-plugin-compat-6.0.2.tgz";
     hash = "sha512-1ME+YfJjmOz1blH0nPZpHgjMGK4kjgEeoYqGCqoBPQ/mGu/dJzdoP0f1C8H2jcWZjzhZjAMccbM/VdXhPORIfA==";
   };
-  "eslint-plugin-functional@9.0.2" = fetchurl {
-    url = "https://registry.npmjs.org/eslint-plugin-functional/-/eslint-plugin-functional-9.0.2.tgz";
-    hash = "sha512-N8kP9HX1CJ2HrufPHLzsKNJ81O1IB25jw2mxOc1H1z3CamEu8MYTn9dOo/FPfQwsqHZVuf7wyDCBcL8r8H7N0w==";
+  "eslint-plugin-functional@9.0.3" = fetchurl {
+    url = "https://registry.npmjs.org/eslint-plugin-functional/-/eslint-plugin-functional-9.0.3.tgz";
+    hash = "sha512-nKFEte+7ceIys3w2iySmZiINxwzq83B1Dm/0JO9BpostJNJxDGZNY1LYcPPKvH6np6rbEjQMCdr3NwGk6Z9ZRg==";
   };
   "eslint-plugin-svelte@3.13.1" = fetchurl {
     url = "https://registry.npmjs.org/eslint-plugin-svelte/-/eslint-plugin-svelte-3.13.1.tgz";
