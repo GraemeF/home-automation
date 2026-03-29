@@ -13,6 +13,7 @@ import deep_heating/home_assistant/ha_poller_actor.{type PollerEvent}
 import deep_heating/house_mode/house_mode_actor
 import deep_heating/rooms/room_actor
 import deep_heating/rooms/trv_actor
+import deep_heating/state/state_aggregator_actor
 import deep_heating/temperature.{type Temperature}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Subject}
@@ -50,6 +51,7 @@ pub type Config {
     trv_registry: TrvActorRegistry,
     sensor_registry: SensorRegistry,
     heating_control_actor: Option(Subject(heating_control_actor.Message)),
+    state_aggregator: Option(Subject(state_aggregator_actor.Message)),
   )
 }
 
@@ -60,6 +62,7 @@ type State {
     trv_registry: TrvActorRegistry,
     sensor_registry: SensorRegistry,
     heating_control_actor: Option(Subject(heating_control_actor.Message)),
+    state_aggregator: Option(Subject(state_aggregator_actor.Message)),
   )
 }
 
@@ -73,6 +76,7 @@ pub fn start(config: Config) -> Result(Subject(PollerEvent), actor.StartError) {
       trv_registry: config.trv_registry,
       sensor_registry: config.sensor_registry,
       heating_control_actor: config.heating_control_actor,
+      state_aggregator: config.state_aggregator,
     )
 
   actor.new(initial_state)
@@ -100,9 +104,10 @@ fn route_event(event: PollerEvent, state: State) -> Nil {
     ha_poller_actor.SleepButtonPressed -> {
       process.send(state.house_mode_actor, house_mode_actor.SleepButtonPressed)
     }
-    // Route heating status to HeatingControlActor
+    // Route heating status to HeatingControlActor and StateAggregatorActor
     ha_poller_actor.HeatingStatusChanged(is_heating) -> {
       route_heating_status(is_heating, state.heating_control_actor)
+      route_boiler_status_to_aggregator(is_heating, state.state_aggregator)
     }
     // Ignore poll status events
     ha_poller_actor.PollingStarted -> Nil
@@ -169,6 +174,21 @@ fn route_heating_status(
       // No HeatingControlActor configured - ignore
       Nil
     }
+  }
+}
+
+fn route_boiler_status_to_aggregator(
+  is_heating: Bool,
+  state_aggregator: Option(Subject(state_aggregator_actor.Message)),
+) -> Nil {
+  case state_aggregator {
+    option.Some(subject) -> {
+      process.send(
+        subject,
+        state_aggregator_actor.BoilerStatusChanged(is_heating),
+      )
+    }
+    option.None -> Nil
   }
 }
 

@@ -14,6 +14,7 @@ import deep_heating/timer.{type SendAfter, type TimerHandle}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/list
+import gleam/option
 import gleam/otp/actor
 import gleam/otp/supervision
 
@@ -36,6 +37,8 @@ pub type Message {
   RegisterRoomActor(name: String, actor: Subject(room_actor.Message))
   /// Adjust a room's temperature (forwarded to RoomActor)
   AdjustRoom(name: String, adjustment: Float)
+  /// Boiler heating status changed (from EventRouterActor)
+  BoilerStatusChanged(is_heating: Bool)
   /// Gracefully stop the actor, cancelling any pending broadcast timer
   Shutdown
 }
@@ -281,6 +284,16 @@ fn handle_message(
         }
       }
       actor.continue(actor_state)
+    }
+
+    BoilerStatusChanged(is_heating) -> {
+      let new_current =
+        state.DeepHeatingState(
+          ..actor_state.current,
+          is_heating: option.Some(is_heating),
+        )
+      let new_state = State(..actor_state, current: new_current)
+      schedule_broadcast_if_needed(new_state)
     }
 
     Shutdown -> {

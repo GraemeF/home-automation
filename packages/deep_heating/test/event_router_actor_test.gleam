@@ -7,7 +7,9 @@ import deep_heating/mode
 import deep_heating/rooms/room_actor
 import deep_heating/rooms/trv_actor
 import deep_heating/scheduling/schedule as deep_heating_schedule
+import deep_heating/state/state_aggregator_actor
 import deep_heating/temperature
+import deep_heating/timer
 import gleam/dict
 import gleam/erlang/process.{type Name, type Subject}
 import gleam/int
@@ -103,6 +105,7 @@ pub fn event_router_actor_starts_successfully_test() {
       trv_registry: empty_trv_registry(),
       sensor_registry: empty_sensor_registry(),
       heating_control_actor: None,
+      state_aggregator: None,
     )
 
   let result = event_router_actor.start(config)
@@ -131,6 +134,7 @@ pub fn routes_sleep_button_pressed_to_house_mode_actor_test() {
       trv_registry: empty_trv_registry(),
       sensor_registry: empty_sensor_registry(),
       heating_control_actor: None,
+      state_aggregator: None,
     )
 
   // Start router - it returns the subject to send events to
@@ -193,6 +197,7 @@ pub fn routes_trv_updated_to_correct_trv_actor_test() {
       trv_registry: trv_registry,
       sensor_registry: empty_sensor_registry(),
       heating_control_actor: None,
+      state_aggregator: None,
     )
 
   // Start router - it returns the subject to send events to
@@ -236,6 +241,7 @@ pub fn ignores_trv_updated_for_unknown_entity_test() {
       trv_registry: empty_trv_registry(),
       sensor_registry: empty_sensor_registry(),
       heating_control_actor: None,
+      state_aggregator: None,
     )
 
   let assert Ok(router_subject) = event_router_actor.start(config)
@@ -278,6 +284,7 @@ pub fn ignores_poll_completed_events_test() {
       trv_registry: empty_trv_registry(),
       sensor_registry: empty_sensor_registry(),
       heating_control_actor: None,
+      state_aggregator: None,
     )
 
   let assert Ok(router_subject) = event_router_actor.start(config)
@@ -359,6 +366,7 @@ pub fn routes_sensor_updated_to_correct_room_actor_test() {
       trv_registry: empty_trv_registry(),
       sensor_registry: sensor_registry,
       heating_control_actor: None,
+      state_aggregator: None,
     )
 
   // Start router
@@ -408,6 +416,7 @@ pub fn ignores_sensor_updated_for_unknown_sensor_test() {
       trv_registry: empty_trv_registry(),
       sensor_registry: empty_sensor_registry(),
       heating_control_actor: None,
+      state_aggregator: None,
     )
 
   let assert Ok(router_subject) = event_router_actor.start(config)
@@ -464,6 +473,7 @@ pub fn routes_heating_status_changed_to_heating_control_actor_test() {
       trv_registry: empty_trv_registry(),
       sensor_registry: empty_sensor_registry(),
       heating_control_actor: Some(heating_control_started.data),
+      state_aggregator: None,
     )
 
   // Start router
@@ -486,4 +496,47 @@ pub fn routes_heating_status_changed_to_heating_control_actor_test() {
 
   // The boiler_is_heating should have been updated to True by the routed message
   state.boiler_is_heating |> should.be_true
+}
+
+pub fn routes_heating_status_changed_to_state_aggregator_test() {
+  // When a HeatingStatusChanged event is received, it should also be routed
+  // to the StateAggregatorActor so the UI can display boiler status
+
+  let assert Ok(state_aggregator) =
+    state_aggregator_actor.start_link_with_options(
+      adjustments_path: "/tmp/test_router_boiler_state.json",
+      send_after: timer.real_send_after,
+      throttle_ms: 0,
+    )
+
+  // Start HouseModeActor (required for config)
+  let assert Ok(house_mode) =
+    house_mode_actor.start_with_timer_interval(
+      fn() { house_mode_actor.local_datetime(2026, 1, 4, 12, 0, 0) },
+      0,
+    )
+
+  let config =
+    event_router_actor.Config(
+      house_mode_actor: house_mode,
+      trv_registry: empty_trv_registry(),
+      sensor_registry: empty_sensor_registry(),
+      heating_control_actor: None,
+      state_aggregator: Some(state_aggregator),
+    )
+
+  // Start router
+  let assert Ok(router_subject) = event_router_actor.start(config)
+
+  // Send HeatingStatusChanged event to router
+  process.send(router_subject, ha_poller_actor.HeatingStatusChanged(True))
+
+  // Give it a moment to process
+  process.sleep(50)
+
+  // Query state aggregator - is_heating should be Some(True)
+  let reply = process.new_subject()
+  process.send(state_aggregator, state_aggregator_actor.GetState(reply))
+  let assert Ok(deep_state) = process.receive(reply, 100)
+  deep_state.is_heating |> should.equal(Some(True))
 }

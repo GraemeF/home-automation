@@ -422,6 +422,9 @@ pub fn start(config: Config) -> Result(actor.Started(Supervisor), StartError) {
                                   heating_control_actor: option.Some(
                                     heating_started.data,
                                   ),
+                                  state_aggregator: option.Some(
+                                    state_aggregator_subject,
+                                  ),
                                 )
 
                               case event_router_actor.start(router_config) {

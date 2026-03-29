@@ -634,6 +634,60 @@ pub fn state_aggregator_respects_custom_throttle_ms_test() {
 // Graceful Shutdown Tests
 // =============================================================================
 
+// =============================================================================
+// Boiler Status Tests
+// =============================================================================
+
+pub fn state_aggregator_updates_is_heating_on_boiler_status_changed_test() {
+  let assert Ok(actor) =
+    state_aggregator_actor.start_link_with_options(
+      adjustments_path: "/tmp/test_boiler_status.json",
+      send_after: timer.real_send_after,
+      throttle_ms: 0,
+    )
+
+  // Initially, is_heating should be None
+  let reply = process.new_subject()
+  process.send(actor, state_aggregator_actor.GetState(reply))
+  let assert Ok(initial_state) = process.receive(reply, 100)
+  initial_state.is_heating |> should.be_none
+
+  // Send BoilerStatusChanged(True)
+  process.send(actor, state_aggregator_actor.BoilerStatusChanged(True))
+  process.sleep(10)
+
+  // is_heating should now be Some(True)
+  let reply2 = process.new_subject()
+  process.send(actor, state_aggregator_actor.GetState(reply2))
+  let assert Ok(updated_state) = process.receive(reply2, 100)
+  updated_state.is_heating |> should.equal(option.Some(True))
+}
+
+pub fn state_aggregator_broadcasts_boiler_status_change_test() {
+  let assert Ok(actor) =
+    state_aggregator_actor.start_link_with_options(
+      adjustments_path: "/tmp/test_boiler_broadcast.json",
+      send_after: timer.real_send_after,
+      throttle_ms: 0,
+    )
+
+  // Subscribe
+  let subscriber: process.Subject(state.DeepHeatingState) =
+    process.new_subject()
+  process.send(actor, state_aggregator_actor.Subscribe(subscriber))
+  process.sleep(10)
+
+  // Drain initial state
+  drain_initial_state(subscriber)
+
+  // Send BoilerStatusChanged
+  process.send(actor, state_aggregator_actor.BoilerStatusChanged(False))
+
+  // Should receive broadcast with is_heating = Some(False)
+  let assert Ok(received_state) = process.receive(subscriber, 100)
+  received_state.is_heating |> should.equal(option.Some(False))
+}
+
 pub fn shutdown_cancels_pending_broadcast_timer_test() {
   // When Shutdown is called, any pending broadcast timer should be cancelled
   // and the actor should stop
