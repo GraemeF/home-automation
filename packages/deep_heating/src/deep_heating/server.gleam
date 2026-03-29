@@ -120,17 +120,17 @@ pub fn render_html_page() -> String {
       // Compiled Tailwind + DaisyUI CSS (built by Nix, bundled for offline HA addon)
       html.link([
         attribute.rel("stylesheet"),
-        attribute.href("/static/styles.css"),
+        attribute.href("static/styles.css"),
       ]),
       // Include the Lustre server component runtime
       html.script(
-        [attribute.type_("module"), attribute.src("/lustre/runtime.mjs")],
+        [attribute.type_("module"), attribute.src("lustre/runtime.mjs")],
         "",
       ),
     ]),
     html.body([attribute.class("bg-base-200 min-h-screen")], [
       // The Lustre server component element connects to /ws
-      server_component.element([server_component.route("/ws")], []),
+      server_component.element([server_component.route("ws")], []),
     ]),
   ])
   |> element.to_document_string
