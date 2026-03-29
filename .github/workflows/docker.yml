@@ -182,7 +182,8 @@ jobs:
           CHANGELOG_FILE="packages/deep_heating/CHANGELOG.md"
 
           if [ ! -f "$CHANGELOG_FILE" ]; then
-            echo "body=No changelog available." >> $GITHUB_OUTPUT
+            echo "No changelog available." > /tmp/changelog_section.md
+            echo "file=/tmp/changelog_section.md" >> $GITHUB_OUTPUT
             exit 0
           fi
 
