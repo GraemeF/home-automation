@@ -276,6 +276,7 @@ EOF
             # Minimal image contents - just the OTP release and shell
             contents = [
               deep-heating                # OTP release with entrypoint
+              pkgs.erlang_28              # Erlang runtime (erl) for OTP release
               pkgs.dockerTools.binSh      # /bin/sh for entrypoint script
               pkgs.coreutils              # Basic utilities (needed for entrypoint.sh)
             ];
