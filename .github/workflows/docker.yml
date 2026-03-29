@@ -22,9 +22,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      # Use cachix/install-nix-action (multi-user mode) for Docker builds
-      # Multi-user mode enables the sandbox, which is required for bun2nix derivations
-      # See bead dh-twu for details on why single-user mode breaks Docker builds
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
@@ -79,9 +76,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      # Use cachix/install-nix-action (multi-user mode) for Docker builds
-      # Multi-user mode enables the sandbox, which is required for bun2nix derivations
-      # See bead dh-twu for details on why single-user mode breaks Docker builds
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
@@ -185,7 +179,7 @@ jobs:
         id: changelog
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          CHANGELOG_FILE="packages/deep-heating/CHANGELOG.md"
+          CHANGELOG_FILE="packages/deep_heating/CHANGELOG.md"
 
           if [ ! -f "$CHANGELOG_FILE" ]; then
             echo "body=No changelog available." >> $GITHUB_OUTPUT

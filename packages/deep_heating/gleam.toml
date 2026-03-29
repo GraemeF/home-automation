@@ -1,5 +1,5 @@
 name = "deep_heating"
-version = "0.2.0"
+version = "0.2.0-beta.1"
 target = "erlang"
 description = "Deep Heating - TRV control with external temperature sensors"
 
