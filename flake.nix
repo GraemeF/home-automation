@@ -25,6 +25,9 @@
           # Git commit timestamp for reproducible builds
           lastModified = builtins.toString (self.lastModified or 1);
 
+          # Erlang without wx/GUI deps for Docker images
+          erlang_28_minimal = pkgs.beam_minimal.packages.erlang_28.erlang;
+
           # GLEAM BUILD
           # ===========
           # Gleam-based Deep Heating using OTP actors
@@ -276,7 +279,7 @@ EOF
             # Minimal image contents - just the OTP release and shell
             contents = [
               deep-heating                # OTP release with entrypoint
-              pkgs.erlang_28              # Erlang runtime (erl) for OTP release
+              erlang_28_minimal           # Erlang runtime without GUI deps
               pkgs.dockerTools.binSh      # /bin/sh for entrypoint script
               pkgs.coreutils              # Basic utilities (needed for entrypoint.sh)
             ];
