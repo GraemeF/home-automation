@@ -194,7 +194,9 @@ When adding new features to the Gleam codebase:
 
 ## Branch Info
 
-- The main branch is protected; changes must be made via a pull request
+- **`beta`** — the primary development and deployment branch for the Gleam port. Pushes here trigger CI (build/test/format) and release workflows (multi-arch Docker image push to GHCR/DockerHub). Version is read from `packages/deep_heating/config.yaml`.
+- **`main`** — the stable TypeScript version. Protected; changes via PR only.
+- The beta add-on is installed on HA via repository URL: `https://github.com/GraemeF/home-automation#beta`
 
 ## Issue Tracking with Beads
 
@@ -216,13 +218,14 @@ Issues sync to the `beads-metadata` branch automatically via daemon. The databas
 
 ## Git Worktree Workflow
 
-**All work happens in worktrees. Nothing is done directly on main.**
+**All work happens in worktrees.**
 
 ### Repository Structure
 
 ```
 home-automation/
-├── main/              # Main branch worktree (primary checkout)
+├── main/              # Main branch (stable TypeScript version)
+├── beta/              # Beta branch (Gleam port, deployed to HA)
 ├── feature-foo/       # Feature branch worktree
 └── fix-bar/           # Fix branch worktree
 ```
@@ -230,7 +233,7 @@ home-automation/
 ### Creating a New Worktree
 
 ```bash
-cd home-automation/main
+cd home-automation/beta
 git fetch origin
 git worktree add ../feature-name -b feature/descriptive-name
 cd ../feature-name
@@ -239,7 +242,7 @@ cd ../feature-name
 ### Cleaning Up After PR Merge
 
 ```bash
-cd home-automation/main
+cd home-automation/beta
 git worktree remove ../feature-name
 git branch -d feature/descriptive-name
 ```
