@@ -280,9 +280,17 @@ EOF
             contents = [
               deep-heating                # OTP release with entrypoint
               erlang_28_minimal           # Erlang runtime without GUI deps
+              pkgs.cacert                 # CA certificates for HTTPS
               pkgs.dockerTools.binSh      # /bin/sh for entrypoint script
               pkgs.coreutils              # Basic utilities (needed for entrypoint.sh)
             ];
+
+            # Symlink CA certs where Erlang's pubkey_os_cacerts expects them
+            fakeRootCommands = ''
+              mkdir -p ./etc/ssl/certs
+              ln -s ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt ./etc/ssl/certs/ca-certificates.crt
+            '';
+            enableFakechroot = true;
 
             # OCI/Docker configuration
             config = {
@@ -295,6 +303,7 @@ EOF
                 "PORT=8099"
                 # These are set by HA addon config, defaults here for standalone testing
                 "HOME_CONFIG_PATH=/data/home.json"
+                "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
               ];
 
               ExposedPorts = {
