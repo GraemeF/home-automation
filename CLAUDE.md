@@ -2,6 +2,37 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## What home-automation owns
+
+home-automation is a monorepo of Home Assistant add-ons. Its first add-on,
+Deep Heating, combines thermostatic radiator valves with external temperature
+sensors to heat a home more efficiently.
+
+A seat working here decides and changes:
+
+- The add-on code in `packages/`: the heating logic, the backend server and the
+  web interface.
+- The add-on packaging, the Docker image and the repository manifest that Home
+  Assistant reads.
+- This repo's build, test and release setup, and its changesets.
+- The example configuration that ships with the code. It uses invented room and
+  entity names.
+
+## What it does not own
+
+- **A user's deployment.** The Home Assistant instance, the add-on's
+  installation, its logs and the host it runs on belong to whoever runs it.
+- **A user's configuration and data.** Real room layouts, Home Assistant entity
+  IDs, tokens and saved schedules live with that user. They never go in the
+  repo, in tests, in fixtures or in commit messages.
+- **Home Assistant and the devices.** The platform, its integrations and the
+  valves and sensors belong to their upstream projects and vendors. Report a
+  fault there and work around it here only where the add-on has to.
+- **Changes to a user's setup.** Rewiring a home, replacing a valve or editing
+  a user's Home Assistant automations is for whoever runs the home.
+
+A seat may decline an ask outside this remit. Say who it belongs to and stop.
+
 ## Project Overview
 
 Deep Heating is a Home Assistant add-on that combines TRVs (Thermostatic Radiator Valves) with external temperature sensors for more efficient home heating. The web interface allows controlling target temperatures per room with scheduling.
