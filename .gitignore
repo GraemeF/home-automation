@@ -71,3 +71,10 @@ result
 test-results/
 playwright-report/
 playwright/.cache/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
+*.gate.lock*
