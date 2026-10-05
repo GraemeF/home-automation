@@ -8,7 +8,7 @@ home-automation is a monorepo of Home Assistant add-ons. Its first add-on,
 Deep Heating, combines thermostatic radiator valves with external temperature
 sensors to heat a home more efficiently.
 
-A seat working here decides and changes:
+Work in this repo covers:
 
 - The add-on code in `packages/`: the heating logic, the backend server and the
   web interface.
@@ -31,7 +31,7 @@ A seat working here decides and changes:
 - **Changes to a user's setup.** Rewiring a home, replacing a valve or editing
   a user's Home Assistant automations is for whoever runs the home.
 
-A seat may decline an ask outside this remit. Say who it belongs to and stop.
+Decline a request outside this scope. Say who it belongs to and stop.
 
 ## Project Overview
 
