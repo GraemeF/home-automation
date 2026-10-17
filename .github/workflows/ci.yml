@@ -148,6 +148,7 @@ jobs:
       - run: nix develop --command bun run ci
 
       - name: Install Playwright Browsers
+        working-directory: packages/deep-heating
         run: nix develop --command bunx playwright install chromium --with-deps
 
       - name: Run E2E tests
@@ -192,6 +193,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Playwright Browsers
+        working-directory: packages/deep-heating
         run: nix develop --command bunx playwright install chromium --with-deps
 
       - name: Update snapshots
