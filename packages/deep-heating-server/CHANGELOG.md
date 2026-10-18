@@ -1,5 +1,19 @@
 # deep-heating-socketio
 
+## 0.1.5
+
+### Patch Changes
+
+- [#1311](https://github.com/GraemeF/home-automation/pull/1311) [`4004e7c`](https://github.com/GraemeF/home-automation/commit/4004e7cee1374955bb54c2c116f78031a49c773f) Thanks [@GraemeF](https://github.com/GraemeF)! - Add HeatingSystemStreams interface for decoupled heating system integration
+
+  The reactive heating logic now accepts an abstract HeatingSystemStreams interface instead of concrete Home Assistant dependencies. This enables easier testing and future alternative heating system implementations.
+
+- Updated dependencies [[`3a223f2`](https://github.com/GraemeF/home-automation/commit/3a223f23e9d321fc2fcfbd68114914164401136f), [`6579ec2`](https://github.com/GraemeF/home-automation/commit/6579ec2ef9a557ff81b4d8dcb9479c89e3101dce), [`8a025cd`](https://github.com/GraemeF/home-automation/commit/8a025cd3adba716771d37ae40cf09c1939edf539), [`4004e7c`](https://github.com/GraemeF/home-automation/commit/4004e7cee1374955bb54c2c116f78031a49c773f)]:
+  - @home-automation/deep-heating-home-assistant@0.2.0
+  - @home-automation/deep-heating-types@0.3.0
+  - @home-automation/deep-heating-rx@0.2.0
+  - @home-automation/deep-heating-state@0.1.5
+
 ## 0.1.4
 
 ### Patch Changes
