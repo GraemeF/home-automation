@@ -1,5 +1,21 @@
 # @home-automation/deep-heating-home-assistant
 
+## 0.2.0
+
+### Minor Changes
+
+- [#1308](https://github.com/GraemeF/home-automation/pull/1308) [`3a223f2`](https://github.com/GraemeF/home-automation/commit/3a223f23e9d321fc2fcfbd68114914164401136f) Thanks [@GraemeF](https://github.com/GraemeF)! - Add HomeAssistantHeatingSystemLive Layer for Home Assistant integration
+
+  New exports:
+  - `HomeAssistantHeatingSystemLive` - Effect Layer that provides HeatingSystem service using Home Assistant as the backend
+  - Manages entity polling lifecycle with proper resource cleanup
+  - Wires TRV updates, heating updates, temperature readings, and sleep mode events from Home Assistant
+
+### Patch Changes
+
+- Updated dependencies [[`6579ec2`](https://github.com/GraemeF/home-automation/commit/6579ec2ef9a557ff81b4d8dcb9479c89e3101dce), [`8a025cd`](https://github.com/GraemeF/home-automation/commit/8a025cd3adba716771d37ae40cf09c1939edf539)]:
+  - @home-automation/deep-heating-types@0.3.0
+
 ## 0.1.3
 
 ### Patch Changes
