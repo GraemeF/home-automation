@@ -121,9 +121,9 @@
     url = "https://registry.npmjs.org/@effect/experimental/-/experimental-0.58.0.tgz";
     hash = "sha512-IEP9sapjF6rFy5TkoqDPc86st/fnqUfjT7Xa3pWJrFGr1hzaMXHo+mWsYOZS9LAOVKnpHuVziDK97EP5qsCHVA==";
   };
-  "@effect/language-service@0.62.5" = fetchurl {
-    url = "https://registry.npmjs.org/@effect/language-service/-/language-service-0.62.5.tgz";
-    hash = "sha512-vCMZkqbE8bQ4cmksrj2HLVhYXL6B0bs7uulALgVh6Hh46/V2WrcExgx6DTr0BE6nwBuecqbd4xWjEoPSwI8bPw==";
+  "@effect/language-service@0.63.0" = fetchurl {
+    url = "https://registry.npmjs.org/@effect/language-service/-/language-service-0.63.0.tgz";
+    hash = "sha512-ATeSq70sLmEIniZzmAdveADgaUFBpVRsKvdFnIewkw6xLV6Misf1h6C1YDIT9xwkB/Ut0GqOZ2qw5/Ufk+bB2A==";
   };
   "@effect/platform-bun@0.87.0" = fetchurl {
     url = "https://registry.npmjs.org/@effect/platform-bun/-/platform-bun-0.87.0.tgz";
