@@ -18,13 +18,13 @@ jobs:
     steps:
       - name: Generate GitHub App Token
         id: github-app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v2.2.2
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.1.0
         with:
           token: ${{ steps.github-app-token.outputs.token }}
 
