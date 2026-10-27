@@ -23,12 +23,12 @@ jobs:
     steps:
       - name: Checkout [main]
         if: github.event_name != 'pull_request'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.1.0
         with:
           fetch-depth: 0
       - name: Checkout [pr]
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.1.0
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
@@ -63,12 +63,12 @@ jobs:
     steps:
       - name: Checkout [main]
         if: github.event_name != 'pull_request'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.1.0
         with:
           fetch-depth: 0
       - name: Checkout [pr]
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.1.0
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
@@ -130,12 +130,12 @@ jobs:
     steps:
       - name: Checkout [main]
         if: github.event_name != 'pull_request'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.1.0
         with:
           fetch-depth: 0
       - name: Checkout [pr]
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.1.0
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
@@ -155,13 +155,13 @@ jobs:
         run: nix develop --command bunx turbo e2e --filter=@home-automation/deep-heating
 
       - name: Post E2E test summary
-        uses: daun/playwright-report-summary@v3
+        uses: daun/playwright-report-summary@v3.11.0
         if: always()
         with:
           report-file: packages/deep-heating/playwright-results.json
 
       - name: Upload test artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         if: always()
         with:
           name: playwright-report
@@ -182,7 +182,7 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'update-snapshots')
     steps:
       - name: Checkout [pr]
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.1.0
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
@@ -201,7 +201,7 @@ jobs:
 
       - name: Generate GitHub App Token
         id: github-app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v2.2.2
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
