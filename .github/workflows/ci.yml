@@ -124,7 +124,7 @@ jobs:
 
   build:
     needs: [check-changes, validate-nix]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: github.head_ref != 'changeset-release/main' && needs.check-changes.outputs.should_build == 'true'
     steps:
@@ -174,7 +174,7 @@ jobs:
 
   update-snapshots:
     needs: [check-changes]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: |
       github.head_ref != 'changeset-release/main' &&
