@@ -1,11 +1,11 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(gh pr:*), Bash(cd:*), Bash(pwd:*)
-description: Commit changes, create/update PR, enable automerge, and wait for merge
+allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(gh pr create:*), Bash(gh pr view:*), Bash(gh pr list:*), Bash(gh pr checks:*), Bash(gh pr ready:*), Bash(gh pr edit:*), Bash(cd:*), Bash(pwd:*)
+description: Commit changes, create/update PR, wait for checks, and mark it ready for review
 ---
 
 ## Your task
 
-This command automates the entire process of getting changes merged into main:
+This command takes changes to a pull request that is ready for a maintainer to review and merge:
 
 1. **Check current git status** - Determine if there are uncommitted changes
 2. **Handle uncommitted changes** (if any):
@@ -23,16 +23,11 @@ This command automates the entire process of getting changes merged into main:
    - Push the branch to origin
 6. **Check for existing PR**:
    - If PR already exists for current branch, ensure it's up to date
-   - If no PR exists, create one with a descriptive title and body
-7. **Enable automerge** on the PR (squash merge)
-8. **Monitor the PR** until it's merged:
-   - Use `gh pr checks --watch` to wait for checks to complete
-   - After checks pass, verify merge status
-   - Alert when merged successfully or if merge fails
-9. **Clean up** after successful merge:
-   - Checkout main: `git checkout main`
-   - Pull latest changes: `git pull origin main`
-   - Delete the local feature branch: `git branch -d {branch-name}`
+   - If no PR exists, create one as a draft with a descriptive title and body
+7. **Wait for checks** with `gh pr checks --watch`
+   - If a check fails, fix it, push, and wait again
+8. **Mark the PR ready for review** with `gh pr ready` once every check is green
+9. **Report** the PR's URL and say it is ready for a maintainer to merge
 
 ## Important notes
 
@@ -40,5 +35,5 @@ This command automates the entire process of getting changes merged into main:
 - Use conventional commit format for commit messages
 - PR title should follow conventional commits format
 - Monitor and report PR check statuses while waiting
-- Only proceed with cleanup after successful merge
-- If merge fails, report the failure reason and leave branch intact for debugging
+- Never merge the PR or set it to merge itself. A maintainer merges it.
+- Leave the branch in place, because the PR still needs it
