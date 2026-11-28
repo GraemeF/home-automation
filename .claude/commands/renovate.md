@@ -49,7 +49,7 @@ For MINOR and MAJOR version bumps:
 
 #### 2.4 Work on the Branch
 
-Follow the project's branch workflow (see CLAUDE.md) to work on the Renovate branch. Ensure you have the latest changes from origin.
+Work on the Renovate branch. Ensure you have the latest changes from origin.
 
 #### 2.5 Update Lock Files
 
@@ -114,7 +114,7 @@ gh pr merge {PR_NUMBER} --squash --auto
 
 ### Step 3: Clean Up
 
-After the PR is merged, clean up according to the project's branch workflow (see CLAUDE.md).
+After the PR is merged, remove any worktree and local branch you created for it.
 
 Report how many Renovate PRs remain (if any). The user can run `/renovate` again to process the next one.
 
