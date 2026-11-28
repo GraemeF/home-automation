@@ -1,6 +1,6 @@
 ---
-allowed-tools: Bash(git fetch:*), Bash(git pull:*), Bash(git merge:*), Bash(git push:*), Bash(git log:*), Bash(git status:*), Bash(git show:*), Bash(git add:*), Bash(git commit:*), Bash(bd merge:*), Bash(gh pr list:*), Bash(gh pr create:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(gh pr view:*)
-description: Merge latest origin/main into beads-metadata branch and create automerging PR
+allowed-tools: Bash(git fetch:*), Bash(git pull:*), Bash(git merge:*), Bash(git push:*), Bash(git log:*), Bash(git status:*), Bash(git show:*), Bash(git add:*), Bash(git commit:*), Bash(bd merge:*), Bash(gh pr list:*), Bash(gh pr create:*), Bash(gh pr checks:*), Bash(gh pr view:*)
+description: Merge latest origin/main into beads-metadata branch and open a PR ready for review
 ---
 
 ## Your task
@@ -90,20 +90,14 @@ cd /path/to/repo/.git/beads-worktrees/beads-metadata
      ```
    - If PR already exists, it will automatically have the new commits
 
-8. **Enable automerge**
-
-   ```bash
-   gh pr merge --auto --squash beads-metadata
-   ```
-
-9. **Monitor until merged**
+8. **Wait for checks**
 
    ```bash
    gh pr checks beads-metadata --watch
    ```
 
-   - After checks pass, verify merge completed
-   - Report success or failure
+   - Report the PR's URL and whether its checks passed
+   - Leave the merge to a maintainer
 
 ### Important notes
 
