@@ -1,11 +1,11 @@
 ---
-allowed-tools: Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(gh run:*), Bash(git checkout:*), Bash(git status:*), Bash(git branch:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(git fetch:*), Bash(git diff:*), Bash(git worktree:*), Bash(bun install:*), Bash(bun pm:*), Bash(turbo:*), Read, Glob, Grep, Edit, Write, Task, WebFetch
+allowed-tools: Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh pr checks:*), Bash(gh run:*), Bash(git checkout:*), Bash(git status:*), Bash(git branch:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(git fetch:*), Bash(git diff:*), Bash(git worktree:*), Bash(bun install:*), Bash(bun pm:*), Bash(turbo:*), Read, Glob, Grep, Edit, Write, Task, WebFetch
 description: Process open Renovate dependency update PRs
 ---
 
 # Your Task
 
-Process ONE open Renovate PR by reviewing changes, making necessary updates, and merging it. Run this command multiple times to process additional PRs.
+Process ONE open Renovate PR by reviewing changes, making necessary updates, and getting its checks green so a maintainer can merge it. Run this command multiple times to process additional PRs.
 
 ## Workflow
 
@@ -103,18 +103,19 @@ git commit -m "chore: update code for dependency changes"
 git push origin {BRANCH_NAME}
 ```
 
-#### 2.10 Merge the PR
+#### 2.10 Wait for CI
 
-Wait for CI to pass, then merge:
+Wait for CI to pass:
 
 ```bash
 gh pr checks {PR_NUMBER} --watch
-gh pr merge {PR_NUMBER} --squash --auto
 ```
+
+If a check fails, fix it, push, and wait again. Don't merge the PR. A maintainer merges it once its checks are green.
 
 ### Step 3: Clean Up
 
-After the PR is merged, clean up according to the project's branch workflow (see CLAUDE.md).
+Once the PR's checks are green, remove any worktree and local branch you created for it.
 
 Report how many Renovate PRs remain (if any). The user can run `/renovate` again to process the next one.
 
@@ -148,11 +149,9 @@ Report how many Renovate PRs remain (if any). The user can run `/renovate` again
 2. Search the codebase for opportunities to use them
 3. Apply straightforward improvements only
 
-### Merge Strategy
+### Merge Order
 
-- Use squash merge to keep history clean
-- If multiple Renovate PRs touch similar dependencies, consider whether order matters
-- Don't force merge if checks are failing
+- If multiple Renovate PRs touch similar dependencies, say in your report whether the order they merge in matters
 
 ## Progress Tracking
 
@@ -162,8 +161,9 @@ Use TodoWrite to track progress through the steps for this single PR.
 
 ### Success
 
-The Renovate PR has been merged successfully. Report:
+The Renovate PR's checks are green and it is ready for a maintainer to merge. Report:
 
+- The PR's URL
 - What was updated
 - Any code changes made
 - New features leveraged (if any)
