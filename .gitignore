@@ -51,6 +51,7 @@ out/
 
 # Claude
 *.local.json
+CLAUDE.local.md
 
 # Mise local config
 mise.local.toml
